@@ -4,6 +4,7 @@ import BulkQuoteReceived from '@/emails/bulk-quote';
 import GiftCardEmail from '@/emails/gift-card';
 import OrderConfirmation, { type EmailOrder } from '@/emails/order-confirmation';
 import AbandonedCheckout from '@/emails/abandoned-checkout';
+import BulkQuoteReady from '@/emails/bulk-quote-ready';
 import OrderStatus, { statusCopy } from '@/emails/order-status';
 import ProofApproved from '@/emails/proof-approved';
 import ProofReady from '@/emails/proof-ready';
@@ -62,4 +63,8 @@ export async function notifyAdmin(subject: string, text: string) {
   const to = process.env.ADMIN_NOTIFY_EMAIL;
   if (!to) return { sent: false, reason: 'no_admin_email' };
   return sendEmail({ to, subject, tag: 'admin', react: createElement('pre', null, text) });
+}
+
+export async function notifyQuoteReady(o: { to: string; name: string; number: string; token: string; totalKobo: number }) {
+  return sendEmail({ to: o.to, subject: `Your Pemart bulk quote: ${o.number}`, tag: 'bulk-quote-ready', react: createElement(BulkQuoteReady, { name: o.name, totalKobo: o.totalKobo, link: orderLink(o.number, o.token), siteUrl: site(), whatsappUrl: await wa() }) });
 }

@@ -10,8 +10,19 @@ export async function reset() {
     delete from auth.users;
     update public.product_variants set reserved_qty = 0;
     update public.product_variants set stock_qty = 40 where sku like 'FAITH-BRACELET-%';
-    update public.discount_codes set times_used = 0;
-    alter sequence public.order_number_seq restart with 10001;`);
+    alter sequence public.order_number_seq restart with 10001;
+    truncate public.ambassadors, public.discount_codes, public.commissions, public.bulk_quotes, public.inventory_adjustments cascade;
+    insert into public.ambassadors (name, email, code, commission_rate, payout_note) values ('Demo Ambassador', 'ambassador@example.com', 'GRACE10', 0.10, 'Demo only');
+    insert into public.discount_codes (code, type, value) values ('PEMART10', 'percentage', 10);
+    insert into public.discount_codes (code, type, value, ambassador_id) values ('GRACE10', 'percentage', 10, (select id from public.ambassadors where code = 'GRACE10'));
+    -- seeded configuration that admin tests edit
+    update public.delivery_zones set fee_kobo = 350000, free_over_kobo = 7500000, lead_days = 5, christmas_cutoff_date = '2026-12-17' where name = 'Lagos';
+    update public.delivery_zones set fee_kobo = 550000, free_over_kobo = null, lead_days = 5, christmas_cutoff_date = '2026-12-15' where name = 'South-West';
+    update public.delivery_zones set fee_kobo = 750000, free_over_kobo = null, lead_days = 5, christmas_cutoff_date = '2026-12-15' where name = 'Other states';
+    update public.settings set announcement_text = 'Order by 17 Dec for Christmas delivery in Lagos', announcement_active = true, gift_wrap_kobo = 200000, surprise_note_kobo = 300000,
+      express_kobo = 500000, express_enabled = true, maintenance_mode = false, pay_on_delivery_enabled = false, revision_fee_kobo = 200000, review_credit_kobo = 200000;
+    update public.products set is_active = true where slug = 'faith-bracelet';
+    update public.product_variants set stock_qty = 40 where sku like 'FAITH-BRACELET-%';`);
 }
 export const q = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) => (await pool.query(sql, args)).rows as T[];
 export const one = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) => (await q<T>(sql, args))[0] as T;

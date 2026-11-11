@@ -8,6 +8,7 @@ import { getProfile } from '@/lib/auth';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { getSettings } from '@/lib/settings';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 
 const id = z.string().min(1).max(64);
@@ -50,6 +51,7 @@ export type StartCheckoutResult = Extract<StartResult, { ok: true }> | { ok: fal
 /** The real checkout. Re-validates and re-prices everything on the server, creates the order, starts payment. */
 export async function startCheckout(rawPricing: unknown, rawDetails: unknown): Promise<StartCheckoutResult> {
   if (!rateLimit(`checkout:${await ip()}`, 15, 10 * 60_000).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.', fieldErrors: {} };
+  if ((await getSettings()).maintenance_mode) return { ok: false, message: 'We are making a few updates and are not taking orders right now. Please try again shortly.', fieldErrors: {} };
   const pricing = pricingSchema.safeParse(rawPricing);
   if (!pricing.success) return { ok: false, message: 'Something is wrong with your bag. Please refresh and try again.', fieldErrors: {} };
   const details = detailsSchema.safeParse(rawDetails);

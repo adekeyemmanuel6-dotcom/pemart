@@ -71,3 +71,12 @@ npm run test:db           # integration tests against real Postgres (stock, idem
 - **Making yourself admin:** sign in once, then run `supabase/make-admin.sql` in the Supabase SQL editor. Add staff the same way with `role = 'staff'`.
 - **Local login without Supabase:** with `DATABASE_URL` set (local Postgres mode), `/api/dev/login?email=you@example.com&role=admin&next=/admin` signs you in. It does not exist in production.
 - **Cron jobs** (`vercel.json`): `/api/cron/expire` (cancels unpaid orders after 24 hours) and `/api/cron/reminders` (abandoned-checkout email, review requests). Both need `CRON_SECRET`. Hourly schedules need Vercel Pro; on Hobby change them to daily.
+
+## Admin
+
+Open `/admin` after signing in as an admin or staff user (see "Making yourself admin" above). `/admin/help` is the owner's guide.
+
+- **Staff** can run operations: orders, production board, proofs, bulk quotes, reviews, customers. **Admins** can also edit the catalogue, discounts and ambassadors, reports and settings.
+- Proof images, product photos and the logo upload to private/public Supabase buckets through short-lived signed URLs. In local Postgres mode they are saved to `public/uploads` (git-ignored).
+- Changes to the catalogue and settings reach the store within about five minutes (the store caches them) and immediately in local mode.
+- Testing the admin locally: `/api/dev/login?email=staff@example.com&role=staff&next=/admin` (or `role=admin`).

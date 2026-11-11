@@ -22,7 +22,7 @@ const call = async <T extends Res>(fn: string, arg: Record<string, unknown>): Pr
 // ------------------------------------------------------------------ proofs
 /** Staff: attach a proof to a custom request and email the customer. (Called by the admin screen in Phase 6.) */
 export async function sendProof(a: { customRequestId: string; path: string; message?: string; actor?: string | null }) {
-  const r = await call<Res & { version: number; number: string; token: string; email: string; phone: string }>('proof_send', { custom_request_id: a.customRequestId, path: a.path, message: a.message ?? null, actor: a.actor ?? null });
+  const r = await call<Res & { version: number; number: string; token: string; email: string; phone: string }>(a.actor ? 'admin_proof_send' : 'proof_send', { custom_request_id: a.customRequestId, path: a.path, message: a.message ?? null, actor: a.actor ?? null });
   if (!r?.ok) return { ok: false as const, error: r?.error ?? 'db_error' };
   await notifyProofReady({ to: r.email, number: r.number, token: r.token, version: r.version, message: a.message });
   return { ok: true as const, version: r.version, whatsapp: staffUpdateLink(r.phone, r.number, 'proof sent') };
@@ -52,7 +52,7 @@ export async function proofUrl(path: string): Promise<string | null> {
 
 // ------------------------------------------------------------------ order status (production board, Phase 6)
 export async function changeOrderStatus(a: { orderId: string; to: OrderStatus; note?: string; actor?: string | null }) {
-  const r = await call<Res & { number: string; token: string; email: string; phone: string; status: string; promised_by: string | null; from?: string }>('order_set_status', { order_id: a.orderId, to: a.to, note: a.note ?? null, actor: a.actor ?? null });
+  const r = await call<Res & { number: string; token: string; email: string; phone: string; status: string; promised_by: string | null; from?: string }>(a.actor ? 'admin_set_status' : 'order_set_status', { order_id: a.orderId, to: a.to, note: a.note ?? null, actor: a.actor ?? null });
   if (!r?.ok) return { ok: false as const, error: r?.error ?? 'db_error' };
   if (NOTIFY_ON.includes(a.to)) await notifyOrderStatus({ to: r.email, number: r.number, token: r.token, status: a.to, promisedBy: r.promised_by });
   return { ok: true as const, whatsapp: staffUpdateLink(r.phone, r.number, a.to, r.promised_by) };
@@ -67,8 +67,8 @@ export async function submitReview(a: { number: string; orderItemId: string; rat
   return r.ok ? { ok: true as const } : { ok: false as const, error: r.error ?? 'failed' };
 }
 
-export async function moderateReview(a: { reviewId: string; decision: 'approve' | 'reject' }) {
-  const r = await call<Res & { credit_granted: boolean }>('review_moderate', { review_id: a.reviewId, decision: a.decision });
+export async function moderateReview(a: { reviewId: string; decision: 'approve' | 'reject'; actor?: string | null }) {
+  const r = await call<Res & { credit_granted: boolean }>(a.actor ? 'admin_review_moderate' : 'review_moderate', { review_id: a.reviewId, decision: a.decision, actor: a.actor ?? null });
   return r?.ok ? { ok: true as const, creditGranted: !!r.credit_granted } : { ok: false as const, error: r?.error ?? 'db_error' };
 }
 

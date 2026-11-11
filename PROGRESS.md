@@ -1,6 +1,6 @@
 # Pemart build progress
 
-Last updated: Phase 5 complete (awaiting review).
+Last updated: Phase 6 complete (awaiting review).
 
 ## Status
 
@@ -10,9 +10,9 @@ Last updated: Phase 5 complete (awaiting review).
 | 2. Catalogue | Done, reviewed |
 | 3. Bundles and custom | Done, reviewed |
 | 4. Bag and checkout | Done, reviewed |
-| 5. Accounts and post-purchase | **Done, ready for review** |
-| 6. Admin | Next |
-| 7. Polish and launch | Not started |
+| 5. Accounts and post-purchase | Done, reviewed |
+| 6. Admin | **Done, ready for review** |
+| 7. Polish and launch | Next |
 
 ## Phase 1: what exists
 
@@ -163,9 +163,51 @@ Paystack **live** keys and the webhook URL `https://YOUR-DOMAIN/api/webhooks/pay
 49. **Vercel crons**: two hourly jobs now (`expire` and `reminders`). Hobby plans only allow daily crons, so use Pro or change both schedules to daily.
 50. **Staff screens for proofs/reviews are Phase 6.** The back end (`sendProof`, `moderateReview`, `changeOrderStatus`) is built, tested and waiting for them.
 
+## Phase 6: what exists
+
+- **Roles, enforced four times.** Admin pages call `requireStaff` / `requireAdmin` on the server; every server action re-checks; every database function re-checks the actor's role itself (`_require`); and the tables keep their RLS policies. Staff get orders, production, proofs, quotes, reviews and customers; admins also get catalogue, discounts, reports and settings. A staff user who opens an admin-only URL is sent back to the dashboard with a notice, and a staff write to an admin function is refused by the database (tested directly).
+- **Overview:** today and this week's revenue, orders, average order, share of orders with a bundle, checkout-to-paid conversion (admins only); due in 48 hours, at risk of missing the promise (highlighted), proofs waiting and late against each tier's promise, low stock, new quotes, reviews to approve, refunds needed.
+- **Orders:** search by number, name, phone or email; filter by status, zone, custom, promised dates; phone cards and desktop table. Order detail: every item including all bundle selections and custom briefs and customer uploads, address, payment records, timeline (with who did what), internal notes, one-click status moves (customer emailed for in production / out for delivery / delivered), WhatsApp update button, printable packing slip (no prices), refund recording (record only; the money goes back in Paystack).
+- **Production board:** columns Ready to start, In production, Quality check, Packed, Out for delivery, Delivered (7 days); sorted by promised date; red when due within 24 hours; tick several orders and move them together, with illegal moves reported.
+- **Proofs queue:** brief, uploads, wait time versus the 12/24/48h promise, upload a proof image and send it (customer emailed, optional WhatsApp link). "Waiting on the customer" list.
+- **Bulk quotes:** New / Quoted / Won / Lost, quoted amount, and "turn into an order": an unpaid order with a 7-day payment link, emailed to the customer.
+- **Reviews:** approve or reject; approving a photo review grants store credit once.
+- **Customers:** orders, lifetime spend, last order, store credit, has account; search; CSV export (formula-safe).
+- **Catalogue (admin):** products (details, SEO, visibility), photos (upload, reorder, alt text required), variants (price override, visibility, bulk colour x size x option generation that never touches existing ones), stock adjustments with a required reason and a log, designs, collections, bundles with slot rules (allowed designs, fixed product, size/colour/option needs, matching groups, printed names, availability window in Lagos time).
+- **Discounts (admin):** codes with percentage or fixed value, minimum spend, dates, total and per-customer limits; ambassadors with a personal 10% code, sales, commission owed and "mark as paid".
+- **Reports (admin):** date range, sales by day (chart plus table), best-selling designs, products, bundles, collections, delivery zones and ambassador codes; CSV for each.
+- **Settings (admin):** announcement bar, logo upload, WhatsApp number and social links, add-on prices, extra revision fee, review credit, the bag offer, delivery zone fees, free-delivery threshold, delivery days and Christmas cutoffs, maintenance mode.
+- **`/admin/help`:** the owner's guide (staff and admins see their own version).
+- **Uploads:** staff upload proofs and admins upload photos and the logo through short-lived signed URLs (Supabase) or, in local dev only, to `public/uploads`.
+
+## Phase 6 decisions
+
+51. **Admin work goes through database functions that take the actor's id and check the role inside the database**, in addition to the page and action gates. This also lets the whole admin run, and be tested, on a plain local Postgres.
+52. **Local Postgres mode now reads the catalogue and settings from the database**, so admin edits show on the store immediately. (The fixture is only used when there is no database at all.)
+53. **Messages after an item moves lists** (proof sent, quote converted, review decided) travel in the page address as a banner, because the card that held the message is gone after the move.
+54. **Forms keep what you typed after an error.** React 19 clears a form after any server action; the admin forms put your values back when the action fails, and the account and public forms echo values back as before.
+55. **Refunds are recorded, not performed** (as specified). Orders paid twice or paid after expiry are flagged "Refund needed" on the overview and the order.
+56. **The print partner is not part of the admin**, as you asked: no partner email, no work-order screen. The packing slip is for your own team.
+57. **Maintenance mode** replaces the storefront pages with a "back soon" notice and makes checkout refuse new orders; the admin and the payment webhook keep working. Static pages pick the change up within about five minutes.
+58. **A won bulk quote is an unpaid order the customer pays online**, with a 7-day link (normal orders expire after 24 hours), delivery fee included in the quoted total.
+59. **Reports count paid, non-cancelled, non-refunded orders by the day they were paid in Lagos time.** Item-level revenue (designs, products) is before discounts; the totals are what customers actually paid.
+
+## Acceptance tests: current coverage
+
+| Part 7 acceptance test | Status |
+|---|---|
+| Guest buys a tee with a code, pays, correct total, 5-day promise | Covered (`tests/e2e/checkout-flows.cjs`, integration) |
+| Couple's Christmas Box selections in the bag, order, **admin view** and email | Covered: the admin order page and packing slip list every slot (admin run) (the print partner email does not exist by your decision) |
+| Custom text design: pay, awaiting proof, **admin uploads a proof**, customer revises, admin sends the second, customer approves, and only then the promise is set | Covered end to end, including the admin proof upload (`admin-flows.cjs` E, `post-purchase-flows.cjs`) |
+| Browser price tampering does not change the charge | Covered |
+| Fake/replayed webhook rejected, duplicate does not double-process | Covered (`webhook.test.ts`) |
+| After a zone's Christmas cutoff gift box pages show the notice and checkout warns | Covered (hub with the browser clock at 18 Dec; checkout warning in unit tests) |
+| Ambassador code gives 10% and creates a pending commission | Covered, plus admin "mark as paid" |
+| **Staff cannot open settings, discounts or reports** | **Covered:** browser (redirected from every admin-only page and CSV) and database (every admin-only function refuses staff) |
+
 ## Known gaps (by design, later phases)
 
-Admin screens, including proof upload, review moderation, production board, WhatsApp update buttons (P6); Playwright, SEO, analytics, Lighthouse (P7).
+The final Playwright suite, accessibility and performance passes, analytics and pixels behind cookie consent, nonce-based CSP, ESLint, final README and launch checklist (P7).
 
 ## Needed before Phase 4
 

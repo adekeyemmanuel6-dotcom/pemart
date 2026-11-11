@@ -27,7 +27,8 @@ export async function requireProfile(next = '/account'): Promise<Profile> {
 /** Server-side role gate. Call at the top of every admin page and server action. */
 export async function requireRole(allowed: Role[], next = '/admin'): Promise<Profile> {
   const profile = await requireProfile(next);
-  if (!allowed.includes(profile.role)) redirect('/?denied=1');
+  // Staff who wander into an admin-only screen go back to the dashboard; everyone else goes home.
+  if (!allowed.includes(profile.role)) redirect(profile.role === 'staff' ? '/admin?denied=1' : '/?denied=1');
   return profile;
 }
 

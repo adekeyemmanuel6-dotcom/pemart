@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { isSupabaseConfigured } from '@/lib/env';
+import { dbMode, getRpc } from '@/lib/db';
 import { createPublicClient } from '@/lib/supabase/public';
 import type { Catalogue } from './types';
 
@@ -45,7 +46,13 @@ async function fromFixture(): Promise<Catalogue> {
 }
 
 export const getCatalogue = unstable_cache(
-  async (): Promise<Catalogue> => (isSupabaseConfigured ? fromSupabase() : fromFixture()),
+  async (): Promise<Catalogue> => {
+    if (dbMode() === 'pg') {            // local Postgres: read straight from the database so admin edits appear
+      const r = await (await getRpc())!<Catalogue>('catalogue_export', {});
+      if (r.data) return r.data;
+    }
+    return isSupabaseConfigured ? fromSupabase() : fromFixture();
+  },
   ['catalogue-v1'],
   { tags: ['catalogue'], revalidate: 300 },
 );

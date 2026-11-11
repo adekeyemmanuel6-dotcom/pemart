@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
 import { isSupabaseConfigured } from '@/lib/env';
+import { dbMode, getRpc } from '@/lib/db';
 
 export type StoreSettings = {
   announcement_text: string | null;
@@ -44,6 +45,10 @@ export const DEFAULT_SETTINGS: StoreSettings = {
 /** Cached; admin edits call revalidateTag('settings'). */
 export const getSettings = unstable_cache(
   async (): Promise<StoreSettings> => {
+    if (dbMode() === 'pg') {
+      const r = await (await getRpc())!<StoreSettings>('settings_public', {});
+      if (r.data) return { ...DEFAULT_SETTINGS, ...r.data };
+    }
     if (!isSupabaseConfigured) {
       // Local/demo: the offer is the seeded bracelet at ₦4,500, like the seed data.
       const fx = (await import('@/lib/catalogue/fixture.json')).default as unknown as { products: { id: string; slug: string }[] };
