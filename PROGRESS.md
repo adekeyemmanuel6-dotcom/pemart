@@ -1,6 +1,6 @@
 # Pemart build progress
 
-Last updated: Phase 3 complete (awaiting review).
+Last updated: Phase 4 complete (awaiting review).
 
 ## Status
 
@@ -8,9 +8,9 @@ Last updated: Phase 3 complete (awaiting review).
 |---|---|
 | 1. Foundation | Done, reviewed |
 | 2. Catalogue | Done, reviewed |
-| 3. Bundles and custom | **Done, ready for review** |
-| 4. Bag and checkout | Next |
-| 5. Accounts and post-purchase | Not started |
+| 3. Bundles and custom | Done, reviewed |
+| 4. Bag and checkout | **Done, ready for review** |
+| 5. Accounts and post-purchase | Next |
 | 6. Admin | Not started |
 | 7. Polish and launch | Not started |
 
@@ -97,9 +97,52 @@ Style guide (dev only): `/dev/style`.
 30. **Bug fixed:** React 19 clears uncontrolled form fields after a server action finishes, so a validation error wiped the visitor's inputs. Actions now echo submitted values (bulk, sign-in, newsletter) and the fields refill.
 31. **Gift card delivery** (recipient email, message, code email) is built with checkout in Phase 4.
 
+## Phase 4: what exists
+
+- **Bag**: slide-out drawer (opens on add, or from the header bag) and a full `/bag` page. Each line shows its options; bundles are one line with "What's inside" listing every slot; gift message and gift wrap shown; quantity controls; one configurable upsell (the bracelet at ₦4,500, from settings); free-delivery progress bar ("₦55,200 away from free delivery in Lagos"); discount and gift card code fields; estimated delivery date; live stock (an item that sells out is flagged and blocks checkout).
+- **Pricing engine** (`lib/checkout/pricing.ts`): one pure function used by the bag preview and the real checkout, so they cannot disagree. Covers variants, bundles (validated with the Phase 3 selection rules), custom designs (garment + server-side tier fee), gift cards bought and spent, store credit, discount and ambassador codes (min spend, dates, usage and per-customer limits, collection/product restrictions, never on gift cards), delivery zones and the free-Lagos threshold (judged after discounts), gift wrap, surprise note (Lagos only), express 48h (ready designs only), ship-ready-first, promised dates, and Christmas lateness warnings. 41 unit tests.
+- **Checkout** (`/checkout`): one page. Contact (Nigerian phone validation, optional account link), delivery with state to zone and fee, gift to another recipient with a message, extras, review with the promised date, Christmas warning, required final-sale checkbox for custom items, pay with Paystack. Fully gift-card-covered orders skip payment. Digital-only orders (gift cards) skip the address.
+- **Paystack** (`lib/paystack.ts`, `/api/payments/verify`, `/api/webhooks/paystack`): the server initialises the transaction for the amount it computed; after the popup the server asks Paystack and the database checks amount and currency; the webhook verifies the HMAC-SHA512 signature over the raw body, handles `charge.success` idempotently and stores the raw payload. Card, bank transfer and USSD channels. Structured logs for every payment and webhook event.
+- **Orders in the database** (`0010_checkout.sql`): single-transaction SQL functions for create order (with row-locked stock holds), mark paid (idempotent), expire, cancel, live stock, guest order lookup, and custom request creation. Executable by the service role only.
+- **Order page** (`/order/[number]?t=token`): confirmation with items (bundle slots listed), totals, delivery address, timeline, WhatsApp link. Guests need the private link token; owners can open it when signed in.
+- **Emails** (React Email via Resend): order confirmation (every bundle selection, gift messages, promised date or the proof/5-day explanation), gift card delivery, bulk quote receipt plus admin notification. Without a Resend key they are written to `./.outbox`.
+- **Notifications structure** (`lib/notifications`): email channel now; WhatsApp click-to-chat links with the order number and status pre-filled; a `WhatsAppChannel` interface where the WhatsApp Business Cloud API plugs in later with no other changes.
+- **Cron**: `/api/cron/expire` (secret-protected, hourly in `vercel.json`) cancels unpaid orders after 24 hours and releases stock, credit and gift card balance.
+
+## Acceptance tests covered so far
+
+| Part 7 acceptance test | Where it is verified |
+|---|---|
+| Guest buys a tee to Lagos with a code, pays, total correct, promised date 5 days out | `tests/e2e/checkout-flows.cjs` (A) + `tests/integration/checkout.test.ts` |
+| Couple's Christmas Box: every selection in the bag, the order and the confirmation email | e2e (B). Admin view and print partner are Phase 6 (print partner removed by your request) |
+| Custom text design pays, sits in `awaiting_proof`, no production start or promise | e2e (C) + integration. Proof upload, revision and approval are Phase 5/6 |
+| Browser price tampering does not change the charge | pricing unit tests + e2e (D) + integration |
+| Fake/replayed webhook rejected; duplicate valid webhook does not double-process | `tests/integration/webhook.test.ts` (unsigned, wrong key, forged amount, replays, verify/webhook race) |
+| After a zone's Christmas cutoff gift boxes show the notice and checkout warns | Phase 3 hub (browser, clock set to 18 Dec) + pricing unit tests for the checkout warning |
+| Ambassador code gives 10% off and creates a pending commission | e2e (G) + integration |
+| Staff cannot open settings, discounts or reports | Phase 6 (admin screens) |
+
+## Phase 4 decisions
+
+32. **Money-critical work lives in SQL functions**, reached through one doorway (`lib/db.ts`): the Supabase service role in production, or a plain Postgres URL in local development. The Postgres route is refused when `NODE_ENV=production`, as is the Paystack mock.
+33. **Store credit and gift card balance are deducted when the order is created** (held) and restored if it is cancelled or expires. That makes double-spending impossible; the cost is that an abandoned checkout briefly locks that balance (max 24 hours).
+34. **Gift wrap**: a bundle's own "gift wrap" switch costs ₦2,000 per wrapped bundle, and the checkout checkbox adds ₦2,000 once for the whole order.
+35. **Express** = 2-day production for ready designs only (not custom items, and not bundles with printed names). **Ship ready items first** (mixed orders) costs one extra delivery fee. By default a mixed order ships together after the proof is approved.
+36. **A payment that arrives after the order expired** restores the order if stock is still there; otherwise the order stays cancelled and is flagged "Refund needed" (Phase 6 shows these).
+37. **The 1-hour abandoned-checkout email is Phase 5** (it needs the scheduled email run alongside the other reminders). The 24-hour cancellation is done.
+38. **Webhook replies**: valid signature gets 200 even for events we ignore or amounts that do not match (so Paystack stops retrying and the order stays unpaid and logged); only a database failure returns 500 to trigger a retry.
+39. **Catalogue prices come from the cached catalogue, but stock is live** (overlaid from the database on every quote). A race is still impossible because the SQL function re-checks stock under a row lock.
+40. **The "create an account" checkbox** emails a sign-in link after the order (needs Supabase, so it is untested here).
+41. **Dev gotchas**: seed UUIDs are random per database build, so after `npm run db:local` run `npm run db:fixture` and `rm -rf .next` (Next caches the old catalogue on disk).
+42. **Vercel cron** runs hourly in `vercel.json`; hourly crons need the Pro plan. On Hobby change the schedule to daily (orders then expire up to a day late).
+
+## Before this goes live (Phase 4 items)
+
+Paystack **live** keys and the webhook URL `https://YOUR-DOMAIN/api/webhooks/paystack` set in the Paystack dashboard; Resend domain verified and `EMAIL_FROM` set; `CRON_SECRET` set in Vercel; `ADMIN_NOTIFY_EMAIL` set for bulk quote alerts.
+
 ## Known gaps (by design, later phases)
 
-Bag drawer, checkout, Paystack, emails (P4); account orders and proofs (P5); admin screens (P6); Playwright, SEO, analytics, Lighthouse (P7).
+Account orders and proofs, `/track`, reviews, abandoned-checkout email (P5); admin screens (P6); Playwright, SEO, analytics, Lighthouse (P7).
 
 ## Needed before Phase 4
 

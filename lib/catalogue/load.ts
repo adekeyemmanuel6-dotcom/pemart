@@ -34,6 +34,13 @@ async function fromSupabase(): Promise<Catalogue> {
 }
 
 async function fromFixture(): Promise<Catalogue> {
+  // PEMART_FIXTURE_PATH lets local development and the integration tests point at a fixture exported from
+  // the SAME database they use (seed UUIDs are random per database build). Never used in production.
+  const custom = process.env.PEMART_FIXTURE_PATH;
+  if (custom && process.env.NODE_ENV !== 'production') {
+    const { readFile } = await import('node:fs/promises');
+    return JSON.parse(await readFile(custom, 'utf8')) as Catalogue;
+  }
   return (await import('./fixture.json')).default as unknown as Catalogue;
 }
 

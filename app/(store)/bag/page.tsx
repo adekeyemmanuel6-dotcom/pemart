@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
-import { ComingSoon } from '@/components/coming-soon';
+import { BagContents } from '@/components/bag/bag-contents';
 
-export const metadata: Metadata = { title: 'Your Bag' };
+export const metadata: Metadata = { title: 'Your Bag', robots: { index: false } };
 
-export default function Page() {
-  return <ComingSoon title="Your Bag" phase={4} />;
+export default function BagPage() {
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <h1 className="display mb-6 text-5xl sm:text-6xl">Your bag</h1>
+      <BagContents variant="page" />
+    </section>
+  );
 }

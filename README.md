@@ -33,3 +33,34 @@ Regenerate design artwork and the seed: `npm run gen:art && bash scripts/build-s
 ## Roles
 
 `customer` (default), `staff` (orders, proofs, quotes, reviews), `admin` (everything). Checked on the server and again by RLS.
+
+## Local development with a database (checkout, orders, emails)
+
+The storefront runs with no backend. To exercise the real checkout locally, use a plain Postgres 15+ instead of Supabase:
+
+```bash
+npm run db:local          # builds database `pemart_local` from the migrations + seed
+npm run db:fixture        # exports the catalogue so the app uses the SAME ids as that database
+rm -rf .next              # Next caches the old catalogue on disk after a reseed
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/pemart_local PAYSTACK_MOCK=1 \
+PAYSTACK_SECRET_KEY=sk_test_local CRON_SECRET=local npm run dev
+```
+
+With `PAYSTACK_MOCK=1` the payment popup is a clearly labelled simulation. Both settings are refused when `NODE_ENV=production`, so they can never leak into a real deployment. Emails are written to `./.outbox/*.html` when `RESEND_API_KEY` is not set.
+
+## Tests
+
+```bash
+npm test                  # unit tests (pricing engine, bundles, studio, Paystack signature, ...)
+npm run test:db           # integration tests against real Postgres (stock, idempotency, expiry, webhook route)
+                          # needs a local Postgres; TEST_DB_URL=postgres://user:pass@localhost:5432 if not the default
+```
+
+## How a payment works (so you can trust it)
+
+1. The browser sends **what is in the bag** (ids and choices). Never a price.
+2. The server re-prices everything from the database (`lib/checkout/pricing.ts`), then one SQL function creates the order, holds stock, and records the payment reference, all in a single transaction.
+3. The server starts the Paystack transaction for the amount **it** calculated and hands the popup an access code.
+4. After the popup, the server asks Paystack whether the payment really succeeded, and the database checks the amount and currency match the order before marking it paid.
+5. Paystack's webhook (`/api/webhooks/paystack`, HMAC-SHA512 signature checked) does the same job. Whichever arrives first wins, and the other changes nothing.
+6. Orders unpaid after 24 hours are cancelled hourly (`/api/cron/expire`) and their stock, store credit and gift card balance are released.

@@ -3,6 +3,7 @@ import { AnnouncementBar } from './announcement-bar';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
 import { WhatsAppButton } from './whatsapp-button';
+import { BagDrawer } from '@/components/bag/bag-drawer';
 
 /** Storefront chrome shared by the (store) and (account) route groups. */
 export async function StoreShell({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
       <main id="main" className="min-h-[60vh]">{children}</main>
       <SiteFooter settings={settings} />
       <WhatsAppButton number={settings.whatsapp_number} />
+      <BagDrawer />
     </>
   );
 }

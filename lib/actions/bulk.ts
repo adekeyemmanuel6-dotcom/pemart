@@ -5,6 +5,7 @@ import { BULK_MIN, bulkTier } from '@/lib/bulk';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { notifyBulkQuote } from '@/lib/notifications';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 
 export type BulkState = { ok: boolean; demo?: boolean; values?: Record<string, string>; message: string; fieldErrors?: Record<string, string>; ref?: string; quantity?: number } | null;
@@ -57,5 +58,8 @@ export async function submitBulkQuote(_prev: BulkState, fd: FormData): Promise<B
     quantity: v.quantity, sizes: sizeTotal ? sizes : null, date_needed: v.dateNeeded ?? null, idea: v.idea ?? null, upload_paths: v.uploadPaths,
   }).select('id').single();
   if (error || !data) return { ok: false, values, message: 'We could not save your request. Please try again or message us on WhatsApp.' };
-  return { ok: true, quantity: v.quantity, ref: data.id.slice(0, 8).toUpperCase(), message: "Thank you. We've got your request and will send a quote soon." };
+  const ref = data.id.slice(0, 8).toUpperCase();
+  // Email the customer a receipt and tell the admin. Never blocks or fails the request.
+  void notifyBulkQuote({ to: v.email, name: v.name, quantity: v.quantity, ref, summary: `Bulk quote ${ref}\n${v.name}${v.organisation ? ` (${v.organisation})` : ''}\n${normaliseNigerianPhone(v.phone)} | ${v.email}\n${v.quantity} x ${v.productType}\nNeeded: ${v.dateNeeded ?? 'n/a'}\nSizes: ${JSON.stringify(sizes)}\nIdea: ${v.idea ?? ''}` });
+  return { ok: true, quantity: v.quantity, ref, message: "Thank you. We've got your request and will send a quote soon." };
 }

@@ -39,6 +39,8 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
   const [size, setSize] = useState<string | null>(null);
   const [option, setOption] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const [gcEmail, setGcEmail] = useState('');
+  const [gcMsg, setGcMsg] = useState('');
   const [added, setAdded] = useState(false);
   const [state, setState] = useState('Lagos');
   const [today, setToday] = useState<Date | null>(null);
@@ -81,7 +83,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
 
   const addToBag = () => {
     if (!selected || selected.soldOut) return false;
-    add({ id: crypto.randomUUID(), kind: 'variant', refId: selected.id, quantity: qty });
+    add({ id: crypto.randomUUID(), kind: 'variant', refId: selected.id, quantity: qty, ...(p.type === 'gift_card' ? { giftCard: { recipientEmail: gcEmail.trim() || undefined, message: gcMsg.trim() || undefined } } : {}) });
     setAdded(true); window.setTimeout(() => setAdded(false), 2500);
     return true;
   };
@@ -117,7 +119,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
               <span className="font-semibold">{formatNaira(price)}</span>
               {p.compareAtKobo && p.compareAtKobo > price && <span className="ml-2 text-lg text-muted line-through">{formatNaira(p.compareAtKobo)}</span>}
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-mocha"><Truck className="size-4" aria-hidden />Arrives in {zone?.leadDays ?? 5} days{p.madeToOrder ? ' · made to order' : ''}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-mocha"><Truck className="size-4" aria-hidden />{p.type === 'gift_card' ? 'Delivered by email, instantly after payment' : <>Arrives in {zone?.leadDays ?? 5} days{p.madeToOrder ? ' · made to order' : ''}</>}</p>
           </div>
 
           {need.colour && (
@@ -172,6 +174,14 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
           )}
           {selected && !selected.soldOut && selected.lowStock !== null && selected.lowStock <= 5 && <p className="text-sm font-semibold text-mocha">Only {selected.lowStock} left</p>}
 
+          {p.type === 'gift_card' && (
+            <div className="space-y-3 rounded-lg border border-line bg-white p-4">
+              <p className="text-sm font-semibold">Who is it for? <span className="font-normal text-muted">(optional: leave blank to get the code yourself)</span></p>
+              <Input type="email" value={gcEmail} onChange={(e) => setGcEmail(e.target.value)} placeholder="Recipient's email" aria-label="Recipient email" />
+              <textarea value={gcMsg} onChange={(e) => setGcMsg(e.target.value)} maxLength={300} rows={2} placeholder="A message to go with it" aria-label="Gift card message" className="w-full rounded-btn border border-line bg-paper p-3 text-base" />
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <div className="flex items-center rounded-btn border-2 border-line bg-white" role="group" aria-label="Quantity">
               <button type="button" className="grid size-12 place-items-center" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity"><Minus className="size-4" aria-hidden /></button>
@@ -183,7 +193,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
           <Button variant="secondary" className="w-full" disabled={disabled} onClick={() => { if (addToBag()) router.push('/bag'); }}>Buy now</Button>
           <p role="status" aria-live="polite" className="min-h-5 text-sm text-mocha">{added && <>Added. <Link href="/bag" className="font-semibold underline">View your bag</Link></>}</p>
 
-          <div className="rounded-lg border border-line bg-white p-4">
+ {p.type !== 'gift_card' && (<div className="rounded-lg border border-line bg-white p-4">
             <label htmlFor="state" className="text-sm font-semibold">Where are we delivering?</label>
             <select id="state" value={state} onChange={(e) => chooseState(e.target.value)} className="mt-2 min-h-12 w-full rounded-btn border border-line bg-paper px-3 text-base">
               {zones.flatMap((z) => z.states).sort((a, b) => a.localeCompare(b)).map((s) => (<option key={s}>{s}</option>))}
@@ -192,7 +202,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
               {eta ? <>Order today and it arrives by <strong>{eta}</strong>.</> : 'Arrives in 5 days.'}{' '}
               {zone && <span className="text-muted">Delivery from {formatNaira(zone.feeKobo)} in {zone.name}.</span>}
             </p>
-          </div>
+          </div>)}
 
           {bundle && (
             <div className="rounded-lg border-2 border-ink p-4">

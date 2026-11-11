@@ -16,11 +16,16 @@ export type BagLine = {
   selection?: Record<string, unknown>;
   giftMessage?: string;
   giftWrap?: boolean;
+  upsell?: boolean;
+  giftCard?: { recipientEmail?: string; message?: string };
 };
 
 type BagState = {
   lines: BagLine[];
   isOpen: boolean;
+  code: string;
+  giftCode: string;
+  setCodes: (code: string, giftCode: string) => void;
   add: (line: BagLine) => void;
   remove: (id: string) => void;
   setQuantity: (id: string, quantity: number) => void;
@@ -33,11 +38,14 @@ export const useBag = create<BagState>()(
     (set) => ({
       lines: [],
       isOpen: false,
+      code: '',
+      giftCode: '',
+      setCodes: (code, giftCode) => set({ code, giftCode }),
       add: (line) =>
         set((s) => {
           // Identical plain variants merge into one line; bundles and custom selections stay separate.
-          const match = line.kind === 'variant' && !line.selection && !line.giftMessage
-            ? s.lines.find((l) => l.kind === 'variant' && l.refId === line.refId && !l.selection && !l.giftMessage)
+          const match = line.kind === 'variant' && !line.selection && !line.giftMessage && !line.upsell && !line.giftCard
+            ? s.lines.find((l) => l.kind === 'variant' && l.refId === line.refId && !l.selection && !l.giftMessage && !l.upsell && !l.giftCard)
             : undefined;
           if (match) return { lines: s.lines.map((l) => (l === match ? { ...l, quantity: Math.min(20, l.quantity + line.quantity) } : l)), isOpen: true };
           return { lines: [...s.lines, line], isOpen: true };
@@ -45,10 +53,10 @@ export const useBag = create<BagState>()(
       remove: (id) => set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       setQuantity: (id, quantity) =>
         set((s) => ({ lines: s.lines.map((l) => (l.id === id ? { ...l, quantity: Math.max(1, Math.min(20, quantity)) } : l)) })),
-      clear: () => set({ lines: [] }),
+      clear: () => set({ lines: [], code: '', giftCode: '' }),
       setOpen: (isOpen) => set({ isOpen }),
     }),
-    { name: 'pemart-bag', partialize: (s) => ({ lines: s.lines }) },
+    { name: 'pemart-bag', partialize: (s) => ({ lines: s.lines, code: s.code, giftCode: s.giftCode }) },
   ),
 );
 

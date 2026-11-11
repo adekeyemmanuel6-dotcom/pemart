@@ -4,7 +4,7 @@ import { customRequestSchema, type CustomRequestInput } from '@/lib/custom/schem
 import { TIERS } from '@/lib/custom/tiers';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getRpc } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 
 export type SaveCustomResult =
@@ -31,18 +31,16 @@ export async function saveCustomRequest(input: CustomRequestInput): Promise<Save
   // Only paths we issued (guest/ prefix) or the demo marker are accepted.
   if (v.uploadPaths.some((p) => !/^(guest\/[0-9a-f-]{36}\/[\w.-]+|demo\/.+)$/.test(p))) return { ok: false, message: 'One of your uploads is not valid. Please re-upload it.' };
 
-  if (!isSupabaseConfigured || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { ok: true, id: `demo-${crypto.randomUUID()}`, persisted: false, feeKobo };
+  const rpc = await getRpc();
+  if (!rpc) return { ok: true, id: `demo-${crypto.randomUUID()}`, persisted: false, feeKobo };
 
-  const admin = createAdminClient();
-  const { data: auth } = await (await createClient()).auth.getUser();
-  const design = v.designSlug ? (await admin.from('designs').select('id').eq('slug', v.designSlug).maybeSingle()).data : null;
-  const { data, error } = await admin.from('custom_requests').insert({
-    profile_id: auth.user?.id ?? null, contact_email: auth.user?.email ?? null,
-    tier: v.tier, product_type: v.productType, design_id: design?.id ?? null, colour: v.colour,
+  const { data: auth } = isSupabaseConfigured ? await (await createClient()).auth.getUser() : { data: { user: null } };
+  const { data, error } = await rpc<{ id: string }>('custom_request_create', {
+    profile_id: auth.user?.id ?? null, contact_email: auth.user?.email ?? null, tier: v.tier, product_type: v.productType, design_slug: v.designSlug ?? null, colour: v.colour,
     print_positions: v.printPositions === 'both' ? ['front', 'back'] : [v.printPositions],
     text_fields: { lines: v.textLines, name: v.name, date: v.date, verse: v.verse, size: v.size }, type_style: v.typeStyle ?? null,
-    notes: v.notes ?? null, upload_paths: v.uploadPaths, status: 'draft', fee_kobo: feeKobo,
-  }).select('id').single();
+    notes: v.notes ?? null, upload_paths: v.uploadPaths, fee_kobo: feeKobo,
+  });
   if (error || !data) return { ok: false, message: 'We could not save your design. Please try again.' };
   return { ok: true, id: data.id, persisted: true, feeKobo };
 }
