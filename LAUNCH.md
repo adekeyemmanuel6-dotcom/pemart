@@ -9,7 +9,7 @@ Tick every box before you point the real domain at the site. Setup steps are in 
 - [ ] Paystack business verified; **live** keys set; **live** webhook URL `https://DOMAIN/api/webhooks/paystack` saved
 - [ ] One real small purchase made, seen as **Paid** in `/admin/orders`, then refunded
 - [ ] Resend domain **Verified**; `EMAIL_FROM` on that domain; a test order email reached a Gmail and an Outlook inbox (check spam too)
-- [ ] `CRON_SECRET` set; both cron jobs show in Vercel > Settings > Cron Jobs (Pro plan for hourly)
+- [ ] `CRON_SECRET` set; both cron jobs show in Vercel > Settings > Cron Jobs (daily on the free plan; switch to hourly on Pro)
 - [ ] `PAYSTACK_MOCK` and `DATABASE_URL` are **not** set in Production
 - [ ] After changing any `NEXT_PUBLIC_*` value, the site was redeployed
 

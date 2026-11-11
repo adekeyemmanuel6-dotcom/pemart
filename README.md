@@ -99,7 +99,7 @@ Leave a variable empty to switch that tool off. Values are in naira (NGN). `purc
 1. Push the repository to GitHub and *Import project* in Vercel (framework: Next.js; build and output defaults are right).
 2. Add the environment variables from section 10 for **Production** (and **Preview** if you want previews to work, using test keys).
 3. Set `NEXT_PUBLIC_SITE_URL` to your final `https://` domain (used for canonical URLs, sitemap, emails and Paystack callbacks). Add your domain under *Settings > Domains*.
-4. **Cron jobs** are defined in `vercel.json`: `/api/cron/expire` (cancels unpaid orders after 24 hours, hourly) and `/api/cron/reminders` (abandoned-checkout and review-request emails, hourly). Set `CRON_SECRET`; Vercel sends it as a Bearer token. Hourly schedules need the Pro plan; on Hobby change both to daily in `vercel.json`.
+4. **Cron jobs** are defined in `vercel.json`: `/api/cron/expire` (cancels unpaid orders after 24 hours, hourly) and `/api/cron/reminders` (abandoned-checkout and review-request emails, hourly). Set `CRON_SECRET`; Vercel sends it as a Bearer token. `vercel.json` ships with **daily** schedules (02:00 and 09:00 UTC) because Vercel's free Hobby plan rejects anything more frequent and the build fails. On the Pro plan you can change them to hourly (`0 * * * *` and `30 * * * *`). With daily runs an unpaid order can be held up to about 48 hours instead of 24 and reminder emails go out once a day.
 5. Deploy, then run through [LAUNCH.md](./LAUNCH.md).
 
 Notes: pages that show the catalogue are cached and refreshed the moment an admin saves a change (tag revalidation), so there is nothing to rebuild when you edit products or settings. Rate limiting is in-memory per server instance (see LAUNCH.md for the upgrade path).
