@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "gen:art": "node scripts/generate-art.mjs",
-    "db:local": "bash scripts/db-local.sh"
+    "db:local": "bash scripts/db-local.sh",
+    "db:fixture": "bash scripts/export-fixture.sh"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.3.1",

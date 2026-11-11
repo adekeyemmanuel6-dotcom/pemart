@@ -79,3 +79,14 @@ body {
 
 .skeleton { background: linear-gradient(90deg, var(--sand) 25%, var(--paper) 50%, var(--sand) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Long-form content (policies, FAQ, about) */
+.prose-pemart { max-width: 44rem; }
+.prose-pemart h2 { font-family: var(--font-display); text-transform: uppercase; font-size: 1.9rem; line-height: 1; margin: 2.5rem 0 0.75rem; }
+.prose-pemart h3 { font-weight: 700; font-size: 1.125rem; margin: 1.5rem 0 0.4rem; }
+.prose-pemart p, .prose-pemart li { color: var(--ink); }
+.prose-pemart p { margin: 0.75rem 0; }
+.prose-pemart ul { list-style: disc; padding-left: 1.25rem; margin: 0.75rem 0; }
+.prose-pemart li { margin: 0.35rem 0; }
+.prose-pemart a { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.prose-pemart a:hover { color: var(--denim); }

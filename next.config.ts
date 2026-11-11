@@ -24,6 +24,8 @@ const csp = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // The OG image route reads this font from disk at runtime, so make sure Vercel ships it.
+  outputFileTracingIncludes: { '/og/[slug]': ['./assets/fonts/**'] },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [{ protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' }],

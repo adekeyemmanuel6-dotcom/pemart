@@ -26,6 +26,8 @@ su postgres -c "psql -d pemart_local -f supabase/tests/verify.sql"
 
 **Your Supabase project:** in the SQL editor (or with the Supabase CLI `supabase db push`) apply the files in `supabase/migrations/` in order, then `supabase/seed.sql`. Do not run `supabase/local-stub.sql`: it only fakes Supabase for local testing. After signing in once, make yourself admin with `supabase/make-admin.sql`.
 
+The storefront reads the catalogue from Supabase when configured, otherwise from `lib/catalogue/fixture.json` (so it runs with no backend). Refresh the fixture after changing seed data: `npm run db:local && npm run db:fixture`.
+
 Regenerate design artwork and the seed: `npm run gen:art && bash scripts/build-seed.sh`.
 
 ## Roles

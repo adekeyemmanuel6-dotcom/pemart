@@ -31,7 +31,15 @@ export const useBag = create<BagState>()(
     (set) => ({
       lines: [],
       isOpen: false,
-      add: (line) => set((s) => ({ lines: [...s.lines, line], isOpen: true })),
+      add: (line) =>
+        set((s) => {
+          // Identical plain variants merge into one line; bundles and custom selections stay separate.
+          const match = line.kind === 'variant' && !line.selection && !line.giftMessage
+            ? s.lines.find((l) => l.kind === 'variant' && l.refId === line.refId && !l.selection && !l.giftMessage)
+            : undefined;
+          if (match) return { lines: s.lines.map((l) => (l === match ? { ...l, quantity: Math.min(20, l.quantity + line.quantity) } : l)), isOpen: true };
+          return { lines: [...s.lines, line], isOpen: true };
+        }),
       remove: (id) => set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       setQuantity: (id, quantity) =>
         set((s) => ({ lines: s.lines.map((l) => (l.id === id ? { ...l, quantity: Math.max(1, Math.min(20, quantity)) } : l)) })),
