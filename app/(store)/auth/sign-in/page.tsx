@@ -7,7 +7,7 @@ import { SignInForm } from './sign-in-form';
 export const metadata: Metadata = { title: 'Sign in', robots: { index: false } };
 
 const errors: Record<string, string> = {
-  callback: 'That sign-in link expired or was already used. Please request a new one.',
+  callback: 'That link expired or was already used. Please try again.',
   oauth: 'Google sign-in did not complete. Please try again.',
   rate: 'Too many attempts. Please wait a few minutes.',
   'not-configured': 'Sign-in is not connected yet.',
@@ -20,7 +20,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   return (
     <section className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <h1 className="display text-5xl">Sign in</h1>
-      <p className="mt-2 mb-8 text-muted">No password needed. We will email you a link, or you can use Google.</p>
+      <p className="mt-2 mb-8 text-muted">Welcome back. You can also check out as a guest without an account.</p>
       {sp.error && <p role="alert" className="mb-4 rounded-btn border border-ember/40 bg-ember/10 p-3 text-sm">{errors[sp.error] ?? 'Something went wrong.'}</p>}
       {!isSupabaseConfigured && <p className="mb-4 rounded-btn border border-line bg-sand/60 p-3 text-sm">Supabase is not connected yet. Add your project keys to <code>.env.local</code> to turn sign-in on.</p>}
       <SignInForm next={next} disabled={!isSupabaseConfigured} />

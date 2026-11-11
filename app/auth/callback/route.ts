@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { safeNext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 
-/** Completes magic-link and Google sign-in (PKCE code exchange). */
+/** Completes Google sign-in, email confirmation and password-reset links (PKCE code exchange). */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');

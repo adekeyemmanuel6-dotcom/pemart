@@ -31,7 +31,8 @@ Tick every box before you point the real domain at the site. Setup steps are in 
 - [ ] Couple's Christmas Box: every choice (designs, sizes, perfumes, bracelets, orb) and the gift message show in the order, the email and the admin
 - [ ] Track an order from `/track` with order number plus phone/email
 - [ ] First-order popup appears once, issues a `PEM-` code, applies it, and the code works only once
-- [ ] Sign in with the magic link and with Google; account shows orders, addresses, wishlist
+- [ ] Create an account with email + password, confirm the email, sign out, sign in, use *Forgot password*, and try Google; the account shows orders, addresses, wishlist
+- [ ] Auth emails (confirm, reset) come from your own name and domain (Supabase > Authentication > SMTP Settings), not from Supabase
 - [ ] Staff login cannot open Settings, Discounts, Reports or Catalogue
 
 ## Performance, accessibility, SEO
