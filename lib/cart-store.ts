@@ -9,11 +9,13 @@ import { persist } from 'zustand/middleware';
  */
 export type BagLine = {
   id: string;
-  kind: 'variant' | 'bundle';
-  refId: string; // variant id or bundle id
+  kind: 'variant' | 'bundle' | 'custom';
+  refId: string; // variant id, bundle slug, or custom request id
   quantity: number;
+  /** bundle: a BundleSelection. custom: { request, persisted, summary }. Never trusted for pricing. */
   selection?: Record<string, unknown>;
   giftMessage?: string;
+  giftWrap?: boolean;
 };
 
 type BagState = {

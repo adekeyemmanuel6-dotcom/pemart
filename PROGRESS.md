@@ -1,15 +1,15 @@
 # Pemart build progress
 
-Last updated: Phase 2 complete (awaiting review).
+Last updated: Phase 3 complete (awaiting review).
 
 ## Status
 
 | Phase | Status |
 |---|---|
 | 1. Foundation | Done, reviewed |
-| 2. Catalogue | **Done, ready for review** |
-| 3. Bundles and custom | Next |
-| 4. Bag and checkout | Not started |
+| 2. Catalogue | Done, reviewed |
+| 3. Bundles and custom | **Done, ready for review** |
+| 4. Bag and checkout | Next |
 | 5. Accounts and post-purchase | Not started |
 | 6. Admin | Not started |
 | 7. Polish and launch | Not started |
@@ -73,9 +73,33 @@ Style guide (dev only): `/dev/style`.
 21. **Delivery estimate uses calendar days** (promised = today + lead days). The Christmas-cutoff warning is added with checkout in Phase 4.
 22. **Touch devices** get a flip button on product cards (there is no hover); desktop uses hover/focus.
 
+## Phase 3: what exists
+
+- **Bundle builder** (`/bundles/[slug]`, all 11 bundles): per item the customer picks a design (from the allowed list), colour, size, and option (scent, bracelet style, frame finish, orb colour), with a live mockup per item and a "what's inside" summary showing the crossed-out separate total, the bundle price and the saving. Matching items (couples, family) share one design. His/her perfumes only offer his/her scents. The name frame takes the names to print. Gift card message (160 chars) and an optional gift wrap add-on (price from settings). Links like `?start=seek-first-tee` or `?design=my-beloved&his=L&her=M` prefill the builder.
+- **Shared validation** (`lib/bundles/selection.ts`): one pure `validateSelection` used by the browser for live feedback and (Phase 4) by the server as the authority. Covered by 11 unit tests, including matching designs, wrong scents, sold-out choices, expired gift boxes and odd characters.
+- **Gift Boxes hub** (`/gift-boxes`): ticking countdown to the Christmas cutoff for the visitor's area (Lagos 17 Dec, South-West and Other states 15 Dec, all editable data), cutoff list for every zone, and after a cutoff a clear notice plus ready-stock items and a gift card link. After 24 Dec the hub shows a "season has ended" state and boxes stop being offered.
+- **Couples hub** (`/couples`): side-by-side his/hers mockups, matching design picker, package picker, separate his and hers size selectors, then continue into the builder prefilled. All couple packages listed.
+- **Custom design studio** (`/custom`): three tiers (Personalise ₦3,000 / 12h, Text design ₦5,000 / 24h, Full custom ₦15,000 / 48h), live front and back preview that updates as you type, garment type (tee or hoodie), colour, size, print position (back, front, both), six type styles, personalise name/date/verse, private uploads (PNG, JPG, PDF, SVG up to 20MB) with a rights notice and required confirmation. The 5-day clock, proof promise and final-sale rules are stated on the page.
+- **Uploads**: `/api/uploads/sign` checks type and size, rate limits, and issues a one-time signed URL for a private bucket; the file goes straight from the browser to storage. Fees are taken from server constants (`lib/custom/tiers.ts`), never from the browser.
+- **Bulk orders** (`/bulk`): tiers explained (10 to 24: 10%, 25 to 99: 15%, 100+ by quote), quote form with Nigerian phone validation, size breakdown, date, idea and uploads, saved to `bulk_quotes`. The tier shows live as you type the quantity.
+- **Gift cards page** (`/gift-cards`) pointing to the gift card product.
+- **Tests**: 55 unit tests (was 17). Browser run covered the bundle builder, couple prefill, the cutoff countdown (clock set to 18 Dec), the studio, bulk validation and the upload rules.
+
+## Phase 3 decisions
+
+23. **Expired bundles stay readable.** Migration `0009` removes the date window from the bundle RLS policy so pages can say "this gift box has ended" instead of a bare 404. Availability is enforced in app code, and the Phase 4 checkout server re-validates every bundle before creating an order.
+24. **Studio preview is not saved as an image.** The brief is stored as fields (`custom_requests.text_fields`, `type_style`, etc.). Admin (Phase 6) re-renders the same preview from those fields with the same components, so nothing can drift.
+25. **Custom requests are saved as drafts.** Payment and the move to `awaiting_proof` happen at checkout (Phase 4). The studio offers tee and hoodie only; frames can be personalised through bundles.
+26. **Demo mode without Supabase.** The studio, bulk form and uploader work end to end but nothing is persisted (they say so on screen). Once Supabase is connected they save for real.
+27. **Bulk quote notification to admin is not sent yet.** The email system arrives in Phase 4 and the admin pipeline in Phase 6. Right now the request is saved and the customer gets a WhatsApp link to message you.
+28. **Frame size in bundles comes from the slot label** ("A4 scripture frame" is A4, an "A3" label would be A3).
+29. **Studio fonts**: Anton, Bebas Neue, Playfair Display, Permanent Marker, Space Mono, Caveat (all open licence), loaded only on `/custom`.
+30. **Bug fixed:** React 19 clears uncontrolled form fields after a server action finishes, so a validation error wiped the visitor's inputs. Actions now echo submitted values (bulk, sign-in, newsletter) and the fields refill.
+31. **Gift card delivery** (recipient email, message, code email) is built with checkout in Phase 4.
+
 ## Known gaps (by design, later phases)
 
-Bundle builder, couples and gift box hubs, custom studio, bulk quotes (P3); bag drawer, checkout, Paystack, emails (P4); account orders and proofs (P5); admin screens (P6); Playwright, SEO, analytics, Lighthouse (P7).
+Bag drawer, checkout, Paystack, emails (P4); account orders and proofs (P5); admin screens (P6); Playwright, SEO, analytics, Lighthouse (P7).
 
 ## Needed before Phase 4
 

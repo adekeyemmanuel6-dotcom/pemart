@@ -49,8 +49,8 @@ function GarmentSvg({ type, colour, view }: { type: 'tee' | 'hoodie'; colour: st
 
 /** Design artwork placed on a garment. Dark ink on light garments (Sand), cream ink otherwise. */
 export function GarmentMockup({
-  type, colour, view, designSlug, className,
-}: { type: 'tee' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string }) {
+  type, colour, view, designSlug, className, children,
+}: { type: 'tee' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string; children?: React.ReactNode }) {
   const base: 'front' | 'back' = view === 'front' ? 'front' : 'back';
   const s = SHAPES[type];
   const [x, y, w, h] = base === 'back' ? s.back : s.front;
@@ -60,7 +60,10 @@ export function GarmentMockup({
     <div className={cn('relative aspect-[4/5] overflow-hidden bg-[#ece3d2]', className)}>
       <div className="absolute inset-0 transition-transform duration-200" style={zoomed ? { transform: 'scale(2.15)', transformOrigin: s.detailOrigin } : undefined}>
         <GarmentSvg type={type} colour={colour} view={base} />
-        {designSlug && (
+        {children ? (
+          // Custom content (the design studio) is laid out inside the print area. cqw units scale text to the area.
+          <div className="absolute overflow-hidden" style={{ left: `${(x / 400) * 100}%`, top: `${(y / 500) * 100}%`, width: `${(w / 400) * 100}%`, height: `${(h / 500) * 100}%`, containerType: 'inline-size' }}>{children}</div>
+        ) : designSlug && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`/designs/${designSlug}-${base}.svg`}

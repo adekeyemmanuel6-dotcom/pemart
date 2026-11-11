@@ -7,7 +7,7 @@ import { safeNext } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
 
-export type AuthState = { ok: boolean; message: string } | null;
+export type AuthState = { ok: boolean; message: string; email?: string } | null;
 
 const emailSchema = z.object({ email: z.email('Enter a valid email address').max(254) });
 
@@ -20,13 +20,13 @@ const callbackUrl = (next: string) => `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/ca
 
 /** Password-free sign-in: emails a magic link. Rate limited per IP and per address. */
 export async function sendMagicLink(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  if (!isSupabaseConfigured) return { ok: false, message: 'Sign-in is not connected yet.' };
+  if (!isSupabaseConfigured) return { ok: false, email: String(formData.get('email') ?? ''), message: 'Sign-in is not connected yet.' };
   const parsed = emailSchema.safeParse({ email: String(formData.get('email') ?? '').trim().toLowerCase() });
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Enter a valid email address' };
+  if (!parsed.success) return { ok: false, email: String(formData.get('email') ?? ''), message: parsed.error.issues[0]?.message ?? 'Enter a valid email address' };
 
   const ip = await clientIp();
   if (!rateLimit(`auth-ip:${ip}`, 10, 10 * 60_000).ok || !rateLimit(`auth-email:${parsed.data.email}`, 3, 10 * 60_000).ok) {
-    return { ok: false, message: 'Too many attempts. Please wait a few minutes and try again.' };
+    return { ok: false, email: String(formData.get('email') ?? ''), message: 'Too many attempts. Please wait a few minutes and try again.' };
   }
 
   const next = safeNext(String(formData.get('next') ?? ''));
@@ -35,7 +35,7 @@ export async function sendMagicLink(_prev: AuthState, formData: FormData): Promi
     email: parsed.data.email,
     options: { emailRedirectTo: callbackUrl(next), shouldCreateUser: true },
   });
-  if (error) return { ok: false, message: 'We could not send the link. Please try again.' };
+  if (error) return { ok: false, email: String(formData.get('email') ?? ''), message: 'We could not send the link. Please try again.' };
   return { ok: true, message: 'Check your email. We sent you a sign-in link.' };
 }
 

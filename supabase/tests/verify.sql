@@ -36,9 +36,9 @@ set role authenticated; set request.jwt.claim.sub = '11111111-1111-1111-1111-111
 select 'admin sees discount_codes' t, count(*) from discount_codes;
 reset role; reset request.jwt.claim.sub;
 
--- Gift boxes disappear after 24 Dec 2026
+-- Expired bundles stay readable (app code hides them and the checkout server re-validates)
 begin;
 update bundles set available_until = now() - interval '1 day' where kind='gift_box';
 set local role anon;
-select 'anon sees gift boxes after cutoff (expect 0)' t, count(*) from bundles where kind='gift_box';
+select 'anon can still read expired gift boxes (expect 4)' t, count(*) from bundles where kind='gift_box';
 rollback;

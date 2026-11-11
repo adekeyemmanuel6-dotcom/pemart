@@ -12,7 +12,7 @@ export function SignInForm({ next, disabled }: { next: string; disabled: boolean
         <input type="hidden" name="next" value={next} />
         <div>
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@email.com" aria-describedby="sign-in-status" />
+          <Input id="email" name="email" defaultValue={state?.email} type="email" autoComplete="email" required placeholder="you@email.com" aria-describedby="sign-in-status" />
         </div>
         <Button type="submit" className="w-full" disabled={pending || disabled}>{pending ? 'Sending…' : 'Email me a sign-in link'}</Button>
         <p id="sign-in-status" role="status" aria-live="polite" className={`min-h-5 text-sm ${state?.ok ? 'text-mocha' : 'text-ember'}`}>{state?.message}</p>

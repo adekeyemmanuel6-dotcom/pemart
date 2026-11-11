@@ -11,6 +11,10 @@ export type StoreSettings = {
   instagram_url: string | null;
   tiktok_url: string | null;
   maintenance_mode: boolean;
+  gift_wrap_kobo: number;
+  surprise_note_kobo: number;
+  express_kobo: number;
+  express_enabled: boolean;
 };
 
 // Matches seed data, so the shell looks right before Supabase is connected.
@@ -23,6 +27,10 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   instagram_url: 'https://instagram.com/pemart',
   tiktok_url: 'https://tiktok.com/@pemart',
   maintenance_mode: false,
+  gift_wrap_kobo: 200000,
+  surprise_note_kobo: 300000,
+  express_kobo: 500000,
+  express_enabled: true,
 };
 
 /** Cached; admin edits call revalidateTag('settings'). */
@@ -32,7 +40,7 @@ export const getSettings = unstable_cache(
     try {
       const { data } = await createPublicClient()
         .from('settings')
-        .select('announcement_text,announcement_link,announcement_active,logo_url,whatsapp_number,instagram_url,tiktok_url,maintenance_mode')
+        .select('announcement_text,announcement_link,announcement_active,logo_url,whatsapp_number,instagram_url,tiktok_url,maintenance_mode,gift_wrap_kobo,surprise_note_kobo,express_kobo,express_enabled')
         .single();
       return data ?? DEFAULT_SETTINGS;
     } catch {

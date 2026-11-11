@@ -8,7 +8,7 @@ export type Collection = {
 export type Design = {
   id: string; slug: string; name: string; story_or_verse: string | null; verse_reference: string | null;
   collection_id: string | null; artwork_front: string | null; artwork_back: string | null; preview_image: string | null;
-  is_customisable: boolean;
+  is_customisable: boolean; customisable_fields?: string[];
 };
 
 export type Variant = {
