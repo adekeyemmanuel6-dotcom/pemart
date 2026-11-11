@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="orb">
+  <rect width="800" height="1000" fill="#E4D8C4"/>
+  <circle cx="400" cy="480" r="170" fill="#D9572B" opacity="0.9"/><ellipse cx="400" cy="480" rx="170" ry="50" fill="none" stroke="#F6F1E8" stroke-width="8"/>
+  <text x="400" y="940" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="8" fill="#7A5A45" text-anchor="middle">PEMART</text>
+</svg>

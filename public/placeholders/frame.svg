@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="frame">
+  <rect width="800" height="1000" fill="#E4D8C4"/>
+  <rect x="190" y="200" width="420" height="560" fill="#F6F1E8" stroke="#141414" stroke-width="22"/><rect x="250" y="270" width="300" height="420" fill="none" stroke="#C9BCA6" stroke-width="3"/>
+  <text x="400" y="940" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="8" fill="#7A5A45" text-anchor="middle">PEMART</text>
+</svg>

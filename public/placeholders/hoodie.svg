@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="hoodie">
+  <rect width="800" height="1000" fill="#E4D8C4"/>
+  <path d="M280 170 Q400 120 520 170 L640 230 L700 520 L620 540 L585 400 L585 820 L215 820 L215 400 L180 540 L100 520 L160 230Z" fill="#CFC0A6" stroke="#C9BCA6" stroke-width="4"/><path d="M300 175 Q400 330 500 175" fill="none" stroke="#C9BCA6" stroke-width="6"/>
+  <text x="400" y="940" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="8" fill="#7A5A45" text-anchor="middle">PEMART</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="gift-card">
+  <rect width="800" height="1000" fill="#E4D8C4"/>
+  <rect x="150" y="340" width="500" height="300" rx="20" fill="#141414"/><text x="400" y="510" font-family="Anton, Impact, sans-serif" font-size="80" fill="#F6F1E8" text-anchor="middle">GIFT CARD</text>
+  <text x="400" y="940" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="8" fill="#7A5A45" text-anchor="middle">PEMART</text>
+</svg>

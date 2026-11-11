@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="bracelet">
+  <rect width="800" height="1000" fill="#E4D8C4"/>
+  <circle cx="400" cy="480" r="170" fill="none" stroke="#7A5A45" stroke-width="34"/><circle cx="400" cy="310" r="22" fill="#141414"/>
+  <text x="400" y="940" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="8" fill="#7A5A45" text-anchor="middle">PEMART</text>
+</svg>
