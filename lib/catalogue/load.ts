@@ -51,7 +51,19 @@ export const getCatalogue = unstable_cache(
       const r = await (await getRpc())!<Catalogue>('catalogue_export', {});
       if (r.data) return r.data;
     }
-    return isSupabaseConfigured ? fromSupabase() : fromFixture();
+    if (!isSupabaseConfigured) return fromFixture();
+    try {
+      return await fromSupabase();
+    } catch (e) {
+      // While `next build` runs, the database may be empty, unreachable or not set up yet (first deploy before the SQL
+      // was run). Don't fail the whole deployment: build with the bundled demo catalogue; pages refresh from the real
+      // database within minutes (ISR). At runtime we still throw, so a hiccup never replaces good data with demo data.
+      if (process.env.NEXT_PHASE === 'phase-production-build') {
+        console.warn(`[catalogue] ${(e as Error).message}; building with the bundled demo catalogue`);
+        return fromFixture();
+      }
+      throw e;
+    }
   },
   ['catalogue-v1'],
   { tags: ['catalogue'], revalidate: 300 },
