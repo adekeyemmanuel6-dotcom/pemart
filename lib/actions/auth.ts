@@ -48,3 +48,19 @@ export async function signInWithGoogle(formData: FormData) {
   if (error || !data.url) redirect('/auth/sign-in?error=oauth');
   redirect(data.url);
 }
+
+/** Email + password sign-in. Accounts are created by you in Supabase (Authentication > Users > Add user) or via the reset flow. */
+export async function signInWithPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  if (!isSupabaseConfigured) return { ok: false, email, message: 'Sign-in is not connected yet.' };
+  const parsed = emailSchema.safeParse({ email });
+  const password = String(formData.get('password') ?? '');
+  if (!parsed.success || !password) return { ok: false, email, message: 'Enter your email and password.' };
+  if (!rateLimit(`auth-pw-ip:${await clientIp()}`, 10, 10 * 60_000).ok || !rateLimit(`auth-pw-email:${email}`, 6, 10 * 60_000).ok) {
+    return { ok: false, email, message: 'Too many attempts. Please wait a few minutes and try again.' };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { ok: false, email, message: 'That email and password do not match.' };
+  redirect(safeNext(String(formData.get('next') ?? '')));
+}
