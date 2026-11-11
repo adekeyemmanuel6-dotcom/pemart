@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupabaseConfigured } from '@/lib/env';
 import { dbMode } from '@/lib/db';
 import { devProfile } from '@/lib/dev-auth';
@@ -14,8 +15,19 @@ export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
-  const { data } = await supabase.from('profiles').select('id,email,full_name,phone,role,store_credit_kobo').eq('id', auth.user.id).single();
-  return (data as Profile | null) ?? null;
+  const cols = 'id,email,full_name,phone,role,store_credit_kobo';
+  const { data } = await supabase.from('profiles').select(cols).eq('id', auth.user.id).maybeSingle();
+  if (data) return data as Profile;
+  // Signed in but no profile row (for example the account was created before the sign-up trigger existed).
+  // Create it with the service role as a plain customer so the person isn't stuck signed out. Roles are never granted here.
+  try {
+    const admin = createAdminClient();
+    await admin.from('profiles').upsert({ id: auth.user.id, email: auth.user.email ?? null }, { onConflict: 'id', ignoreDuplicates: true });
+    const { data: again } = await admin.from('profiles').select(cols).eq('id', auth.user.id).maybeSingle();
+    return (again as Profile | null) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function requireProfile(next = '/account'): Promise<Profile> {
