@@ -1,14 +1,12 @@
-// Browser walk-through of the buying flows (acceptance tests 1-4 and 7). Run against `next dev` with local Postgres + PAYSTACK_MOCK=1
-// (see README "Local development with a database"). Phase 7 converts this into the @playwright/test suite.
-const { chromium, devices } = require('playwright');
-const { Pool } = require('pg');
-const pool = new Pool({ connectionString: 'postgres://postgres:postgres@localhost:5432/pemart_local' });
-const q = async (s, a = []) => (await pool.query(s, a)).rows;
-let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } else console.log('ok  ', m); };
-const B = 'http://localhost:3000';
+// Buying flows: guest tee with code, Couple's Christmas Box, custom design, price tampering, ambassador, bag rules.
+// Ported from the Phase 4-6 walk-through scripts. Runs against `next dev` + local Postgres (see playwright.config.ts).
+import { test, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { B, ok, pool, q } from './helpers';
 const bagLines = (d) => d.evaluate(() => JSON.parse(localStorage.getItem('pemart-bag') || '{"state":{"lines":[]}}').state.lines);
 
-async function fillCheckout(d, o = {}) {
+async function fillCheckout(d, o: { email?: string; state?: string } = {}) {
   await d.locator('#email').fill(o.email ?? 'ada@example.com');
   await d.locator('#phone').fill('0803 123 4567');
   if (await d.locator('#line1').count()) {
@@ -23,9 +21,12 @@ async function payMock(d) {
   await d.waitForURL(/\/order\/PM-\d+/, { timeout: 20000 });
 }
 
-(async () => {
+
+
+test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, price tampering, ambassador, bag rules", async ({ browser }) => {
+  test.setTimeout(1_200_000);
   await q(`truncate orders, gift_cards, custom_requests restart identity cascade; update product_variants set reserved_qty=0; update product_variants set stock_qty=40 where sku like 'FAITH-BRACELET-%'; update discount_codes set times_used=0; alter sequence order_number_seq restart with 10001`);
-  const b = await chromium.launch();
+  const b = browser;
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const d = await ctx.newPage(); const errs = [];
   d.on('console', m => m.type() === 'error' && errs.push(m.text())); d.on('pageerror', e => errs.push('PAGEERR ' + e));
@@ -40,22 +41,22 @@ async function payMock(d) {
   ok(await drawer.getByText(/Arrives by/).isVisible(), 'A: estimated delivery date shown');
   await drawer.getByLabel('Discount code').fill('pemart10'); await drawer.getByRole('button', { name: 'Apply' }).click();
   await drawer.getByText(/PEMART10 applied: ₦2,200 off/).waitFor(); ok(true, 'A: discount code applied (₦2,200 off)');
-  await d.screenshot({ path: 'p4-drawer.png' });
+  await d.screenshot({ path: 'test-results/shots/p4-drawer.png' });
   await drawer.getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/\/checkout/);
   await fillCheckout(d);
   await d.getByText('Promised by').waitFor();
   const aside = d.locator('aside[aria-label="Review and pay"]');
   ok((await aside.innerText()).includes('₦23,300'), 'A: checkout total = ₦22,000 - ₦2,200 + ₦3,500 = ₦23,300');
-  await d.screenshot({ path: 'p4-checkout.png', fullPage: true });
+  await d.screenshot({ path: 'test-results/shots/p4-checkout.png', fullPage: true });
   await payMock(d);
   ok(await d.getByRole('heading', { name: /Your order is in/ }).isVisible(), 'A: confirmation page');
   const oA = (await q(`select * from orders order by created_at desc limit 1`))[0];
   ok(oA.status === 'paid' && Number(oA.total_kobo) === 2330000, 'A: DB order paid with ₦23,300 total');
-  const days = (new Date(oA.promised_by) - new Date(oA.paid_at)) / 86400000;
+  const days = (+new Date(oA.promised_by) - +new Date(oA.paid_at)) / 86400000;
   ok(Math.abs(days - 5) < 0.01, `A: promised date is 5 days after payment (${days.toFixed(2)})`);
   ok((await bagLines(d)).length === 0, 'A: bag cleared after payment');
   ok((await d.locator('main').innerText()).includes('Arriving by'), 'A: order page shows promised date');
-  await d.screenshot({ path: 'p4-order.png', fullPage: true });
+  await d.screenshot({ path: 'test-results/shots/p4-order.png', fullPage: true });
 
   // ===== B. Couple's Christmas Box, gift message, every selection through to order + email
   await d.goto(`${B}/bundles/couples-christmas-box?design=my-beloved&his=L&her=M`); await d.waitForTimeout(800);
@@ -77,8 +78,8 @@ async function payMock(d) {
   ok(oB.status === 'paid' && Number(oB.total_kobo) === 8900000 && oB.selections.length === 6 && oB.gift_message === 'Merry Christmas, my love', "B: DB order has 6 selections, gift message, ₦89,000 (free delivery)");
   const orderText = await d.locator('main').innerText();
   ok(/His tee/.test(orderText) && /Blue Amber/.test(orderText) && /Infinity/.test(orderText) && /Ember Orange/.test(orderText), 'B: order page lists every selection');
-  const fs = require('fs'); const outbox = fs.readdirSync(require('path').join(process.cwd(), '.outbox')).filter(f => f.includes('love'));
-  const html = outbox.length ? fs.readFileSync(require('path').join(process.cwd(), '.outbox', outbox[0]), 'utf8') : '';
+  const outbox = fs.readdirSync(path.join(process.cwd(), '.outbox')).filter(f => f.includes('love'));
+  const html = outbox.length ? fs.readFileSync(path.join(process.cwd(), '.outbox', outbox[0]), 'utf8') : '';
   ok(/Blue Amber/.test(html) && /White Jasmine/.test(html) && /Merry Christmas/.test(html), 'B: confirmation email contains every selection and the gift message');
 
   // ===== C. custom text design: pay, awaiting_proof, no promise yet
@@ -139,7 +140,6 @@ async function payMock(d) {
   // mobile checkout screenshot
   const m = await b.newContext({ ...devices['iPhone 13'] }); const mp = await m.newPage();
   await mp.goto(`${B}/products/seek-first-hoodie`); await mp.getByRole('button', { name: 'M', exact: true }).click(); await mp.getByRole('button', { name: 'Add to bag' }).first().click(); await mp.waitForTimeout(1200);
-  await mp.screenshot({ path: 'p4-m-drawer.png' });
+  await mp.screenshot({ path: 'test-results/shots/p4-m-drawer.png' });
   console.log('console errors:', JSON.stringify(errs.filter(e => !/40[0-9] |401|webpack|hydrat/i.test(e)).slice(0, 5)));
-  console.log(fails ? `${fails} FAILED` : 'ALL OK'); await b.close(); await pool.end();
-})().catch(e => { console.error('SCRIPT ERROR', e.message.split('\n').slice(0, 6).join('\n')); process.exit(1); });
+});

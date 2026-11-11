@@ -71,7 +71,7 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
       </div>
     );
   }
-  if (!q) return <div className="space-y-3 p-5" aria-busy="true" aria-label="Loading your bag">{lines.map((l) => (<div key={l.id} className="skeleton h-28" />))}{error && <p role="alert" className="text-sm text-ember">{error}</p>}</div>;
+  if (!q) return <div className="space-y-3 p-5" role="status" aria-busy="true" aria-label="Loading your bag">{lines.map((l) => (<div key={l.id} className="skeleton h-28" />))}{error && <p role="alert" className="text-sm text-ember">{error}</p>}</div>;
 
   const blocked = q.lines.some((l) => l.issues.length > 0);
   const eta = q.promise.customBy ? { text: `Estimated delivery ${formatDeliveryDate(new Date(q.promise.customBy))}`, note: `Your proof arrives within ${q.promise.proofHours} hours. The 5-day clock starts when you approve it.` }

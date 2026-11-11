@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { collection } = collectionProducts(await getCatalogue(), slug);
   const title = slug === 'all' ? 'Shop all' : collection?.name ?? 'Collection';
   const description = collection?.intro ?? 'Faith-inspired tees, hoodies, frames, accessories and gift boxes from Pemart. Made to order in Nigeria.';
-  return { title, description, alternates: { canonical: `/collections/${slug}` }, openGraph: { title: `${title} | Pemart`, description } };
+  return { title, description, alternates: { canonical: `/collections/${slug}` }, openGraph: { title: `${title} | Pemart`, description, images: [{ url: '/og/pemart', width: 1200, height: 630, alt: title }] } };
 }
 
 export default async function CollectionPage({ params }: Props) {

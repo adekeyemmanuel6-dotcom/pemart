@@ -9,15 +9,17 @@ import { ProductVisual } from './product-visual';
 
 export function ProductCard({ p, colour, priority }: { p: CardProduct; colour?: string | null; priority?: boolean }) {
   const [flipped, setFlipped] = useState(false);
+  const [backMounted, setBackMounted] = useState(false); // the back view is only rendered once someone asks for it (halves the DOM on listing pages)
+  const flip = (v: boolean) => { if (v) setBackMounted(true); setFlipped(v); };
   const garment = p.type === 'tee' || p.type === 'hoodie';
   const shownColour = colour && p.colours.includes(colour) ? colour : p.colours.includes('Black') ? 'Black' : p.colours[0] ?? null;
   const common = { type: p.type, designSlug: p.designSlug, colour: shownColour, imageUrl: p.imageUrl, alt: p.name, priority } as const;
   return (
     <article className="group relative">
-      <Link href={`/products/${p.slug}`} className="block" onMouseLeave={() => setFlipped(false)} onFocus={() => setFlipped(true)} onBlur={() => setFlipped(false)}>
-        <div className="relative overflow-hidden rounded-lg border border-line" onMouseEnter={() => garment && setFlipped(true)}>
+      <Link href={`/products/${p.slug}`} className="block" onMouseLeave={() => setFlipped(false)} onFocus={() => flip(true)} onBlur={() => setFlipped(false)}>
+        <div className="relative overflow-hidden rounded-lg border border-line" onMouseEnter={() => garment && flip(true)}>
           <ProductVisual {...common} view="front" />
-          {garment && (
+          {garment && backMounted && (
             <div className={`absolute inset-0 transition-opacity duration-200 ${flipped ? 'opacity-100' : 'opacity-0'}`} aria-hidden>
               <ProductVisual {...common} view="back" />
             </div>
@@ -41,7 +43,7 @@ export function ProductCard({ p, colour, priority }: { p: CardProduct; colour?: 
       )}
       {garment && (
         // Touch devices have no hover, so offer a tap target to flip between front and back.
-        <button type="button" onClick={() => setFlipped((f) => !f)} aria-label={flipped ? 'Show front view' : 'Show back view'} aria-pressed={flipped}
+        <button type="button" onClick={() => flip(!flipped)} aria-label={flipped ? 'Show front view' : 'Show back view'} aria-pressed={flipped}
           className="absolute right-2 top-2 hidden size-11 place-items-center rounded-full bg-paper/90 shadow [@media(hover:none)]:grid">
           <RotateCw className="size-5" aria-hidden />
         </button>

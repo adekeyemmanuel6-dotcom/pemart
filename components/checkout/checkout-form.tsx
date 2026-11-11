@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { startCheckout } from '@/lib/actions/checkout';
 import { useBag } from '@/lib/cart-store';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
+import { track } from '@/lib/analytics';
 import { toInputLines, useDeliveryState, useQuote } from '@/lib/checkout/use-quote';
 import { openPaystack } from '@/lib/paystack-client';
 import { confirmPayment } from '@/lib/payment-client';
@@ -38,6 +39,12 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
 
   const extras = { giftWrap, surpriseNote, express, shipReadyFirst };
   const { quote: q, loading } = useQuote({ state: deliveryState, extras, useCredit, acceptFinalSale: consent, giftMessage });
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (!q || beganCheckout.current || !q.lines.length) return;
+    beganCheckout.current = true;
+    track('begin_checkout', { valueKobo: q.totalKobo, items: q.lines.map((l) => ({ id: l.slug ?? l.id, name: l.name, priceKobo: l.unitKobo, quantity: l.quantity, category: l.kind })) });
+  }, [q]);
   const digital = !!q?.digitalOnly;
   const stateOptions = useMemo(() => zones.flatMap((z) => z.states.map((s) => ({ s, zone: z.name }))).sort((a, b) => a.s.localeCompare(b.s)), [zones]);
 

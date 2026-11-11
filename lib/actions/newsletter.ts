@@ -1,26 +1,9 @@
 'use server';
-import { headers } from 'next/headers';
-import { z } from 'zod';
-import { isSupabaseConfigured } from '@/lib/env';
-import { rateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { claimFirstOrderOffer, type OfferState } from './offer';
 
-export type NewsletterState = { ok: boolean; message: string; email?: string } | null;
+export type NewsletterState = OfferState;
 
-const schema = z.object({ email: z.email('Enter a valid email address').max(254) });
-
-/** Footer sign-up. Records the email with a consent timestamp (subscribers.consent_at). */
+/** Footer sign-up: records email + consent timestamp and issues the single-use 10% first-order code. */
 export async function subscribeNewsletter(_prev: NewsletterState, formData: FormData): Promise<NewsletterState> {
-  const h = await headers();
-  const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const limit = rateLimit(`newsletter:${ip}`, 5, 10 * 60_000);
-  if (!limit.ok) return { ok: false, email: String(formData.get('email') ?? ''), message: 'Too many attempts. Please try again in a few minutes.' };
-
-  const parsed = schema.safeParse({ email: String(formData.get('email') ?? '').trim().toLowerCase() });
-  if (!parsed.success) return { ok: false, email: String(formData.get('email') ?? ''), message: parsed.error.issues[0]?.message ?? 'Enter a valid email address' };
-  if (!isSupabaseConfigured || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { ok: false, email: String(formData.get('email') ?? ''), message: 'Sign-ups open very soon. Please check back.' };
-
-  const { error } = await createAdminClient().from('subscribers').insert({ email: parsed.data.email, source: 'footer' });
-  if (error && error.code !== '23505') return { ok: false, email: String(formData.get('email') ?? ''), message: 'Something went wrong. Please try again.' };
-  return { ok: true, message: "You're on the list. Thank you!" };
+  return claimFirstOrderOffer('footer', formData);
 }

@@ -8,7 +8,6 @@ import type { AdminResult } from './types';
 const uuid = z.uuid();
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Use lower-case letters, numbers and dashes only').max(80);
 const PRODUCT_TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'] as const;
-const opt = <T,>(v: T | null | undefined) => (v === null || v === undefined ? null : v);
 const done = (message: string): AdminResult => ({ ok: true, message });
 const CAT = ['/admin/catalogue', '/admin'];
 

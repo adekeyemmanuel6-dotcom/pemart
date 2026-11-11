@@ -30,7 +30,7 @@ export function AdminUploader({ bucket, name, label, accept, onDone, initial }: 
     <div>
       {name && <input type="hidden" name={name} value={value} />}
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{label}</label>
-      <input ref={input} type="file" accept={accept} disabled={busy} onChange={(e) => pick(e.target.files?.[0])} className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-btn file:border-0 file:bg-ink file:px-4 file:font-semibold file:text-paper" />
+      <input ref={input} type="file" aria-label={label} accept={accept} disabled={busy} onChange={(e) => pick(e.target.files?.[0])} className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-btn file:border-0 file:bg-ink file:px-4 file:font-semibold file:text-paper" />
       <p role="status" aria-live="polite" className="mt-1 min-h-5 text-sm text-muted">{status}</p>
     </div>
   );

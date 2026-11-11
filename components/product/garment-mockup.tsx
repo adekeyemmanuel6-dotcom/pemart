@@ -49,8 +49,8 @@ function GarmentSvg({ type, colour, view }: { type: 'tee' | 'hoodie'; colour: st
 
 /** Design artwork placed on a garment. Dark ink on light garments (Sand), cream ink otherwise. */
 export function GarmentMockup({
-  type, colour, view, designSlug, className, children,
-}: { type: 'tee' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string; children?: React.ReactNode }) {
+  type, colour, view, designSlug, className, children, priority,
+}: { type: 'tee' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string; children?: React.ReactNode; priority?: boolean }) {
   const base: 'front' | 'back' = view === 'front' ? 'front' : 'back';
   const s = SHAPES[type];
   const [x, y, w, h] = base === 'back' ? s.back : s.front;
@@ -68,7 +68,8 @@ export function GarmentMockup({
           <img
             src={`/designs/${designSlug}-${base}.svg`}
             alt=""
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : undefined}
             decoding="async"
             className="absolute"
             style={{ left: `${(x / 400) * 100}%`, top: `${(y / 500) * 100}%`, width: `${(w / 400) * 100}%`, height: `${(h / 500) * 100}%`, filter: dark ? 'invert(1) brightness(0.9)' : undefined, opacity: 0.97 }}
@@ -80,7 +81,7 @@ export function GarmentMockup({
 }
 
 /** A framed print: the design card behind a mat, in a black or wood frame. */
-export function FrameMockup({ designSlug, finish = 'Black', className }: { designSlug: string | null; finish?: string; className?: string }) {
+export function FrameMockup({ designSlug, finish = 'Black', className, priority }: { designSlug: string | null; finish?: string; className?: string; priority?: boolean }) {
   const wood = finish.toLowerCase() === 'wood';
   return (
     <div className={cn('relative aspect-[4/5] overflow-hidden bg-[#ece3d2]', className)}>
@@ -88,7 +89,7 @@ export function FrameMockup({ designSlug, finish = 'Black', className }: { desig
         <div className="size-full bg-[#f6f1e8] p-[7%]">
           {designSlug && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/designs/${designSlug}-card.svg`} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+            <img src={`/designs/${designSlug}-card.svg`} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} decoding="async" className="size-full object-cover" />
           )}
         </div>
       </div>

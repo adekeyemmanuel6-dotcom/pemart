@@ -35,11 +35,19 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
 
-  --font-display: var(--font-anton), 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: 'Naira', var(--font-anton), 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  --font-sans: 'Naira', var(--font-inter), system-ui, sans-serif;
   --font-script: var(--font-caveat), cursive;
 
   --radius-btn: 8px;
+}
+
+/* The naira sign lives in the Latin-extended subset of Inter/Anton (an ~86 kB download on every page).
+   Serve just that glyph from a system font; if none is installed the web font loads as a fallback. */
+@font-face {
+  font-family: 'Naira';
+  src: local('Arial'), local('Roboto'), local('Helvetica Neue'), local('Helvetica'), local('Noto Sans'), local('DejaVu Sans'), local('Liberation Sans');
+  unicode-range: U+20A6;
 }
 
 html { scroll-behavior: smooth; }

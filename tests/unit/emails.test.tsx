@@ -8,6 +8,7 @@ import ProofApproved from '@/emails/proof-approved';
 import ProofReady from '@/emails/proof-ready';
 import ReviewRequest from '@/emails/review-request';
 import SignInLink from '@/emails/sign-in-link';
+import WelcomeOffer from '@/emails/welcome-offer';
 
 const site = 'https://pemart.example';
 const text = async (el: React.ReactElement) => (await render(el)).replace(/<[^>]*>/g, ' ').replace(/&#x27;/g, "'").replace(/\s+/g, ' ');
@@ -43,5 +44,10 @@ describe('email templates render with the right content', () => {
     const g = await text(<GiftCardEmail code="PG-AAAA-BBBB-CCCC" amountKobo={2500000} message="Enjoy" from="Ada" siteUrl={site} />);
     expect(g).toContain('PG-AAAA-BBBB-CCCC'); expect(g).toContain('₦25,000'); expect(g).toContain('Enjoy');
     expect(await text(<SignInLink link="https://x" siteUrl={site} />)).toMatch(/Sign in to Pemart/);
+  });
+  it('welcome offer: shows the code, expiry and an apply-it link', async () => {
+    const html = await render(<WelcomeOffer code="PEM-AB3K9Z" expires="10 January 2027" siteUrl={site} />);
+    expect(html).toContain('PEM-AB3K9Z'); expect(html).toContain('/bag?code=PEM-AB3K9Z');
+    expect(await text(<WelcomeOffer code="PEM-AB3K9Z" expires="10 January 2027" siteUrl={site} />)).toMatch(/10% off your first order.*once.*10 January 2027/);
   });
 });

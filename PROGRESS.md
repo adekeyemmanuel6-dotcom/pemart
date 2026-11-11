@@ -1,6 +1,6 @@
 # Pemart build progress
 
-Last updated: Phase 6 complete (awaiting review).
+Last updated: Phase 7 complete (awaiting review). All seven phases are built.
 
 ## Status
 
@@ -11,8 +11,8 @@ Last updated: Phase 6 complete (awaiting review).
 | 3. Bundles and custom | Done, reviewed |
 | 4. Bag and checkout | Done, reviewed |
 | 5. Accounts and post-purchase | Done, reviewed |
-| 6. Admin | **Done, ready for review** |
-| 7. Polish and launch | Next |
+| 6. Admin | Done, reviewed |
+| 7. Polish and launch | **Done, ready for review** |
 
 ## Phase 1: what exists
 
@@ -46,10 +46,10 @@ Style guide (dev only): `/dev/style`.
 6. **Placeholders to replace before launch**: WhatsApp number `2340000000000`, Instagram `instagram.com/pemart`, TikTok `tiktok.com/@pemart`, demo codes `PEMART10` and `GRACE10` (demo ambassador), all artwork and product images (SVG placeholders). Edit in admin or `supabase/seed/`.
 7. **Artwork text is converted to outlines** (scripts/generate-art.mjs + Anton/Inter, both OFL) so it renders identically in `<img>` and is print-ready. Regenerate with `npm run gen:art` then `bash scripts/build-seed.sh`.
 8. **Colour contrast**: white on ember is 3.9:1 (fails AA for small text), so small text on ember uses ink (4.7:1). Ember is never used as text on paper.
-9. **CSP is in place but still allows `'unsafe-inline'` scripts** (Next hydration). Phase 7 moves to nonces.
+9. **CSP**: admin, account, checkout, order and sign-in pages now use a per-request nonce with `strict-dynamic` (Phase 7, decision 62). Public static pages keep `'unsafe-inline'` scripts for hydration.
 10. **Rate limiting is in-memory** (per server instance). Fine for launch-scale; swap for Upstash/Vercel KV in `lib/rate-limit.ts` if traffic grows.
-11. **Newsletter**: signup stores email + consent timestamp. Issuing the single-use 10% code lands with the pricing engine (Phase 4) and the popup (Phase 5). The footer copy "Get 10% off your first order" is already live, so do not launch before that is wired.
-12. **ESLint is not configured yet** (ESLint 9 flat config); TypeScript strict is the gate for now. Added to Phase 7.
+11. **Newsletter**: signup stores email + consent timestamp and now issues the single-use 10% code (Phase 7, decision 63), so the footer promise is honoured.
+12. **ESLint** is configured (flat config, `npm run lint`, clean) since Phase 7.
 13. Stub pages exist for every nav link so nothing 404s. Each says which phase builds it.
 
 ## Phase 2: what exists
@@ -196,19 +196,47 @@ Paystack **live** keys and the webhook URL `https://YOUR-DOMAIN/api/webhooks/pay
 
 | Part 7 acceptance test | Status |
 |---|---|
-| Guest buys a tee with a code, pays, correct total, 5-day promise | Covered (`tests/e2e/checkout-flows.cjs`, integration) |
+| Guest buys a tee with a code, pays, correct total, 5-day promise | Covered (`e2e/checkout.spec.ts`, integration) |
 | Couple's Christmas Box selections in the bag, order, **admin view** and email | Covered: the admin order page and packing slip list every slot (admin run) (the print partner email does not exist by your decision) |
-| Custom text design: pay, awaiting proof, **admin uploads a proof**, customer revises, admin sends the second, customer approves, and only then the promise is set | Covered end to end, including the admin proof upload (`admin-flows.cjs` E, `post-purchase-flows.cjs`) |
+| Custom text design: pay, awaiting proof, **admin uploads a proof**, customer revises, admin sends the second, customer approves, and only then the promise is set | Covered end to end, including the admin proof upload (`e2e/admin.spec.ts`, `e2e/post-purchase.spec.ts`) |
 | Browser price tampering does not change the charge | Covered |
-| Fake/replayed webhook rejected, duplicate does not double-process | Covered (`webhook.test.ts`) |
-| After a zone's Christmas cutoff gift box pages show the notice and checkout warns | Covered (hub with the browser clock at 18 Dec; checkout warning in unit tests) |
+| Fake/replayed webhook rejected, duplicate does not double-process | Covered over real HTTP in the browser suite (`e2e/payments-and-cutoff.spec.ts`: no/wrong signature 401, wrong amount not paid, duplicates change nothing) and in `webhook.test.ts` |
+| After a zone's Christmas cutoff gift box pages show the notice and checkout warns | Covered in the browser (`e2e/payments-and-cutoff.spec.ts`: the admin moves the Lagos cutoff to yesterday, the gift-box page shows the notice and checkout shows the warning) and in unit tests |
 | Ambassador code gives 10% and creates a pending commission | Covered, plus admin "mark as paid" |
 | **Staff cannot open settings, discounts or reports** | **Covered:** browser (redirected from every admin-only page and CSV) and database (every admin-only function refuses staff) |
 
-## Known gaps (by design, later phases)
+## Known gaps
 
-The final Playwright suite, accessibility and performance passes, analytics and pixels behind cookie consent, nonce-based CSP, ESLint, final README and launch checklist (P7).
+- **Largest Contentful Paint** is under 2.5 s in the lab only on the collection page; home and product are 2.7 to 3.6 s on Lighthouse's simulated slow 4G (see Phase 7). Re-measure on the real Vercel deployment.
+- **Rate limiting is in-memory per instance** (decision 10); swap for Upstash/Vercel KV before heavy traffic.
+- **Refunds are recorded, not performed** (decision 55); issue them in the Paystack dashboard.
+- Tests that need your accounts cannot run here: a real Paystack test payment, a real Resend delivery and a real Supabase project. They are in [LAUNCH.md](./LAUNCH.md).
 
-## Needed before Phase 4
+## What the project owner still needs to supply
 
-Supabase project URL + anon + service-role keys, Paystack test keys, Resend key, domain, real WhatsApp number.
+Supabase project URL + anon + service-role keys, Paystack test then live keys, Resend key and verified domain, your domain, the real WhatsApp number, Instagram and TikTok links, the logo (upload in admin), and real product photos.
+
+## Phase 7: what exists
+
+- **Performance pass.** Measured with Lighthouse 12 (mobile, simulated slow 4G, 4x CPU) against a production build. Fixes: the naira sign (U+20A6) lives in the Latin-extended subset of Inter and Anton, which pulled an 86 kB font file onto every page behind the stylesheet; it is now served from a local system font through a one-glyph `@font-face` (`app/globals.css`). Above-the-fold hero and product images load eagerly with high fetch priority (they were lazy). The home hero no longer fades in from opacity 0 (it delayed the largest paint). Product cards render the back view only when someone hovers, focuses or taps (halves the DOM on listing pages). The mobile "Add to bag" bar is sticky inside the page so it never covers the footer. Added a favicon (it was a console 404). Final scores, median of repeated runs: **home 94, collection 91 to 95, product 87 to 92**; accessibility 99 to 100, best practices 96 to 100, SEO 100; CLS 0; TBT 130 to 280 ms; LCP 2.3 s (collection), 2.7 to 3.0 s (home), 3.3 to 3.6 s (product). **Honest summary:** performance is at or near 90 on all three but product pages sit right on the line and LCP is above 2.5 s on home and product in this simulation. The remaining cost is 103 kB of shared JavaScript (React and the Next runtime) plus font files. Real-world numbers on Vercel's CDN will differ; re-measure the live URL (LAUNCH.md).
+- **Cookie consent and analytics.** `lib/consent.ts` (choice plus timestamp in the browser), `components/consent/*` (banner with Accept all, Essential only, Customise; "Cookie settings" in the footer; withdrawing consent reloads without the tools). `lib/analytics.ts` loads GA4 (`NEXT_PUBLIC_GA_ID`) and Meta Pixel (`NEXT_PUBLIC_META_PIXEL_ID`) only after consent and sends `view_item`, `add_to_cart`, `begin_checkout` and `purchase` in NGN (also to Vercel Analytics). Analytics consent covers GA4 and Vercel Analytics; marketing consent covers Meta Pixel. `purchase` fires once per order per device. The privacy page lists exactly what is collected.
+- **First-order offer.** Popup after 20 seconds or desktop exit intent, once per device, never on checkout, order, account, bag, sign-in or track pages, and only after the cookie banner is answered. Email or Nigerian phone. Migration `0013_offers.sql` adds `offer_claim`: stores the subscriber with `consent_at`, mints a `PEM-XXXXXX` single-use 10% code (60 days, `usage_limit` 1), returns the same code on a repeat claim. The code is emailed (`emails/welcome-offer.tsx`), auto-applied to the bag, and works through `/bag?code=...` from the email. The footer newsletter form now uses the same function.
+- **Security.** Strict nonce CSP with `strict-dynamic` for admin, account, checkout, order and auth routes (`lib/csp.ts`, `middleware.ts`); public static pages keep a locked-down policy that allows inline scripts for hydration (a per-request nonce would force every catalogue page to render dynamically). HSTS, nosniff, frame denial, referrer and permissions policies on every route. Verified in the browser: no CSP violations across browsing, consent, checkout with the payment popup, and the admin.
+- **ESLint 9** flat config (`eslint.config.mjs`) with `next/core-web-vitals` and `next/typescript`; one real error (a raw `<a>` link) and two unused variables fixed; `npm run lint` is clean.
+- **Accessibility.** axe-core (WCAG 2.0 and 2.1 A and AA) scans 14 public pages on mobile and desktop, the open bag drawer and 12 admin pages. It found three real issues, all fixed: low contrast on the bulk page "what happens next" list, an `aria-label` on a plain `div` in the bag loading state, and an unlabelled file input in the admin uploader.
+- **SEO.** Unique titles, descriptions, canonicals, Open Graph and exactly one `h1` on 10 sampled pages; Product + Offer JSON-LD (NGN) and breadcrumbs; sitemap excludes private pages; robots blocks them; private pages are `noindex`; unknown slugs return a real 404. Added a default Open Graph image (`/og/pemart`) for pages without their own, and to collection pages.
+- **Browser test suite.** `@playwright/test` (`npm run test:e2e`, `playwright.config.ts`, `scripts/e2e.sh`): 21 tests in `e2e/` against `next dev` and a throwaway Postgres: `checkout`, `post-purchase`, `admin` (the earlier walk-through scripts, ported), `payments-and-cutoff` (signed webhook over HTTP, duplicates, wrong amount; cutoff notices), `storefront` (consent and events, offer, SEO, axe, CSP). Runs in about 10 minutes.
+- **Housekeeping.** README rewritten (local setup, Supabase, Paystack test and live, Resend domain, Vercel deploy, adding products and bundles, tests, env vars), `LAUNCH.md` checklist, `.env.example` finalised, unused `components/coming-soon.tsx` removed.
+
+## Phase 7 decisions
+
+60. **The naira sign is served from a system font** (Arial, Roboto, Helvetica, and so on) instead of Inter or Anton, to avoid an 86 kB download. If a device has none of them the browser falls back to the web font, so it still renders.
+61. **Analytics consent is two-way, not one switch:** analytics (GA4, Vercel Analytics) and marketing (Meta Pixel) are separate choices, because they have different purposes.
+62. **Nonce CSP only on dynamic sensitive routes.** Static catalogue pages cannot carry a per-request nonce, so they keep `'unsafe-inline'` scripts. The trade-off is that a page with an XSS bug on the public side would be less protected than on the sensitive side; nothing user-controlled is rendered there unescaped.
+63. **The popup, footer sign-up and email all share one SQL function (`offer_claim`).** One contact gets one code, ever; re-signing up shows the same code, or says it has been used. Phone-only claims show the code on screen since there is no email.
+64. **The offer popup waits for the cookie banner.** Two overlays at once is hostile on a phone, so the 20-second timer only starts once the visitor has answered the banner.
+65. **The browser tests use `next dev`** because the simulated payment popup, the local database mode and the dev sign-in are all refused in production mode by design.
+
+## Acceptance tests: final coverage (Phase 7)
+
+All eight are automated: see the table above. Totals: 113 unit tests, 77 integration tests against real Postgres, 21 browser tests, TypeScript (app and tests) and ESLint clean.

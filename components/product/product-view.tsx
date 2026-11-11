@@ -12,6 +12,7 @@ import type { ProductType } from '@/lib/catalogue/types';
 import { SIZE_ORDER } from '@/lib/catalogue/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { track } from '@/lib/analytics';
 import { ProductVisual } from './product-visual';
 import { SizeGuideDrawer } from './size-guide-drawer';
 import { WishlistButton } from './wishlist-button';
@@ -72,11 +73,16 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
   const eta = today && zone ? formatDeliveryDate(promisedDate(today, zone.leadDays)) : null;
   const garment = p.type === 'tee' || p.type === 'hoodie';
 
+  useEffect(() => {
+    track('view_item', { valueKobo: price, items: [{ id: p.slug, name: p.name, priceKobo: price, quantity: 1, category: p.type }] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.slug]);
+
   const slides = useMemo(() => {
     if (p.images.length) return p.images.map((im) => ({ key: im.url, label: im.alt, node: <ProductVisual type={p.type} designSlug={null} imageUrl={im.url} alt={im.alt} sizes="(min-width:1024px) 50vw, 100vw" priority /> }));
     if (garment) return (['front', 'back', 'detail'] as const).map((view) => ({
       key: view, label: view === 'detail' ? 'Close-up of the print' : `${view} view`,
-      node: <ProductVisual type={p.type} designSlug={p.designSlug} colour={colour ?? 'Black'} view={view} alt={`${p.name}, ${view}`} />,
+      node: <ProductVisual type={p.type} designSlug={p.designSlug} colour={colour ?? 'Black'} view={view} alt={`${p.name}, ${view}`} priority />,
     }));
     return [{ key: 'main', label: p.name, node: <ProductVisual type={p.type} designSlug={p.designSlug} finish={option} imageUrl={null} alt={p.name} sizes="(min-width:1024px) 50vw, 100vw" priority /> }];
   }, [p, garment, colour, option]);
@@ -84,7 +90,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
 
   const addToBag = () => {
     if (!selected || selected.soldOut) return false;
-    add({ id: crypto.randomUUID(), kind: 'variant', refId: selected.id, quantity: qty, ...(p.type === 'gift_card' ? { giftCard: { recipientEmail: gcEmail.trim() || undefined, message: gcMsg.trim() || undefined } } : {}) });
+    add({ id: crypto.randomUUID(), kind: 'variant', refId: selected.id, quantity: qty, ...(p.type === 'gift_card' ? { giftCard: { recipientEmail: gcEmail.trim() || undefined, message: gcMsg.trim() || undefined } } : {}) }, { name: p.name, unitKobo: selected.priceKobo, category: p.type });
     setAdded(true); window.setTimeout(() => setAdded(false), 2500);
     return true;
   };
@@ -221,7 +227,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
       </div>
 
       {/* Sticky mobile bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-line bg-paper px-4 py-3 md:hidden">
+      <div className="sticky bottom-0 z-30 -mx-4 mt-6 flex items-center gap-3 border-t border-line bg-paper px-4 py-3 sm:-mx-6 sm:px-6 md:hidden">
         <div className="min-w-0"><p className="truncate text-sm font-semibold">{p.name}</p><p className="text-sm">{formatNaira(price)}</p></div>
         <Button className="ml-auto" disabled={disabled} onClick={addToBag}>{label}</Button>
       </div>

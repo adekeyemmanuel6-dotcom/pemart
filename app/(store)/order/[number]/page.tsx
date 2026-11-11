@@ -12,6 +12,7 @@ import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
 import { customerOrderLink } from '@/lib/notifications/whatsapp';
 import { getSettings } from '@/lib/settings';
+import { PurchaseEvent } from '@/components/consent/purchase-event';
 
 export const metadata: Metadata = { title: 'Your order', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const extras = o.gift_wrap_kobo + o.surprise_note_kobo + o.express_kobo + o.ship_ready_first_kobo;
   return (
     <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      {!pending && !cancelled && <PurchaseEvent orderNumber={o.number} valueKobo={o.total_kobo} items={o.items.map((i) => ({ id: i.id, name: i.name, priceKobo: i.unit_price_kobo, quantity: i.quantity, category: i.kind }))} />}
       <p className="font-script text-3xl text-mocha">{pending ? 'almost there' : cancelled ? 'order cancelled' : 'thank you'}</p>
       <h1 className="display text-5xl sm:text-6xl">{pending ? 'Waiting for payment' : cancelled ? 'Order cancelled' : 'Your order is in'}</h1>
       <p className="mt-2 text-lg">Order <strong>{o.number}</strong> · {LABEL[o.status] ?? o.status}</p>

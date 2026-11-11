@@ -1,12 +1,9 @@
-// Browser walk-through of tracking, the proof round trip (incl. the paid extra revision), resuming payment, reviews + store credit,
-// the account area and the role gates. Needs `next dev` + local Postgres + PAYSTACK_MOCK=1 (see README). Phase 7 converts this to @playwright/test.
-const { chromium, devices } = require('playwright');
-const { Pool } = require('pg');
-const fs = require('fs');
-const pool = new Pool({ connectionString: 'postgres://postgres:postgres@localhost:5432/pemart_local' });
-const q = async (s, a = []) => (await pool.query(s, a)).rows;
-let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } else console.log('ok  ', m); };
-const B = 'http://localhost:3000';
+// After the sale: tracking, proof round trip, paid revision, resume payment, reminders, account, reviews, role gates.
+// Ported from the Phase 4-6 walk-through scripts. Runs against `next dev` + local Postgres (see playwright.config.ts).
+import { test, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { B, ok, pool, q } from './helpers';
 const staffRpc = async (fn, arg) => (await q(`select public.${fn}($1::jsonb) r`, [JSON.stringify(arg)]))[0].r;
 
 async function fillCheckout(d, email) {
@@ -34,9 +31,12 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   return d.url().match(/PM-\d+/)[0];
 }
 
-(async () => {
+
+
+test('After the sale: tracking, proof round trip, paid revision, resume payment, reminders, account, reviews, role gates', async ({ browser }) => {
+  test.setTimeout(1_200_000);
   await q(`truncate orders, gift_cards, custom_requests restart identity cascade; delete from auth.users; update product_variants set reserved_qty=0; alter sequence order_number_seq restart with 10001`);
-  const b = await chromium.launch();
+  const b = browser;
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const d = await ctx.newPage(); const errs = [];
   d.on('console', m => m.type() === 'error' && errs.push(m.text())); d.on('pageerror', e => errs.push('PAGEERR ' + e));
@@ -51,7 +51,7 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   await d.waitForURL(/\/order\/PM-\d+\?t=/); ok(await d.getByRole('heading', { name: /Your order is in/ }).isVisible(), '1: phone + number → order page (no login)');
   await d.goto(`${B}/track`); await d.fill('#number', 'pm10001'); await d.fill('#contact', 'ADA@example.com'); await d.getByRole('button', { name: 'Track my order' }).click();
   await d.waitForURL(/\/order\/PM-10001/); ok(true, '1: lower-case number without dash and upper-case email still work');
-  await d.screenshot({ path: 'p5-track.png' });
+  await d.screenshot({ path: 'test-results/shots/p5-track.png' });
 
   // ===== 2. proof round trip as a guest with the private link
   const n2 = await buyCustom(d, 'proof@example.com');
@@ -61,7 +61,7 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   await staffRpc('proof_send', { custom_request_id: cr, path: '/designs/seek-first-card.svg', message: 'Here is your first draft' });
   await d.reload(); await d.getByRole('button', { name: 'Approve this design' }).waitFor();
   ok(await d.getByText('Here is your first draft').isVisible() && await d.getByText('Needs your answer').isVisible(), '2: proof appears with the designer message');
-  await d.screenshot({ path: 'p5-proof.png', fullPage: true });
+  await d.screenshot({ path: 'test-results/shots/p5-proof.png', fullPage: true });
   await d.getByRole('button', { name: 'Request changes' }).click(); await d.getByText(/Please tell us what to change|Something went wrong/).waitFor({ timeout: 8000 }).catch(() => {});
   ok(await d.getByText(/tell us what to change/i).first().isVisible(), '2: requesting changes needs a note');
   await d.fill('textarea[name="note"]', 'Make the text bigger'); await d.getByRole('button', { name: 'Request changes' }).click();
@@ -72,7 +72,7 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   await d.reload(); await d.getByText('Proof version 2', { exact: false }).first().waitFor(); ok(true, '2: version 2 shown');
   await d.getByRole('button', { name: 'Approve this design' }).click(); await d.locator('[role=status]').getByText('Approved. Your 5-day delivery clock has started.').waitFor();
   o = (await q(`select * from orders where number=$1`, [n2]))[0];
-  ok(o.status === 'approved' && o.production_start_at && Math.abs((new Date(o.promised_by) - new Date(o.production_start_at)) / 86400000 - 5) < 0.01, '2: approval starts the clock; promised_by = +5 days');
+  ok(o.status === 'approved' && o.production_start_at && Math.abs((+new Date(o.promised_by) - +new Date(o.production_start_at)) / 86400000 - 5) < 0.01, '2: approval starts the clock; promised_by = +5 days');
   await d.reload(); ok(await d.getByText('You approved this design.').isVisible() && await d.getByText(/Arriving by/).isVisible(), '2: order page now shows the promised date');
 
   // ===== 3. free revision used → buy an extra revision (paid add-on)
@@ -112,8 +112,8 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   const noauth = await d.request.get(`${B}/api/cron/reminders`); ok(noauth.status() === 401, '5: reminders cron rejects requests without the secret');
   const cron = await (await d.request.get(`${B}/api/cron/reminders`, { headers: { authorization: 'Bearer cron-secret' } })).json();
   ok(cron.ok && cron.abandoned === 1, `5: abandoned-checkout reminder sent (${JSON.stringify(cron)})`);
-  ok(fs.readdirSync(require('path').join(process.cwd(), '.outbox')).some(f => f.includes('abandoned-checkout-abandon@example.com')), '5: the reminder email was produced');
-  ok(fs.readdirSync(require('path').join(process.cwd(), '.outbox')).some(f => f.includes('order-confirmation-proof@example.com')), '5: order confirmation email for the custom order exists');
+  ok(fs.readdirSync(path.join(process.cwd(), '.outbox')).some(f => f.includes('abandoned-checkout-abandon@example.com')), '5: the reminder email was produced');
+  ok(fs.readdirSync(path.join(process.cwd(), '.outbox')).some(f => f.includes('order-confirmation-proof@example.com')), '5: order confirmation email for the custom order exists');
 
   // ===== 6. signed-in account (dev login)
   const a = await ctx.newPage(); a.on('pageerror', e => errs.push('PAGEERR ' + e));
@@ -145,7 +145,7 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   const pubBefore = (await q(`select count(*) n from reviews where status='approved'`))[0].n; ok(pubBefore === '0', '6: pending review is not public');
   const mod = await staffRpc('review_moderate', { review_id: rv.id, decision: 'approve' }); ok(mod.credit_granted === true, '6: approving the photo review grants credit');
   await a.goto(`${B}/account`); ok(await a.getByLabel('Store credit ₦2,000').isVisible(), '6: account shows ₦2,000 store credit');
-  await a.screenshot({ path: 'p5-account.png', fullPage: true });
+  await a.screenshot({ path: 'test-results/shots/p5-account.png', fullPage: true });
 
   // ===== 7. role gates
   await a.goto(`${B}/admin`); ok(!a.url().includes('/admin') || a.url().includes('denied'), `7: a customer cannot open /admin (${a.url()})`);
@@ -155,5 +155,4 @@ async function buyCustom(d, email, words = 'Grace upon grace') {
   ok((await a.request.get(`${B}/api/dev/login?email=x@y.z`, { maxRedirects: 0 })).status() !== 404, '(dev login exists in dev mode)');
 
   console.log('console errors:', JSON.stringify(errs.filter(e => !/40[0-9] |401|webpack|hydrat|Failed to load resource/i.test(e)).slice(0, 5)));
-  console.log(fails ? `${fails} FAILED` : 'ALL OK'); await b.close(); await pool.end();
-})().catch(e => { console.error('SCRIPT ERROR', e.message.split('\n').slice(0, 7).join('\n')); process.exit(1); });
+});

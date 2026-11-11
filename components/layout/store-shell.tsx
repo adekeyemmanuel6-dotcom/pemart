@@ -3,6 +3,9 @@ import { AnnouncementBar } from './announcement-bar';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
 import { WhatsAppButton } from './whatsapp-button';
+import { ConsentBanner } from '@/components/consent/consent-banner';
+import { AnalyticsRuntime } from '@/components/consent/analytics-runtime';
+import { OfferPopup } from '@/components/offer/offer-popup';
 import { BagDrawer } from '@/components/bag/bag-drawer';
 
 /** Storefront chrome shared by the (store) and (account) route groups. */
@@ -25,6 +28,9 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
       <SiteFooter settings={settings} />
       <WhatsAppButton number={settings.whatsapp_number} />
       <BagDrawer />
+      <ConsentBanner />
+      <OfferPopup />
+      <AnalyticsRuntime />
     </>
   );
 }

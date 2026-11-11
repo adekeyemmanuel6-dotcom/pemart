@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitAny": false,
+    "incremental": false,
+    "plugins": []
+  },
+  "include": [
+    "./**/*.ts",
+    "../playwright.config.ts"
+  ],
+  "exclude": [
+    "../node_modules"
+  ]
+}

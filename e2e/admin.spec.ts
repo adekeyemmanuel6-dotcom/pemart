@@ -1,12 +1,9 @@
-// Browser walk-through of the admin: role gates, overview, orders, production board, proofs, quotes, reviews, customers + CSV,
-// catalogue editing, discounts/ambassadors, settings, maintenance mode, reports and help. Needs `next dev` + local Postgres (README). Phase 7 ports this to @playwright/test.
-const { chromium, devices } = require('playwright');
-const { Pool } = require('pg');
-const fs = require('fs');
-const pool = new Pool({ connectionString: 'postgres://postgres:postgres@localhost:5432/pemart_local' });
-const q = async (s, a = []) => (await pool.query(s, a)).rows;
-let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } else console.log('ok  ', m); };
-const B = 'http://localhost:3000';
+// Admin: role gates, overview, orders, production board, proofs, quotes, reviews, customers, catalogue, discounts, settings, reports.
+// Ported from the Phase 4-6 walk-through scripts. Runs against `next dev` + local Postgres (see playwright.config.ts).
+import { test, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { B, ok, pool, q } from './helpers';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 async function fillCheckout(d, email) { await d.locator('#email').fill(email); await d.locator('#phone').fill('0803 123 4567'); await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja'); }
@@ -22,11 +19,14 @@ async function buyCustom(d, email) {
 }
 const login = async (ctx, email, role) => { const p = await ctx.newPage(); await p.goto(`${B}/api/dev/login?email=${email}&role=${role}&next=/admin`); return p; };
 
-(async () => {
+
+
+test('Admin: role gates, overview, orders, production board, proofs, quotes, reviews, customers, catalogue, discounts, settings, reports', async ({ browser }) => {
+  test.setTimeout(1_200_000);
   await q(`truncate orders, gift_cards, custom_requests, bulk_quotes restart identity cascade; update product_variants set reserved_qty=0; alter sequence order_number_seq restart with 10001`);
   await q(`delete from auth.users where email in ('cust@example.com','staff@example.com','admin@example.com')`);
   await q(`update product_variants set stock_qty=40 where sku like 'FAITH-BRACELET-%'; delete from inventory_adjustments; delete from products where slug='e2e-new-tee'; delete from discount_codes where code in ('E2E15','TOLU10'); delete from ambassadors where code='TOLU10'; update settings set maintenance_mode=false, announcement_text='Order by 17 Dec for Christmas delivery in Lagos'`);
-  const b = await chromium.launch(); const errs = [];
+  const b = browser; const errs = [];
   const shopCtx = await b.newContext({ viewport: { width: 1280, height: 900 } }); shopCtx.setDefaultNavigationTimeout(90000); shopCtx.setDefaultTimeout(45000); const shop = await shopCtx.newPage(); shop.on('pageerror', e => errs.push('PAGEERR ' + e));
 
   // ---------- data via the real storefront
@@ -60,7 +60,7 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   ok(await ap.getByText('Revenue today').isVisible() && await ap.getByText('Average order').isVisible() && await ap.getByText('Checkout to paid (7 days)').isVisible(), 'B: admin overview shows revenue, AOV and conversion');
   ok(/proofs waiting/i.test(await ap.locator('body').innerText()), 'B: overview shows proofs waiting');
   await sp.goto(`${B}/admin`); ok(!(await sp.getByText('Revenue today').count()) && await sp.getByText('Sales figures are visible to admins').isVisible(), 'B: staff overview hides revenue');
-  await ap.screenshot({ path: 'p6-overview.png', fullPage: true });
+  await ap.screenshot({ path: 'test-results/shots/p6-overview.png', fullPage: true });
 
   // ===== C. orders
   await sp.goto(`${B}/admin/orders`);
@@ -73,15 +73,15 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   const waHref = await sp.getByRole('link', { name: 'WhatsApp update' }).getAttribute('href'); ok(/wa\.me\/2348031234567/.test(waHref) && decodeURIComponent(waHref).includes(n1), 'C: WhatsApp update link has the number and the order');
   await sp.getByRole('button', { name: /Move to In production/ }).click(); await sp.getByText('Moved to In production.').waitFor(); ok(true, 'C: one-click move to In production');
   ok(await sp.getByRole('link', { name: 'Send WhatsApp update' }).isVisible(), 'C: WhatsApp link offered after the move');
-  ok(fs.readdirSync(require('path').join(process.cwd(), '.outbox')).some(f => f.includes('status-in_production-ada@example.com')), 'C: customer was emailed "in production"');
+  ok(fs.readdirSync(path.join(process.cwd(), '.outbox')).some(f => f.includes('status-in_production-ada@example.com')), 'C: customer was emailed "in production"');
   await sp.fill('#notes', 'Call before delivery'); await sp.getByRole('button', { name: 'Save note' }).click(); await sp.getByText('Note saved.').waitFor(); ok(true, 'C: internal note saved');
-  await sp.screenshot({ path: 'p6-order.png', fullPage: true });
+  await sp.screenshot({ path: 'test-results/shots/p6-order.png', fullPage: true });
   const [slip] = await Promise.all([staffCtx.waitForEvent('page'), sp.getByRole('link', { name: 'Packing slip' }).click()]);
   await slip.waitForLoadState(); const slipText = await slip.locator('body').innerText(); ok(slipText.includes(n1) && /ship to/i.test(slipText) && !/₦/.test(slipText), 'C: packing slip lists the order and shows no prices'); await slip.close();
   await sp.goto(`${B}/admin/orders/${n3}`); ok(!(await sp.getByRole('button', { name: /Move to In production/ }).count()), 'C: custom order awaiting proof cannot be started');
   const mob = await b.newContext({ ...devices['iPhone 13'] }); const mp = await login(mob, 'staff@example.com', 'staff'); await mp.goto(`${B}/admin/orders`); await mp.waitForTimeout(500);
-  ok(await mp.getByRole('list', { name: 'Orders' }).isVisible(), 'C: phones get the order cards'); await mp.screenshot({ path: 'p6-m-orders.png' });
-  await mp.goto(`${B}/admin/production`); await mp.waitForTimeout(500); await mp.screenshot({ path: 'p6-m-board.png' });
+  ok(await mp.getByRole('list', { name: 'Orders' }).isVisible(), 'C: phones get the order cards'); await mp.screenshot({ path: 'test-results/shots/p6-m-orders.png' });
+  await mp.goto(`${B}/admin/production`); await mp.waitForTimeout(500); await mp.screenshot({ path: 'test-results/shots/p6-m-board.png' });
 
   // ===== D. production board with bulk move
   await sp.goto(`${B}/admin/production`);
@@ -97,7 +97,7 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   await sp.getByRole('button', { name: 'Send proof to customer' }).click(); await sp.getByText('Upload the proof image first.').waitFor(); ok(true, 'E: cannot send without a proof file');
   await sp.setInputFiles('input[type=file]', { name: 'proof.png', mimeType: 'image/png', buffer: PNG }); await sp.getByText('Uploaded: proof.png').waitFor();
   await sp.fill('textarea[name="message"]', 'Here is your draft'); await sp.getByRole('button', { name: 'Send proof to customer' }).click(); await sp.getByText(/Proof version 1 sent/).waitFor(); ok(true, 'E: upload + send proof');
-  ok(fs.readdirSync(require('path').join(process.cwd(), '.outbox')).some(f => f.includes('proof-ready-proof@example.com')), 'E: customer emailed "proof ready"');
+  ok(fs.readdirSync(path.join(process.cwd(), '.outbox')).some(f => f.includes('proof-ready-proof@example.com')), 'E: customer emailed "proof ready"');
   const o3 = (await q(`select status, public_token from orders where number=$1`, [n3]))[0]; ok(o3.status === 'proof_sent', 'E: order moved to proof_sent');
   const cpage = await (await b.newContext()).newPage(); await cpage.goto(`${B}/order/${n3}?t=${o3.public_token}`); await cpage.getByText('Here is your draft').waitFor(); ok(await cpage.getByRole('button', { name: 'Approve this design' }).isVisible(), 'E: the customer sees the uploaded proof and can approve');
   await sp.goto(`${B}/admin/proofs`); ok(await sp.getByText('Waiting on the customer (1)').isVisible(), 'E: it moves to "waiting on the customer"');
@@ -108,7 +108,7 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   await sp.reload(); const qc = sp.getByRole('listitem', { name: 'Quoted' }); ok(await qc.getByText('Pastor Ade').isVisible(), 'F: card moved to the Quoted column');
   await qc.getByText(/Turn into an order/).click(); await qc.getByLabel('Street address').fill('1 Church Road'); await qc.getByLabel('City').fill('Ikeja'); await qc.getByRole('button', { name: /Create order and email payment link/ }).click();
   await sp.getByText(/created and the customer was emailed/).waitFor(); const payLink = await sp.getByRole('link', { name: 'Open payment link' }).getAttribute('href'); ok(true, 'F: won quote becomes an order');
-  ok(fs.readdirSync(require('path').join(process.cwd(), '.outbox')).some(f => f.includes('bulk-quote-ready-ade@church.org')), 'F: the customer was emailed their payment link');
+  ok(fs.readdirSync(path.join(process.cwd(), '.outbox')).some(f => f.includes('bulk-quote-ready-ade@church.org')), 'F: the customer was emailed their payment link');
   await cpage.goto(payLink); ok(await cpage.getByRole('heading', { name: 'Waiting for payment' }).isVisible() && await cpage.getByText('₦8,000').first().isVisible() === false || true, 'F: payment link opens the unpaid order');
   ok(await cpage.getByRole('button', { name: /Complete payment · ₦800,000/ }).isVisible(), 'F: the customer can pay ₦800,000 from the link');
 
@@ -152,7 +152,7 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   const bid = (await q(`select id from bundles where slug='starter'`))[0].id; await ap.goto(`${B}/admin/catalogue/bundles/${bid}`); ok(await ap.getByText('Item 1').isVisible() && await ap.getByText('Item 2').isVisible(), 'I: bundle slots listed'); await ap.fill('#bp', '26000'); await ap.getByRole('button', { name: 'Save bundle' }).click(); await ap.getByText('Bundle saved.').waitFor();
   await shop.goto(`${B}/bundles/starter`); ok(await shop.getByText('₦26,000').first().isVisible(), 'I: new bundle price shows on the store');
   await q(`update bundles set price_kobo = 2500000 where slug='starter'`);
-  await ap.screenshot({ path: 'p6-bundle.png', fullPage: true });
+  await ap.screenshot({ path: 'test-results/shots/p6-bundle.png', fullPage: true });
 
   // ===== J. discounts + ambassadors
   await ap.goto(`${B}/admin/discounts`); await ap.fill('#dc', 'e2e15'); await ap.fill('#dv', '15'); await ap.getByRole('button', { name: 'Create code' }).click(); await ap.getByText('Code saved.').waitFor(); ok(true, 'J: code created (upper-cased)');
@@ -177,12 +177,11 @@ const login = async (ctx, email, role) => { const p = await ctx.newPage(); await
   ok(await ap.getByText('Seek First').first().isVisible() && await ap.getByText('Lagos').first().isVisible(), 'L: best-sellers and zones listed');
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date());
   const rcsv = await (await adminCtx.request.get(`${B}/admin/reports/export?type=products&from=${today}&to=${today}`)).text(); ok(rcsv.includes('Product,Quantity,Revenue (NGN)') && rcsv.includes('Seek First Oversized Tee'), 'L: report CSV downloads');
-  await ap.screenshot({ path: 'p6-reports.png', fullPage: true });
+  await ap.screenshot({ path: 'test-results/shots/p6-reports.png', fullPage: true });
 
   // ===== M. help
   await sp.goto(`${B}/admin/help`); ok(await sp.getByRole('heading', { name: /Owner.s guide/ }).isVisible() && !(await sp.getByText('Discounts and ambassadors (admin)').count()), 'M: staff help hides admin sections');
   await ap.goto(`${B}/admin/help`); ok(await ap.getByText('Discounts and ambassadors (admin)').isVisible(), 'M: admin help shows everything');
 
   console.log('page errors:', JSON.stringify(errs.slice(0, 3)));
-  console.log(fails ? `${fails} FAILED` : 'ALL OK'); await b.close(); await pool.end();
-})().catch(e => { console.error('SCRIPT ERROR', e.message.split('\n').slice(0, 8).join('\n')); process.exit(1); });
+});

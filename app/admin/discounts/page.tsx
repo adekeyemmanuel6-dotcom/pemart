@@ -8,7 +8,6 @@ import { formatNaira } from '@/lib/money';
 export const metadata: Metadata = { title: 'Discounts' };
 type Code = { id: string; code: string; type: 'percentage' | 'fixed'; value: number; min_spend_kobo: number; starts_at: string | null; ends_at: string | null; usage_limit: number | null; per_customer_limit: number | null; times_used: number; ambassador: string | null; ambassador_id: string | null; is_active: boolean };
 type Amb = { id: string; name: string; code: string; phone: string | null; email: string | null; commission_rate: number; is_active: boolean; payout_note: string | null; orders: number; sales_kobo: number; owed_kobo: number; paid_kobo: number };
-const dateOnly = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 3600_000).toISOString().slice(0, 10) : '');
 
 export default async function DiscountsPage() {
   const me = await requireAdmin('/admin/discounts');

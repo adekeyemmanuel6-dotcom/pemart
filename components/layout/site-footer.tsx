@@ -1,3 +1,4 @@
+import { CookieSettingsLink } from '@/components/consent/cookie-settings-link';
 import Link from 'next/link';
 import { Camera, MessageCircle } from 'lucide-react';
 import type { StoreSettings } from '@/lib/settings';
@@ -43,7 +44,7 @@ export function SiteFooter({ settings }: { settings: StoreSettings }) {
       <div className="border-t border-paper/15">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-sm text-paper/70 sm:flex-row sm:justify-between sm:px-6">
           <p>© {new Date().getFullYear()} Pemart. All rights reserved.</p>
-          <p className="flex gap-4"><Link href="/privacy" className="hover:underline">Privacy</Link><Link href="/terms" className="hover:underline">Terms</Link></p>
+          <p className="flex gap-4"><Link href="/privacy" className="hover:underline">Privacy</Link><Link href="/terms" className="hover:underline">Terms</Link><CookieSettingsLink /></p>
         </div>
       </div>
     </footer>

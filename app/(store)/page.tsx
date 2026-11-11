@@ -37,7 +37,7 @@ export default async function HomePage() {
     <>
       {/* Hero */}
       <section className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 md:py-20">
-        <div className="reveal">
+        <div>
           <p className="font-script text-3xl text-mocha">for you</p>
           <h1 className="display text-[clamp(3.5rem,11vw,8rem)]">Wear what<br />you believe.</h1>
           <p className="mt-5 max-w-md text-lg text-muted">Faith-inspired tees, hoodies and gifts. Printed to order and at your door in 5 days. Order for Christmas by 17 December in Lagos.</p>
@@ -46,9 +46,9 @@ export default async function HomePage() {
             <Button asChild variant="secondary"><Link href="/custom">Design Your Own</Link></Button>
           </div>
         </div>
-        <div className="reveal relative mx-auto w-full max-w-md" style={{ animationDelay: '80ms' }}>
+        <div className="relative mx-auto w-full max-w-md">
           <Link href="/products/seek-first-tee" aria-label="Seek First oversized tee">
-            <GarmentMockup type="tee" colour="Black" view="back" designSlug="seek-first" className="rounded-lg" />
+            <GarmentMockup type="tee" colour="Black" view="back" designSlug="seek-first" className="rounded-lg" priority />
           </Link>
           <p className="mt-2 text-center text-sm text-muted">Seek First oversized tee, back print</p>
         </div>

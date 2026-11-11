@@ -13,6 +13,7 @@ import { publicEnv } from '@/lib/env';
 import { getSettings } from '@/lib/settings';
 import { whatsappLink } from '@/lib/site';
 import { sendEmail } from './email';
+import WelcomeOffer from '@/emails/welcome-offer';
 
 const site = () => publicEnv.NEXT_PUBLIC_SITE_URL;
 const wa = async () => whatsappLink((await getSettings()).whatsapp_number, 'Hi Pemart, I have a question.');
@@ -67,4 +68,8 @@ export async function notifyAdmin(subject: string, text: string) {
 
 export async function notifyQuoteReady(o: { to: string; name: string; number: string; token: string; totalKobo: number }) {
   return sendEmail({ to: o.to, subject: `Your Pemart bulk quote: ${o.number}`, tag: 'bulk-quote-ready', react: createElement(BulkQuoteReady, { name: o.name, totalKobo: o.totalKobo, link: orderLink(o.number, o.token), siteUrl: site(), whatsappUrl: await wa() }) });
+}
+
+export async function notifyWelcomeOffer(o: { to: string; code: string; expires?: string }) {
+  return sendEmail({ to: o.to, subject: 'Your 10% off first order code', tag: 'welcome-offer', react: createElement(WelcomeOffer, { code: o.code, expires: o.expires, siteUrl: site(), whatsappUrl: await wa() }) });
 }

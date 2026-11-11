@@ -1,6 +1,7 @@
 'use client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { track } from '@/lib/analytics';
 
 /**
  * Phase 1 skeleton of the bag. The client stores only WHAT was chosen (ids,
@@ -26,7 +27,7 @@ type BagState = {
   code: string;
   giftCode: string;
   setCodes: (code: string, giftCode: string) => void;
-  add: (line: BagLine) => void;
+  add: (line: BagLine, meta?: { name: string; unitKobo: number; category?: string }) => void;
   remove: (id: string) => void;
   setQuantity: (id: string, quantity: number) => void;
   clear: () => void;
@@ -41,7 +42,8 @@ export const useBag = create<BagState>()(
       code: '',
       giftCode: '',
       setCodes: (code, giftCode) => set({ code, giftCode }),
-      add: (line) =>
+      add: (line, meta) => {
+        track('add_to_cart', { valueKobo: (meta?.unitKobo ?? 0) * line.quantity, items: [{ id: line.refId, name: meta?.name ?? line.kind, priceKobo: meta?.unitKobo ?? 0, quantity: line.quantity, category: meta?.category ?? line.kind }] });
         set((s) => {
           // Identical plain variants merge into one line; bundles and custom selections stay separate.
           const match = line.kind === 'variant' && !line.selection && !line.giftMessage && !line.upsell && !line.giftCard
@@ -49,7 +51,8 @@ export const useBag = create<BagState>()(
             : undefined;
           if (match) return { lines: s.lines.map((l) => (l === match ? { ...l, quantity: Math.min(20, l.quantity + line.quantity) } : l)), isOpen: true };
           return { lines: [...s.lines, line], isOpen: true };
-        }),
+        });
+      },
       remove: (id) => set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       setQuantity: (id, quantity) =>
         set((s) => ({ lines: s.lines.map((l) => (l.id === id ? { ...l, quantity: Math.max(1, Math.min(20, quantity)) } : l)) })),

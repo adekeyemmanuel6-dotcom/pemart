@@ -8,3 +8,5 @@ coverage
 .vercel
 .outbox
 public/uploads
+test-results
+playwright-report
