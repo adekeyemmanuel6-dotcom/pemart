@@ -84,7 +84,7 @@ Emails that are sent: order confirmation, proof ready, proof approved, order sta
 
 ## 5. Analytics and cookie consent
 
-Nothing but essential storage (bag, sign-in) runs until a visitor chooses in the cookie banner. "Cookie settings" in the footer re-opens it, and withdrawing consent switches tracking off.
+**The cookie banner is off by default**, so with nothing else set no analytics run at all. To turn it on, set `NEXT_PUBLIC_COOKIE_BANNER=1` and redeploy. Then nothing but essential storage (bag, sign-in) runs until a visitor chooses in the banner. "Cookie settings" in the footer re-opens it, and withdrawing consent switches tracking off.
 
 | Tool | Variable | Category | Events |
 | --- | --- | --- | --- |

@@ -10,6 +10,7 @@ export type Consent = { analytics: boolean; marketing: boolean; ts: string };
 
 const KEY = 'pemart-consent';
 const CHANGE = 'pemart:consent';
+export { COOKIE_BANNER } from '@/lib/cookie-flag';
 export const OPEN_EVENT = 'pemart:consent-open';
 
 export function readConsent(): Consent | null {

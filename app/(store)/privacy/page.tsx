@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { COOKIE_BANNER } from '@/lib/cookie-flag';
 import { ContentPage } from '@/components/content-page';
 
 export const metadata: Metadata = { title: 'Privacy', description: 'What Pemart collects, why, who we share it with, and your choices.', alternates: { canonical: '/privacy' } };
@@ -25,18 +26,21 @@ export default function PrivacyPage() {
         <li><strong>Paystack</strong> to take payments.</li>
         <li><strong>Supabase</strong> for our database, sign-in and file storage.</li>
         <li><strong>Resend</strong> to send emails.</li>
-        <li><strong>Vercel</strong> to host this website and, if you accept analytics, to count visits (Vercel Analytics).</li>
-        <li><strong>Google (Analytics)</strong> and <strong>Meta (Pixel)</strong>, only if you accept the matching cookies below.</li>
+        <li><strong>Vercel</strong> to host this website.</li>
         <li>Delivery partners, who receive your name, phone and address to deliver your parcel.</li>
       </ul>
       <p>We do not sell your personal data.</p>
       <h2>Cookies and analytics</h2>
+      {COOKIE_BANNER ? (<>
       <p>Essential storage keeps your bag and your sign-in working and is always on. Nothing else loads until you choose:</p>
       <ul>
         <li><strong>Analytics</strong> (Google Analytics, Vercel Analytics): which pages and products people view, whether they add to the bag, start checkout or buy, and the value of the order. No names or contact details are sent.</li>
         <li><strong>Marketing</strong> (Meta Pixel): the same shopping events, so we can measure and improve our ads.</li>
       </ul>
       <p>Choose &quot;Essential only&quot; and neither runs. You can change your mind at any time with &quot;Cookie settings&quot; in the footer; withdrawing consent switches both off straight away. We store your choice, and when you made it, on your device.</p>
+      </>) : (
+        <p>We use essential storage only: it keeps your bag and your sign-in working. We do not run advertising or analytics cookies. If that ever changes we will ask you first and update this page.</p>
+      )}
       <h2>Your uploads</h2>
       <p>Design files you upload are stored privately and used only to produce your order. Please only upload images you have the right to use.</p>
       <h2>Keeping and deleting data</h2>

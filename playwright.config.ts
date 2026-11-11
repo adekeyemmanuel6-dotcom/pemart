@@ -37,6 +37,7 @@ export default defineConfig({
       PAYSTACK_SECRET_KEY: 'sk_test_e2e',
       CRON_SECRET: 'cron-secret',
       NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,
+      NEXT_PUBLIC_COOKIE_BANNER: '1', // the banner is off by default in production; the consent tests need it on
       NEXT_PUBLIC_GA_ID: 'G-E2ETEST',
       NEXT_PUBLIC_META_PIXEL_ID: '1234567890',
     },

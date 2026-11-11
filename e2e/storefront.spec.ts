@@ -99,11 +99,12 @@ test.describe('cookie consent and analytics', () => {
 test.describe('first-order offer', () => {
   test.beforeAll(async () => { await q(`delete from subscribers where email like '%@offer.test'`); });
 
-  test('exit intent shows the popup once; claiming issues a single-use code, applies it to the bag and emails it', async ({ browser }) => {
+  test('after 20 seconds the popup shows once; claiming issues a single-use code, applies it to the bag and emails it', async ({ browser }) => {
     const ctx = await browser.newContext(); const page = await ctx.newPage(); await stubThirdParties(page);
+    await page.clock.install();
     await page.goto(`${B}/collections/kingdom`);
     await page.getByRole('button', { name: 'Essential only' }).click();
-    await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseout', { clientY: -5, relatedTarget: null, bubbles: true })));
+    await page.clock.fastForward(21_000);
     const popup = page.getByRole('dialog', { name: '10% off your first order' });
     await expect(popup).toBeVisible();
 
@@ -124,7 +125,7 @@ test.describe('first-order offer', () => {
 
     // once only: a new page load does not show it again
     await page.reload();
-    await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseout', { clientY: -5, relatedTarget: null, bubbles: true })));
+    await page.clock.fastForward(21_000);
     await expect(page.getByRole('dialog', { name: '10% off your first order' })).toHaveCount(0);
 
     // the code takes 10% off the bag
@@ -161,9 +162,10 @@ test.describe('first-order offer', () => {
 
   test('the popup stays out of the way on checkout and order pages', async ({ browser }) => {
     const ctx = await browser.newContext(); const page = await ctx.newPage(); await stubThirdParties(page);
+    await page.clock.install();
     await page.goto(`${B}/checkout`);
     await page.getByRole('button', { name: 'Essential only' }).click();
-    await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseout', { clientY: -5, relatedTarget: null, bubbles: true })));
+    await page.clock.fastForward(21_000);
     await page.waitForTimeout(500);
     await expect(page.getByRole('dialog', { name: '10% off your first order' })).toHaveCount(0);
     await ctx.close();

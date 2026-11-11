@@ -7,7 +7,7 @@ export type TierId = 'personalise' | 'text_design' | 'full_custom';
  * the browser only displays it. Fees are added on top of the garment price.
  */
 export const TIERS: Record<TierId, { id: TierId; name: string; feeKobo: Kobo; proofHours: number; blurb: string }> = {
-  personalise: { id: 'personalise', name: 'Personalise', feeKobo: 300000, proofHours: 12, blurb: 'Pick an existing design and change the name, date or verse text.' },
+  personalise: { id: 'personalise', name: 'Personalise', feeKobo: 300000, proofHours: 12, blurb: 'Pick an existing design and change the date or verse text.' },
   text_design: { id: 'text_design', name: 'Text design', feeKobo: 500000, proofHours: 24, blurb: 'Type your own words and choose a Pemart type style.' },
   full_custom: { id: 'full_custom', name: 'Full custom', feeKobo: 1500000, proofHours: 48, blurb: 'Describe your idea and upload references or a sketch.' },
 };

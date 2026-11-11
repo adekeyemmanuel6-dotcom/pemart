@@ -29,7 +29,7 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
   const [size, setSize] = useState<string>('');
   const [position, setPosition] = useState<PrintPosition>('back');
   const [designSlug, setDesignSlug] = useState<string>('');
-  const [name, setName] = useState(''); const [date, setDate] = useState(''); const [verse, setVerse] = useState('');
+  const [date, setDate] = useState(''); const [verse, setVerse] = useState('');
   const [lines, setLines] = useState<string[]>(['', '']);
   const [typeStyle, setTypeStyle] = useState<TypeStyleId>('heavy');
   const [notes, setNotes] = useState('');
@@ -49,9 +49,9 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
   const ink = dark ? '#141414' : '#F6F1E8';
 
   const draft: PrintDraft = useMemo(() => ({
-    tier, designSlug: designSlug || undefined, name: design?.fields.includes('name') ? name : undefined, date: design?.fields.includes('date') ? date : undefined,
+    tier, designSlug: designSlug || undefined, date: design?.fields.includes('date') ? date : undefined,
     verse: design?.fields.includes('verse') ? verse : undefined, textLines: lines, typeStyle, uploadUrl,
-  }), [tier, designSlug, design, name, date, verse, lines, typeStyle, uploadUrl]);
+  }), [tier, designSlug, design, date, verse, lines, typeStyle, uploadUrl]);
 
   const showFront = position !== 'back', showBack = position !== 'front';
 
@@ -65,7 +65,7 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
       designSlug: tier === 'personalise' ? designSlug || undefined : undefined,
       typeStyle: tier === 'text_design' ? typeStyle : undefined,
       textLines: tier === 'text_design' ? lines : [],
-      name: tier === 'personalise' ? name || undefined : undefined, date: tier === 'personalise' ? date || undefined : undefined, verse: tier === 'personalise' ? verse || undefined : undefined,
+      date: tier === 'personalise' ? date || undefined : undefined, verse: tier === 'personalise' ? verse || undefined : undefined,
       notes: tier === 'full_custom' ? notes || undefined : undefined,
       uploadPaths: tier === 'full_custom' ? paths : [], rightsConfirmed: tier === 'full_custom' ? rights : undefined,
     };
@@ -135,11 +135,10 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`/designs/${d.slug}-card.svg`} alt="" loading="lazy" className="aspect-[4/5] w-full object-cover" /><span className="block px-1.5 py-1 text-xs font-semibold leading-tight">{d.name}</span></button></li>))}</ul><Err k="designSlug" /></fieldset>
             {design && (<div className="grid gap-4 sm:grid-cols-2">
-              {design.fields.includes('name') && <div><Label htmlFor="c-name">Name</Label><Input id="c-name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="e.g. Grace" /></div>}
               {design.fields.includes('date') && <div><Label htmlFor="c-date">Date</Label><Input id="c-date" value={date} maxLength={40} onChange={(e) => setDate(e.target.value)} placeholder="e.g. 14.02.2027" /></div>}
               {design.fields.includes('verse') && <div className="sm:col-span-2"><Label htmlFor="c-verse">Verse or line of text</Label><Input id="c-verse" value={verse} maxLength={160} onChange={(e) => setVerse(e.target.value)} placeholder="Printed under the design" /></div>}
             </div>)}
-            <Err k="name" />
+            
           </>)}
 
           {tier === 'text_design' && (<>

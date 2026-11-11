@@ -6,7 +6,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { claimPopupOffer } from '@/lib/actions/offer-popup';
 import type { OfferState } from '@/lib/actions/offer';
 import { useBag } from '@/lib/cart-store';
-import { useConsent } from '@/lib/consent';
+import { COOKIE_BANNER, useConsent } from '@/lib/consent';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 
@@ -15,26 +15,28 @@ const DELAY_MS = 20_000;
 // Never interrupt someone who is paying, reading an order, or already signed in to their account.
 const QUIET = ['/checkout', '/order', '/account', '/bag', '/auth', '/track'];
 
-/** First-order offer: after 20 s on the site, or on exit intent (desktop). Shown once per device. */
+/** First-order offer: after 20 s on the site. Shown once per device. */
 export function OfferPopup() {
   const pathname = usePathname();
   const consent = useConsent();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<OfferState, FormData>(claimPopupOffer, null);
   const quiet = QUIET.some((q) => pathname.startsWith(q));
-  const decided = consent !== undefined && consent !== null; // wait until the cookie banner is out of the way
+  const decided = !COOKIE_BANNER || (consent !== undefined && consent !== null); // if the cookie banner is on, wait until it is answered
 
   useEffect(() => {
     if (!decided || quiet) return;
-    let seen = false;
-    try { seen = !!window.localStorage.getItem(SEEN); } catch { /* ignore */ }
-    if (seen) return;
-    const show = () => { setOpen(true); try { window.localStorage.setItem(SEEN, new Date().toISOString()); } catch { /* ignore */ } };
-    const timer = window.setTimeout(show, DELAY_MS);
-    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    const leave = (e: MouseEvent) => { if (e.clientY <= 0 && !e.relatedTarget) show(); };
-    if (finePointer) document.addEventListener('mouseout', leave);
-    return () => { window.clearTimeout(timer); document.removeEventListener('mouseout', leave); };
+    const seen = () => { try { return !!window.localStorage.getItem(SEEN) || !!window.sessionStorage.getItem(SEEN); } catch { return false; } };
+    if (seen()) return;
+    // Timed only. (An exit-intent trigger fired whenever the mouse moved up to the address bar, so it was dropped.)
+    const timer = window.setTimeout(() => {
+      if (seen()) return;
+      setOpen(true);
+      const now = new Date().toISOString();
+      try { window.localStorage.setItem(SEEN, now); } catch { /* ignore */ }
+      try { window.sessionStorage.setItem(SEEN, now); } catch { /* ignore */ }
+    }, DELAY_MS);
+    return () => window.clearTimeout(timer);
   }, [decided, quiet]);
 
   const code = state?.ok ? state.code : undefined;

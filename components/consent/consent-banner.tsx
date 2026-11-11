@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { OPEN_EVENT, saveConsent, useConsent } from '@/lib/consent';
+import { COOKIE_BANNER, OPEN_EVENT, saveConsent, useConsent } from '@/lib/consent';
 import { bootAnalytics } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 
@@ -23,7 +23,7 @@ export function ConsentBanner() {
   useEffect(() => { if (forced) ref.current?.focus(); }, [forced]);
 
   const visible = consent === null || forced;
-  if (consent === undefined || !visible) return null;
+  if (!COOKIE_BANNER || consent === undefined || !visible) return null;
 
   const choose = (a: boolean, m: boolean) => {
     const hadTracking = !!consent && (consent.analytics || consent.marketing);
