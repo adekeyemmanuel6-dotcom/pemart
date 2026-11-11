@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProductVisual } from './product-visual';
 import { SizeGuideDrawer } from './size-guide-drawer';
+import { WishlistButton } from './wishlist-button';
 
 export type ViewVariant = { id: string; colour: string | null; size: string | null; option: string | null; group: string | null; priceKobo: number; soldOut: boolean; lowStock: number | null };
 export type ViewProduct = {
@@ -192,6 +193,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
           </div>
           <Button variant="secondary" className="w-full" disabled={disabled} onClick={() => { if (addToBag()) router.push('/bag'); }}>Buy now</Button>
           <p role="status" aria-live="polite" className="min-h-5 text-sm text-mocha">{added && <>Added. <Link href="/bag" className="font-semibold underline">View your bag</Link></>}</p>
+          <WishlistButton productId={p.id} slug={p.slug} />
 
  {p.type !== 'gift_card' && (<div className="rounded-lg border border-line bg-white p-4">
             <label htmlFor="state" className="text-sm font-semibold">Where are we delivering?</label>

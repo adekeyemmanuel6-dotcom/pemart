@@ -4,6 +4,10 @@ import { Check, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getProfile } from '@/lib/auth';
 import { fetchOrder } from '@/lib/checkout/service';
+import { ProofPanel } from '@/components/order/proof-panel';
+import { ResumePayment } from '@/components/order/resume-payment';
+import { proofUrl } from '@/lib/orders/service';
+import { STATUS_LABEL as LABEL } from '@/lib/orders/status';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
 import { customerOrderLink } from '@/lib/notifications/whatsapp';
@@ -12,10 +16,6 @@ import { getSettings } from '@/lib/settings';
 export const metadata: Metadata = { title: 'Your order', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 
-const LABEL: Record<string, string> = {
-  pending_payment: 'Waiting for payment', paid: 'Payment confirmed', awaiting_proof: 'Preparing your design proof', proof_sent: 'Proof ready for you', revision_requested: 'Revision requested',
-  approved: 'Design approved', in_production: 'In production', quality_check: 'Quality check', packed: 'Packed', out_for_delivery: 'Out for delivery', delivered: 'Delivered', cancelled: 'Cancelled', refunded: 'Refunded', reprint: 'Reprinting',
-};
 const fmtDateTime = (iso: string) => new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' }).format(new Date(iso));
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ t?: string }> }) {
@@ -34,6 +34,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   }
 
   const pending = o.status === 'pending_payment', cancelled = o.status === 'cancelled';
+  const proofItems = await Promise.all(o.custom_requests.map(async (c) => ({ ...c, latestUrl: c.proofs.length ? await proofUrl(c.proofs[c.proofs.length - 1]!.path) : null })));
+  const canReview = o.status === 'delivered' && o.items.some((i) => (i.kind === 'variant' || i.kind === 'bundle') && !i.review_status);
   const extras = o.gift_wrap_kobo + o.surprise_note_kobo + o.express_kobo + o.ship_ready_first_kobo;
   return (
     <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -48,13 +50,19 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           <p className="mt-1 text-sm text-muted">A confirmation was sent to {o.contact_email}.</p>
         </div>
       )}
-      {pending && <div className="mt-5 rounded-lg bg-ember/15 p-4" role="status"><p className="font-semibold">We haven&apos;t received your payment yet.</p><p className="text-sm">If you just paid, give it a minute and refresh. Unpaid orders are cancelled after 24 hours{o.expires_at ? ` (${fmtDateTime(o.expires_at)})` : ''}.</p></div>}
+      {pending && (
+        <div className="mt-5 rounded-lg bg-ember/15 p-4" role="status"><p className="font-semibold">We haven&apos;t received your payment yet.</p>
+          <p className="mb-3 text-sm">If you just paid, give it a minute and refresh. We hold your items and cancel unpaid orders after 24 hours{o.expires_at ? ` (${fmtDateTime(o.expires_at)})` : ''}.</p>
+          <ResumePayment number={o.number} token={o.token} totalKobo={o.total_kobo} /></div>
+      )}
+      {proofItems.length > 0 && !pending && !cancelled && <ProofPanel items={proofItems} number={o.number} token={t} revisionFeeKobo={settings.revision_fee_kobo} />}
 
       <h2 className="display mb-2 mt-10 text-3xl">Items</h2>
       <ul className="divide-y divide-line rounded-lg border border-line bg-white">
         {o.items.map((i) => (
           <li key={i.id} className="p-4">
             <div className="flex justify-between gap-3"><p className="font-semibold">{i.quantity > 1 ? `${i.quantity} × ` : ''}{i.name}</p><p className="font-semibold">{formatNaira(i.unit_price_kobo * i.quantity)}</p></div>
+            {i.kind === 'revision' && <p className="text-sm text-muted">One extra revision for your custom design</p>}
             {i.kind === 'custom' && <p className="text-sm text-muted">{[(i.options as { colour?: string }).colour, (i.options as { size?: string }).size].filter(Boolean).join(' · ')} · custom design, final sale</p>}
             {i.kind === 'variant' && <p className="text-sm text-muted">{[(i.options as { colour?: string }).colour, (i.options as { size?: string }).size, (i.options as { option?: string }).option].filter(Boolean).join(' · ')}</p>}
             {i.selections && (<ul className="mt-1 space-y-0.5 text-sm text-muted">{i.selections.map((s) => (<li key={s.label}><strong className="text-ink">{s.label}:</strong> {[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : ''].filter(Boolean).join(' · ')}</li>))}</ul>)}
@@ -85,6 +93,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Button asChild><a href={customerOrderLink(settings.whatsapp_number, o.number)} target="_blank" rel="noopener noreferrer">Message us about this order</a></Button>
+        {canReview && <Button asChild variant="secondary"><Link href={`/order/${o.number}/review${t ? `?t=${t}` : ''}`}>Leave a review</Link></Button>}
         <Button asChild variant="secondary"><Link href="/collections/all">Keep shopping</Link></Button>
       </div>
     </section>

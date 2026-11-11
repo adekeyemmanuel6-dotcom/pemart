@@ -8,6 +8,7 @@ import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
 import { toInputLines, useDeliveryState, useQuote } from '@/lib/checkout/use-quote';
 import { openPaystack } from '@/lib/paystack-client';
+import { confirmPayment } from '@/lib/payment-client';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { BagContents } from '@/components/bag/bag-contents';
@@ -48,17 +49,13 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
 
   function succeed(number: string, token: string) { clear(); router.push(`/order/${number}?t=${token}`); }
 
-  async function confirm(reference: string, s: Session, attempt = 0) {
+  async function confirm(reference: string, s: Session) {
     setConfirming(true); setMockOpen(false);
-    try {
-      const res = await fetch('/api/payments/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }) });
-      const j = await res.json();
-      if (res.ok && j.ok) return succeed(j.number, j.token);
-      if (res.status === 202 && attempt < 4) { await new Promise((r) => setTimeout(r, 2500)); return confirm(reference, s, attempt + 1); }
-      setMessage(j.message ?? 'We could not confirm your payment.');
-      if (res.status === 202) return succeed(s.number, s.token); // the webhook will finish it; the order page shows the real status
-    } catch { setMessage('We could not confirm your payment. If you were charged, your order will be confirmed shortly.'); }
-    finally { setConfirming(false); }
+    const r = await confirmPayment(reference);
+    setConfirming(false);
+    if (r.ok) return succeed(r.number, r.token);
+    setMessage(r.message);
+    if (r.pending) succeed(s.number, s.token); // the webhook will finish it; the order page shows the real status
   }
 
   function openPayment(s: Session) {

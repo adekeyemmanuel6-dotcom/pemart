@@ -1,6 +1,6 @@
 # Pemart build progress
 
-Last updated: Phase 4 complete (awaiting review).
+Last updated: Phase 5 complete (awaiting review).
 
 ## Status
 
@@ -9,9 +9,9 @@ Last updated: Phase 4 complete (awaiting review).
 | 1. Foundation | Done, reviewed |
 | 2. Catalogue | Done, reviewed |
 | 3. Bundles and custom | Done, reviewed |
-| 4. Bag and checkout | **Done, ready for review** |
-| 5. Accounts and post-purchase | Next |
-| 6. Admin | Not started |
+| 4. Bag and checkout | Done, reviewed |
+| 5. Accounts and post-purchase | **Done, ready for review** |
+| 6. Admin | Next |
 | 7. Polish and launch | Not started |
 
 ## Phase 1: what exists
@@ -115,12 +115,12 @@ Style guide (dev only): `/dev/style`.
 |---|---|
 | Guest buys a tee to Lagos with a code, pays, total correct, promised date 5 days out | `tests/e2e/checkout-flows.cjs` (A) + `tests/integration/checkout.test.ts` |
 | Couple's Christmas Box: every selection in the bag, the order and the confirmation email | e2e (B). Admin view and print partner are Phase 6 (print partner removed by your request) |
-| Custom text design pays, sits in `awaiting_proof`, no production start or promise | e2e (C) + integration. Proof upload, revision and approval are Phase 5/6 |
+| Custom text design pays, sits in `awaiting_proof`; admin sends a proof, customer requests a revision, admin sends a second proof, customer approves, and only then are `production_start_at` and `promised_by` set | `tests/e2e/post-purchase-flows.cjs` (2) + `tests/integration/post-purchase.test.ts` (the admin screen that uploads the proof is Phase 6; the same function it will call is what is tested) |
 | Browser price tampering does not change the charge | pricing unit tests + e2e (D) + integration |
 | Fake/replayed webhook rejected; duplicate valid webhook does not double-process | `tests/integration/webhook.test.ts` (unsigned, wrong key, forged amount, replays, verify/webhook race) |
 | After a zone's Christmas cutoff gift boxes show the notice and checkout warns | Phase 3 hub (browser, clock set to 18 Dec) + pricing unit tests for the checkout warning |
 | Ambassador code gives 10% off and creates a pending commission | e2e (G) + integration |
-| Staff cannot open settings, discounts or reports | Phase 6 (admin screens) |
+| Staff cannot open settings, discounts or reports | Staff vs customer gate verified (customer is refused `/admin`, staff admitted). The settings/discounts/reports screens and their admin-only gate are Phase 6 |
 
 ## Phase 4 decisions
 
@@ -140,9 +140,32 @@ Style guide (dev only): `/dev/style`.
 
 Paystack **live** keys and the webhook URL `https://YOUR-DOMAIN/api/webhooks/paystack` set in the Paystack dashboard; Resend domain verified and `EMAIL_FROM` set; `CRON_SECRET` set in Vercel; `ADMIN_NOTIFY_EMAIL` set for bulk quote alerts.
 
+## Phase 5: what exists
+
+- **Order tracking** (`/track`): order number + the email or phone used, no login. One generic "not found" message for a wrong number or a wrong contact (so nobody can probe order numbers), rate limited, and the visitor's typing is kept after an error. A match redirects to the private order page.
+- **Proof round trip** (all SQL functions, tested): staff attach a proof (`proof_send`), the customer approves or asks for changes on the order page with their private link or from their account (`proof_respond`). One free revision; after that an **extra revision costs ₦2,000** (setting) and goes through normal checkout as a digital add-on line, granting exactly one more. Approving the **last** custom design in an order starts the 5-day clock (`production_start_at`, `promised_by`); a mixed order with ready items waits for every design. Order status follows: awaiting_proof, proof_sent, revision_requested, approved.
+- **Order status machine** (`order_set_status`): a single list of legal moves, mirrored in TypeScript and checked by a test against the SQL for all 196 pairs. Production cannot begin for a custom order before approval; cancelling releases stock. Moving to in production, out for delivery or delivered emails the customer and returns a WhatsApp link for staff (the Phase 6 production board calls this).
+- **Account** (`/account`): orders (including ones placed as a guest with the same verified email), "a design proof is waiting" callout, store credit, saved addresses (first is default, edit, delete promotes another), wishlist (heart on every product page, sign-in prompt for visitors), profile.
+- **Reviews and store credit**: verified buyers only (private order link or signed-in owner), delivered orders only, one review per item, up to 3 photos (private signed upload to a public review-photos bucket, images only). Reviews start pending. Approving a **photo** review grants ₦2,000 once; a guest who is not yet an account gets the credit the moment they sign up with that email.
+- **Reminders** (`/api/cron/reminders`, hourly at :30): the abandoned-checkout email 1 hour after an unpaid order, and the review request 3 days after delivery. Both once per order, never for paid, expired or digital-only orders.
+- **Resume payment**: an unpaid order's page has "Complete payment". It issues a new Paystack reference; the old one still settles the order if the customer actually finished it, and paying twice is detected and flagged "Refund needed".
+- **Emails** now: proof ready, proof approved, in production / out for delivery / delivered, review request, abandoned checkout, plus a sign-in email template (6 render tests).
+- **Dev-only login** (`/api/dev/login`) so accounts and the staff/admin gates can be tested on local Postgres. It only exists when running against a plain Postgres URL and returns 404 otherwise.
+
+## Phase 5 decisions
+
+43. **Digital orders (gift cards, extra revisions) finish immediately** as `delivered` with no promised date, so they do not appear as something to ship or get a review request.
+44. **Payments are matched through the payment record**, not just the order's current reference, so a late payment on an older reference still settles the right order.
+45. **Proof images** are private: customers get 1-hour signed links (Supabase). In local dev, proof paths starting with "/" are served as plain files.
+46. **The proof "Approve" button is a form post, not a link in the email.** The email links to the order page, so scanners or previews that open links can never approve a design by accident.
+47. **Order page access** uses the private token in the link (anyone with the link can view and answer proofs, like a courier tracking link) or the signed-in owner. The Supabase "magic link" email itself is sent by Supabase Auth: paste the template from `emails/sign-in-link.tsx` into Authentication > Email Templates (see README).
+48. **Bugs found by the browser run and fixed**: success messages disappearing when the page refreshed after an action (proofs, reviews); the bag drawer staying open over the checkout after "Buy an extra revision"; form fields wiped after a validation error (account addresses and profile, same fix as Phase 3); and "Leave a review" offered on digital-only orders.
+49. **Vercel crons**: two hourly jobs now (`expire` and `reminders`). Hobby plans only allow daily crons, so use Pro or change both schedules to daily.
+50. **Staff screens for proofs/reviews are Phase 6.** The back end (`sendProof`, `moderateReview`, `changeOrderStatus`) is built, tested and waiting for them.
+
 ## Known gaps (by design, later phases)
 
-Account orders and proofs, `/track`, reviews, abandoned-checkout email (P5); admin screens (P6); Playwright, SEO, analytics, Lighthouse (P7).
+Admin screens, including proof upload, review moderation, production board, WhatsApp update buttons (P6); Playwright, SEO, analytics, Lighthouse (P7).
 
 ## Needed before Phase 4
 

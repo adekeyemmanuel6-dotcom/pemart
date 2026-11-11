@@ -17,6 +17,7 @@ const lineSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('variant'), id, refId: id, quantity: z.number(), upsell: z.boolean().optional(), giftCard: z.object({ recipientEmail: z.string().max(254).optional(), message: z.string().max(300).optional() }).optional() }),
   z.object({ kind: z.literal('bundle'), id, refId: id, quantity: z.number(), selection: z.object({ bundleSlug: z.string().max(80), choices: z.array(choice).max(30), giftMessage: z.string().max(400).optional(), giftWrap: z.boolean().optional() }) }),
   z.object({ kind: z.literal('custom'), id, refId: id, quantity: z.number() }),
+  z.object({ kind: z.literal('revision'), id, refId: id, quantity: z.number() }),
 ]);
 const pricingSchema = z.object({
   lines: z.array(lineSchema).max(50), code: z.string().max(40).optional(), giftCode: z.string().max(40).optional(), useCredit: z.boolean().optional(),

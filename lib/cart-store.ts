@@ -9,7 +9,7 @@ import { persist } from 'zustand/middleware';
  */
 export type BagLine = {
   id: string;
-  kind: 'variant' | 'bundle' | 'custom';
+  kind: 'variant' | 'bundle' | 'custom' | 'revision';
   refId: string; // variant id, bundle slug, or custom request id
   quantity: number;
   /** bundle: a BundleSelection. custom: { request, persisted, summary }. Never trusted for pricing. */

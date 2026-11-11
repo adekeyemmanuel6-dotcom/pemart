@@ -9,7 +9,7 @@ const EXTS = ['png', 'jpg', 'jpeg', 'pdf', 'svg'];
 const mime = (f: File) => (f.type === 'image/jpg' ? 'image/jpeg' : f.type || ({ png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', pdf: 'application/pdf', svg: 'image/svg+xml' } as Record<string, string>)[f.name.split('.').pop()?.toLowerCase() ?? ''] || '');
 
 /** Uploads to a private bucket through one-time signed URLs. Reports uploaded paths (and the first image, for previews). */
-export function FileUploader({ bucket, onPaths, onPreview, max = UPLOAD_RULES.maxFiles }: { bucket: 'custom' | 'bulk'; onPaths: (paths: string[]) => void; onPreview?: (file: File | null) => void; max?: number }) {
+export function FileUploader({ bucket, onPaths, onPreview, max = UPLOAD_RULES.maxFiles }: { bucket: 'custom' | 'bulk' | 'review'; onPaths: (paths: string[]) => void; onPreview?: (file: File | null) => void; max?: number }) {
   const [items, setItems] = useState<Item[]>([]);
   const files = useRef<Map<string, File>>(new Map());
   const input = useRef<HTMLInputElement>(null);
@@ -19,7 +19,8 @@ export function FileUploader({ bucket, onPaths, onPreview, max = UPLOAD_RULES.ma
   async function upload(file: File, id: string): Promise<Item> {
     const base = { id, name: file.name };
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-    if (!EXTS.includes(ext) || !UPLOAD_RULES.types[mime(file)]) return { ...base, status: 'error', message: 'Use PNG, JPG, PDF or SVG.' };
+    const allowed = bucket === 'review' ? ['png', 'jpg', 'jpeg'] : EXTS;
+    if (!allowed.includes(ext) || !UPLOAD_RULES.types[mime(file)] || (bucket === 'review' && !mime(file).startsWith('image/'))) return { ...base, status: 'error', message: bucket === 'review' ? 'Use a PNG or JPG photo.' : 'Use PNG, JPG, PDF or SVG.' };
     if (file.size > UPLOAD_RULES.maxBytes) return { ...base, status: 'error', message: 'Over the 20MB limit.' };
     try {
       const res = await fetch('/api/uploads/sign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bucket, filename: file.name, contentType: mime(file), size: file.size }) });
@@ -56,9 +57,9 @@ export function FileUploader({ bucket, onPaths, onPreview, max = UPLOAD_RULES.ma
     <div>
       <label className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-line bg-white p-4 text-center hover:border-ink ${items.length >= max ? 'pointer-events-none opacity-50' : ''}`}>
         <FileUp className="size-6" aria-hidden />
-        <span className="font-semibold">Upload references or a sketch</span>
-        <span className="text-sm text-muted">PNG, JPG, PDF or SVG, up to 20MB each (max {max} files)</span>
-        <input ref={input} type="file" multiple accept=".png,.jpg,.jpeg,.pdf,.svg,image/png,image/jpeg,application/pdf,image/svg+xml" className="sr-only" onChange={(e) => pick(e.target.files)} />
+        <span className="font-semibold">{bucket === 'review' ? 'Add photos (optional)' : 'Upload references or a sketch'}</span>
+        <span className="text-sm text-muted">{bucket === 'review' ? `PNG or JPG, up to 20MB each (max ${max})` : `PNG, JPG, PDF or SVG, up to 20MB each (max ${max} files)`}</span>
+        <input ref={input} type="file" multiple accept={bucket === 'review' ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.png,.jpg,.jpeg,.pdf,.svg,image/png,image/jpeg,application/pdf,image/svg+xml'} className="sr-only" onChange={(e) => pick(e.target.files)} />
       </label>
       {items.length > 0 && (
         <ul className="mt-3 space-y-2" aria-live="polite">

@@ -19,6 +19,6 @@ export const variantId = async (sku: string) => (await one<{ id: string }>('sele
 
 export async function makeUser(email = 'ada@example.com', credit = 0) {
   const u = await one<{ id: string }>(`insert into auth.users (email) values ($1) returning id`, [email]);
-  await q('update public.profiles set store_credit_kobo = $2 where id = $1', [u.id, credit]);
+  if (credit) await q('update public.profiles set store_credit_kobo = $2 where id = $1', [u.id, credit]);
   return u.id;
 }

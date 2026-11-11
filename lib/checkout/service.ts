@@ -18,7 +18,7 @@ export type Details = {
 
 export async function pricingSettings(): Promise<PricingSettings> {
   const s = await getSettings();
-  return { giftWrapKobo: s.gift_wrap_kobo, surpriseNoteKobo: s.surprise_note_kobo, expressKobo: s.express_kobo, expressEnabled: s.express_enabled, upsellProductId: s.upsell_product_id, upsellPriceKobo: s.upsell_price_kobo };
+  return { giftWrapKobo: s.gift_wrap_kobo, surpriseNoteKobo: s.surprise_note_kobo, expressKobo: s.express_kobo, expressEnabled: s.express_enabled, upsellProductId: s.upsell_product_id, upsellPriceKobo: s.upsell_price_kobo, revisionFeeKobo: s.revision_fee_kobo };
 }
 
 /** Quote a bag: catalogue + settings + what the database says about codes, credit and custom briefs. */
@@ -37,7 +37,7 @@ export async function quoteCart(input: PricingInput, who: Who = {}, now = new Da
       const r = await rpc<Record<string, unknown>>('checkout_context', { code: input.code?.trim() || null, gift_code: input.giftCode?.trim() || null, profile_id: who.profileId ?? null, email: who.email ?? null });
       if (r.data) { Object.assign(ctx, { discount: r.data.discount, gift_card: r.data.gift_card, credit_kobo: r.data.credit_kobo }); }
     }
-    const customIds = input.lines.filter((l) => l.kind === 'custom').map((l) => l.refId);
+    const customIds = input.lines.filter((l) => l.kind === 'custom' || l.kind === 'revision').map((l) => l.refId);
     if (customIds.length) {
       const r = await rpc<DbContext['customRequests']>('checkout_custom_requests', { ids: customIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id)) });
       ctx.customRequests = r.data ?? [];
@@ -149,14 +149,21 @@ async function sendOrderEmails(number: string, token: string, giftCards: { code:
   } catch (err) { logEvent('email.order_error', { number, error: (err as Error).message }); }
 }
 
+export type Proof = { version: number; path: string; message: string | null; sent_at: string };
+export type CustomRequestView = {
+  id: string; tier: 'personalise' | 'text_design' | 'full_custom'; product_type: string; colour: string | null; status: string; proofs: Proof[];
+  feedback: { version: number; note: string; at: string }[]; revisions_used: number; revisions_paid: number;
+  text_fields: { lines?: string[]; name?: string; date?: string; verse?: string; size?: string }; type_style: string | null; notes: string | null; print_positions: string[]; design_slug: string | null;
+};
 export type OrderView = {
   id: string; number: string; status: string; has_custom: boolean; contact_email: string; contact_phone: string;
   subtotal_kobo: number; discount_kobo: number; delivery_fee_kobo: number; gift_wrap_kobo: number; surprise_note_kobo: number; express_kobo: number; ship_ready_first_kobo: number;
   credit_used_kobo: number; gift_card_used_kobo: number; total_kobo: number;
   address: { recipient: string; phone: string; line1: string; area?: string; city: string; state: string };
   delivery_zone_name: string | null; is_gift: boolean; gift_message: string | null; discount_code: string | null; payment_reference: string | null;
-  paid_at: string | null; production_start_at: string | null; promised_by: string | null; delivered_at: string | null; expires_at: string | null; created_at: string; token: string;
-  items: { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string }[] | null; unit_price_kobo: number; quantity: number; custom_request_id: string | null; gift_message: string | null }[];
+  paid_at: string | null; production_start_at: string | null; promised_by: string | null; delivered_at: string | null; expires_at: string | null; created_at: string; token: string; profile_id: string | null;
+  custom_requests: CustomRequestView[];
+  items: { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string }[] | null; unit_price_kobo: number; quantity: number; custom_request_id: string | null; gift_message: string | null; review_status: string | null }[];
   events: { status: string; note: string | null; created_at: string }[];
 };
 

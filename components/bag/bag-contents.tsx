@@ -18,7 +18,7 @@ type QLine = PublicQuote['lines'][number];
 function LineVisual({ l }: { l: QLine }) {
   const v = l.visual;
   if (v.type === 'bundle') return <div className="relative aspect-[4/5] overflow-hidden bg-sand"><Image src={v.imageUrl ?? '/placeholders/gift-box.svg'} alt="" fill sizes="80px" className="object-cover" /></div>;
-  if (l.kind === 'custom' && (v.type === 'tee' || v.type === 'hoodie')) return <GarmentMockup type={v.type} colour={v.colour ?? 'Black'} view="back" designSlug={null} />;
+  if ((l.kind === 'custom' || l.kind === 'revision') && (v.type === 'tee' || v.type === 'hoodie')) return <GarmentMockup type={v.type} colour={v.colour ?? 'Black'} view="back" designSlug={null} />;
   return <ProductVisual type={v.type as ProductType} designSlug={v.designSlug} colour={v.colour} finish={v.finish} imageUrl={v.imageUrl} alt="" sizes="80px" />;
 }
 
@@ -97,7 +97,7 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
                 {l.giftWrap && <p className="text-sm text-muted">Gift wrap and card</p>}
                 {l.issues.map((m) => (<p key={m} role="alert" className="mt-1 text-sm font-semibold text-ember">{m}</p>))}
                 <div className="mt-2 flex items-center justify-between">
-                  {l.kind === 'custom' || l.upsell ? <span className="text-sm text-muted">Qty 1</span> : (
+                  {l.kind === 'custom' || l.kind === 'revision' || l.upsell ? <span className="text-sm text-muted">Qty 1</span> : (
                     <div className="flex items-center rounded-btn border border-line bg-white" role="group" aria-label={`Quantity for ${l.name}`}>
                       <button type="button" className="grid size-11 place-items-center" onClick={() => setQty(l.id, l.quantity - 1)} aria-label="Decrease quantity"><Minus className="size-4" aria-hidden /></button>
                       <span className="w-7 text-center font-semibold" aria-live="polite">{l.quantity}</span>

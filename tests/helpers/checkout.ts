@@ -6,7 +6,7 @@ import type { DbContext, PricingInput, PricingSettings } from '@/lib/checkout/ty
 
 export const cat = fixture as unknown as Catalogue;
 export const NOW = new Date('2026-11-11T10:00:00+01:00');
-export const SETTINGS: PricingSettings = { giftWrapKobo: 200000, surpriseNoteKobo: 300000, expressKobo: 500000, expressEnabled: true, upsellProductId: cat.products.find((p) => p.slug === 'faith-bracelet')!.id, upsellPriceKobo: 450000 };
+export const SETTINGS: PricingSettings = { giftWrapKobo: 200000, surpriseNoteKobo: 300000, expressKobo: 500000, expressEnabled: true, upsellProductId: cat.products.find((p) => p.slug === 'faith-bracelet')!.id, upsellPriceKobo: 450000, revisionFeeKobo: 200000 };
 
 export const variantOf = (sku: string) => cat.products.flatMap((p) => p.product_variants).find((v) => v.sku === sku)!;
 export const tee = () => variantOf('SEEK-FIRST-TEE-BLACK-M');

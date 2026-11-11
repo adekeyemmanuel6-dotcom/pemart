@@ -64,3 +64,10 @@ npm run test:db           # integration tests against real Postgres (stock, idem
 4. After the popup, the server asks Paystack whether the payment really succeeded, and the database checks the amount and currency match the order before marking it paid.
 5. Paystack's webhook (`/api/webhooks/paystack`, HMAC-SHA512 signature checked) does the same job. Whichever arrives first wins, and the other changes nothing.
 6. Orders unpaid after 24 hours are cancelled hourly (`/api/cron/expire`) and their stock, store credit and gift card balance are released.
+
+## Accounts, proofs and the sign-in email
+
+- **Sign-in email:** Supabase Auth sends the magic-link email. To use Pemart's branding, render `emails/sign-in-link.tsx` and paste the HTML into Supabase > Authentication > Email Templates > Magic Link, replacing the link with `{{ .ConfirmationURL }}`.
+- **Making yourself admin:** sign in once, then run `supabase/make-admin.sql` in the Supabase SQL editor. Add staff the same way with `role = 'staff'`.
+- **Local login without Supabase:** with `DATABASE_URL` set (local Postgres mode), `/api/dev/login?email=you@example.com&role=admin&next=/admin` signs you in. It does not exist in production.
+- **Cron jobs** (`vercel.json`): `/api/cron/expire` (cancels unpaid orders after 24 hours) and `/api/cron/reminders` (abandoned-checkout email, review requests). Both need `CRON_SECRET`. Hourly schedules need Vercel Pro; on Hobby change them to daily.

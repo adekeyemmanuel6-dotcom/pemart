@@ -17,6 +17,8 @@ export type StoreSettings = {
   express_enabled: boolean;
   upsell_product_id: string | null;
   upsell_price_kobo: number | null;
+  revision_fee_kobo: number;
+  review_credit_kobo: number;
 };
 
 // Matches seed data, so the shell looks right before Supabase is connected.
@@ -35,6 +37,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   express_enabled: true,
   upsell_product_id: null,
   upsell_price_kobo: null,
+  revision_fee_kobo: 200000,
+  review_credit_kobo: 200000,
 };
 
 /** Cached; admin edits call revalidateTag('settings'). */
@@ -48,7 +52,7 @@ export const getSettings = unstable_cache(
     try {
       const { data } = await createPublicClient()
         .from('settings')
-        .select('announcement_text,announcement_link,announcement_active,logo_url,whatsapp_number,instagram_url,tiktok_url,maintenance_mode,gift_wrap_kobo,surprise_note_kobo,express_kobo,express_enabled,upsell_product_id,upsell_price_kobo')
+        .select('announcement_text,announcement_link,announcement_active,logo_url,whatsapp_number,instagram_url,tiktok_url,maintenance_mode,gift_wrap_kobo,surprise_note_kobo,express_kobo,express_enabled,upsell_product_id,upsell_price_kobo,revision_fee_kobo,review_credit_kobo')
         .single();
       return data ?? DEFAULT_SETTINGS;
     } catch {

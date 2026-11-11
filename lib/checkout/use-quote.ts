@@ -10,6 +10,7 @@ export function toInputLines(lines: BagLine[]): CartLineInput[] {
   return lines.map((l): CartLineInput => {
     if (l.kind === 'bundle') return { id: l.id, kind: 'bundle', refId: l.refId, quantity: l.quantity, selection: l.selection as unknown as BundleSelection };
     if (l.kind === 'custom') return { id: l.id, kind: 'custom', refId: l.refId, quantity: 1 };
+    if (l.kind === 'revision') return { id: l.id, kind: 'revision', refId: l.refId, quantity: 1 };
     return { id: l.id, kind: 'variant', refId: l.refId, quantity: l.quantity, upsell: l.upsell, giftCard: l.giftCard };
   });
 }

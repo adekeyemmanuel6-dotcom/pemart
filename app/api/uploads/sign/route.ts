@@ -5,11 +5,11 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-const BUCKETS = { custom: 'design-uploads', bulk: 'bulk-uploads' } as const;
+const BUCKETS = { custom: 'design-uploads', bulk: 'bulk-uploads', review: 'review-photos' } as const;
 const EXT_OK = new Set(['png', 'jpg', 'jpeg', 'pdf', 'svg']);
 
 const schema = z.object({
-  bucket: z.enum(['custom', 'bulk']),
+  bucket: z.enum(['custom', 'bulk', 'review']),
   filename: z.string().min(1).max(120),
   contentType: z.string().max(100),
   size: z.number().int().positive(),
@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
   const { bucket, filename, contentType, size } = parsed.data;
 
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  // Review photos are public, so only plain images are accepted (no SVG or PDF).
+  if (bucket === 'review' && !['png', 'jpg', 'jpeg'].includes(ext)) return NextResponse.json({ error: 'type', message: 'Please upload a PNG or JPG photo.' }, { status: 415 });
   if (!EXT_OK.has(ext) || !UPLOAD_RULES.types[contentType === 'image/jpg' ? 'image/jpeg' : contentType])
     return NextResponse.json({ error: 'type', message: 'Please upload a PNG, JPG, PDF or SVG file.' }, { status: 415 });
   if (size > UPLOAD_RULES.maxBytes) return NextResponse.json({ error: 'size', message: 'That file is over 20MB. Please upload a smaller one.' }, { status: 413 });

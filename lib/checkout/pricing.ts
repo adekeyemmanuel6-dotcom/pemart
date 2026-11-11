@@ -99,6 +99,18 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
       continue;
     }
 
+    // ---------------------------------------------------------------- extra design revision (paid add-on)
+    if (raw.kind === 'revision') {
+      const rq = ctx.customRequests?.find((c) => c.id === raw.refId);
+      if (!rq || !['awaiting_proof', 'proof_sent', 'revision_requested'].includes(rq.status)) { bad({ id: raw.id, quantity: 1, kind: 'revision', name: 'Extra design revision' }, 'This design is not waiting on a proof, so an extra revision is not needed.'); continue; }
+      const t = TIERS[rq.tier];
+      lines.push({ ...base, quantity: 1, kind: 'revision', name: 'Extra design revision', detail: [t.name, rq.colour ?? ''].filter(Boolean), contents: [], unitKobo: settings.revisionFeeKobo, lineKobo: settings.revisionFeeKobo,
+        visual: { type: rq.product_type, designSlug: null, colour: rq.colour, finish: null, imageUrl: null } });
+      eligibleByLine.set(raw.id, { kobo: settings.revisionFeeKobo, productIds: [], collectionIds: [], discountable: false });
+      dbItems.push({ kind: 'revision', name: 'Extra design revision', options: { tier: rq.tier }, unit_price: settings.revisionFeeKobo, quantity: 1, custom_request_id: rq.id });
+      continue;
+    }
+
     // ---------------------------------------------------------------- custom design lines
     const req = ctx.customRequests?.find((c) => c.id === raw.refId);
     if (!req) { bad({ id: raw.id, quantity: 1, kind: 'custom' }, 'We could not find this custom design. Please recreate it.'); continue; }
@@ -119,7 +131,7 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
 
   const goods = lines.filter((l) => l.issues.length === 0 || l.unitKobo > 0);
   const subtotalKobo = sum(goods.map((l) => l.lineKobo));
-  const digitalOnly = lines.length > 0 && lines.every((l) => l.kind === 'gift_card');
+  const digitalOnly = lines.length > 0 && lines.every((l) => l.kind === 'gift_card' || l.kind === 'revision');
 
   // ---------------------------------------------------------------- discount / ambassador code
   let discount: Quote['discount'] = null;
