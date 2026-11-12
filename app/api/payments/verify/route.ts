@@ -4,6 +4,7 @@ import { settlePayment } from '@/lib/checkout/service';
 import { logEvent } from '@/lib/log';
 import { verifyTransaction } from '@/lib/paystack';
 import { rateLimit } from '@/lib/rate-limit';
+import { pickClientIp } from '@/lib/client-ip';
 
 const schema = z.object({ reference: z.string().regex(/^[A-Za-z0-9_.=-]{6,80}$/) });
 
@@ -12,8 +13,8 @@ const schema = z.object({ reference: z.string().regex(/^[A-Za-z0-9_.=-]{6,80}$/)
  * we ask Paystack directly, then the database checks the amount and currency against the order.
  */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`verify:${ip}`, 40, 10 * 60_000).ok) return NextResponse.json({ ok: false, message: 'Too many requests.' }, { status: 429 });
+  const ip = pickClientIp(request.headers);
+  if (!(await rateLimit(`verify:${ip}`, 40, 10 * 60_000)).ok) return NextResponse.json({ ok: false, message: 'Too many requests.' }, { status: 429 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid request.' }, { status: 400 });
 

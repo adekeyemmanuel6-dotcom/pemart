@@ -1,26 +1,22 @@
 'use server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { safeNext } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { createClient } from '@/lib/supabase/server';
 
 export type AuthState = { ok: boolean; message: string; email?: string; name?: string } | null;
 
 const emailSchema = z.object({ email: z.email('Enter a valid email address').max(254) });
 
-async function clientIp() {
-  const h = await headers();
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-}
 
 const callbackUrl = (next: string) => `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`;
 
 export async function signInWithGoogle(formData: FormData) {
   if (!isSupabaseConfigured) redirect('/auth/sign-in?error=not-configured');
-  if (!rateLimit(`auth-ip:${await clientIp()}`, 10, 10 * 60_000).ok) redirect('/auth/sign-in?error=rate');
+  if (!(await rateLimit(`auth-ip:${await clientIp()}`, 10, 10 * 60_000)).ok) redirect('/auth/sign-in?error=rate');
   const next = safeNext(String(formData.get('next') ?? ''));
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callbackUrl(next) } });
@@ -35,7 +31,7 @@ export async function signInWithPassword(_prev: AuthState, formData: FormData): 
   const parsed = emailSchema.safeParse({ email });
   const password = String(formData.get('password') ?? '');
   if (!parsed.success || !password) return { ok: false, email, message: 'Enter your email and password.' };
-  if (!rateLimit(`auth-pw-ip:${await clientIp()}`, 10, 10 * 60_000).ok || !rateLimit(`auth-pw-email:${email}`, 6, 10 * 60_000).ok) {
+  if (!(await rateLimit(`auth-pw-ip:${await clientIp()}`, 10, 10 * 60_000)).ok || !(await rateLimit(`auth-pw-email:${email}`, 6, 10 * 60_000)).ok) {
     return { ok: false, email, message: 'Too many attempts. Please wait a few minutes and try again.' };
   }
   const supabase = await createClient();
@@ -56,7 +52,7 @@ export async function signUpWithPassword(_prev: AuthState, formData: FormData): 
   if (!isSupabaseConfigured) return { ok: false, email: raw.email, name: raw.name, message: 'Sign-in is not connected yet.' };
   const parsed = signUpSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, email: raw.email, name: raw.name, message: parsed.error.issues[0]?.message ?? 'Check your details.' };
-  if (!rateLimit(`auth-up-ip:${await clientIp()}`, 8, 10 * 60_000).ok) return { ok: false, email: raw.email, name: raw.name, message: 'Too many attempts. Please wait a few minutes and try again.' };
+  if (!(await rateLimit(`auth-up-ip:${await clientIp()}`, 8, 10 * 60_000)).ok) return { ok: false, email: raw.email, name: raw.name, message: 'Too many attempts. Please wait a few minutes and try again.' };
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email, password: parsed.data.password,
@@ -73,7 +69,7 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   const generic: AuthState = { ok: true, email, message: 'If an account exists for that email, we have sent a link to reset the password.' };
   if (!isSupabaseConfigured) return { ok: false, email, message: 'Sign-in is not connected yet.' };
   if (!emailSchema.safeParse({ email }).success) return { ok: false, email, message: 'Enter a valid email address.' };
-  if (!rateLimit(`auth-reset-ip:${await clientIp()}`, 6, 10 * 60_000).ok || !rateLimit(`auth-reset:${email}`, 3, 10 * 60_000).ok) {
+  if (!(await rateLimit(`auth-reset-ip:${await clientIp()}`, 6, 10 * 60_000)).ok || !(await rateLimit(`auth-reset:${email}`, 3, 10 * 60_000)).ok) {
     return { ok: false, email, message: 'Too many attempts. Please wait a few minutes and try again.' };
   }
   const supabase = await createClient();

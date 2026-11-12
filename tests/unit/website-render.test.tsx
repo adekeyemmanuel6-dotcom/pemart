@@ -20,11 +20,11 @@ describe('published content rendering', () => {
     expect(html).not.toContain('<script>alert');
     expect(html).toContain('<li>Second item</li>');
   });
-  it('renders edited brand and menu links in the storefront header', () => {
+  it('renders edited brand and menu links in the storefront header', async () => {
     const content = structuredClone(DEFAULT_WEBSITE);
     content.brand.name = 'Edited brand';
     content.navigation.main = [{ name: 'Our mission', href: '/pages/mission' }];
-    const html = renderToStaticMarkup(<SiteHeader settings={{ ...DEFAULT_SETTINGS, website_content: content }} />);
+    const html = renderToStaticMarkup(await SiteHeader({ settings: { ...DEFAULT_SETTINGS, website_content: content } }));
     expect(html).toContain('Edited brand');
     expect(html).toContain('href="/pages/mission"');
     expect(html).not.toContain('Custom Orders');

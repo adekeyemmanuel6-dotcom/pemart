@@ -1,5 +1,4 @@
 'use server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -8,9 +7,10 @@ import { publicEnv } from '@/lib/env';
 import { fetchOrder } from '@/lib/checkout/service';
 import { respondToProof, resumePayment, submitReview, trackOrder } from '@/lib/orders/service';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 
-const ip = async () => (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+const ip = clientIp;
 
 // ------------------------------------------------------------------ track an order (no login)
 export type TrackState = { message: string; number?: string; contact?: string } | null;
@@ -19,7 +19,7 @@ export async function trackOrderAction(_prev: TrackState, fd: FormData): Promise
   const contact = String(fd.get('contact') ?? '').trim();
   const echo = { number, contact };
   // Brute-force guard: lookups need a valid number AND the matching email/phone, and are rate limited per visitor.
-  if (!rateLimit(`track:${await ip()}`, 10, 10 * 60_000).ok) return { message: 'Too many attempts. Please wait a few minutes and try again.', ...echo };
+  if (!(await rateLimit(`track:${await ip()}`, 10, 10 * 60_000)).ok) return { message: 'Too many attempts. Please wait a few minutes and try again.', ...echo };
   if (!/^PM-\d{4,8}$/.test(number) || contact.length < 5) return { message: 'Enter your order number (like PM-10001) and the email or phone you ordered with.', ...echo };
   const isEmail = contact.includes('@');
   const normalised = isEmail ? contact.toLowerCase() : normaliseNigerianPhone(contact);
@@ -35,7 +35,7 @@ export type ProofResult = { ok: boolean; message: string; paidRevision?: boolean
 const proofSchema = z.object({ number: z.string().regex(/^PM-\d+$/), token: z.string().max(80).optional(), customRequestId: z.uuid(), decision: z.enum(['approve', 'revise']), note: z.string().trim().max(1000).optional() });
 
 export async function respondToProofAction(_prev: ProofResult, fd: FormData): Promise<ProofResult> {
-  if (!rateLimit(`proof:${await ip()}`, 30, 10 * 60_000).ok) return { ok: false, message: 'Too many attempts. Please wait a moment.' };
+  if (!(await rateLimit(`proof:${await ip()}`, 30, 10 * 60_000)).ok) return { ok: false, message: 'Too many attempts. Please wait a moment.' };
   const parsed = proofSchema.safeParse({ number: fd.get('number'), token: fd.get('token') || undefined, customRequestId: fd.get('customRequestId'), decision: fd.get('decision'), note: fd.get('note') || undefined });
   if (!parsed.success) return { ok: false, message: 'Something went wrong. Please refresh and try again.' };
   const profile = await getProfile();
@@ -51,7 +51,7 @@ export async function respondToProofAction(_prev: ProofResult, fd: FormData): Pr
 
 // ------------------------------------------------------------------ resume payment for an unpaid order
 export async function resumePaymentAction(number: string, token: string) {
-  if (!rateLimit(`resume:${await ip()}`, 10, 10 * 60_000).ok) return { ok: false as const, message: 'Too many attempts. Please wait a few minutes.' };
+  if (!(await rateLimit(`resume:${await ip()}`, 10, 10 * 60_000)).ok) return { ok: false as const, message: 'Too many attempts. Please wait a few minutes.' };
   if (!/^PM-\d+$/.test(number)) return { ok: false as const, message: 'Invalid order.' };
   return resumePayment({ number, token });
 }
@@ -61,7 +61,7 @@ export type ReviewState = { ok: boolean; message: string } | null;
 const reviewSchema = z.object({ number: z.string().regex(/^PM-\d+$/), token: z.string().max(80).optional(), orderItemId: z.uuid(), rating: z.coerce.number().int().min(1).max(5), text: z.string().trim().max(1500).optional(), displayName: z.string().trim().max(60).optional(), photoPaths: z.array(z.string().regex(/^(guest\/[0-9a-f-]{36}\/[\w.-]+|demo\/.+)$/)).max(3) });
 
 export async function submitReviewAction(_prev: ReviewState, fd: FormData): Promise<ReviewState> {
-  if (!rateLimit(`review:${await ip()}`, 10, 30 * 60_000).ok) return { ok: false, message: 'Too many attempts. Please try again later.' };
+  if (!(await rateLimit(`review:${await ip()}`, 10, 30 * 60_000)).ok) return { ok: false, message: 'Too many attempts. Please try again later.' };
   let photoPaths: string[] = [];
   try { photoPaths = JSON.parse(String(fd.get('photoPaths') ?? '[]')); } catch { /* empty */ }
   const parsed = reviewSchema.safeParse({ number: fd.get('number'), token: fd.get('token') || undefined, orderItemId: fd.get('orderItemId'), rating: fd.get('rating'), text: fd.get('text') || undefined, displayName: fd.get('displayName') || undefined, photoPaths });

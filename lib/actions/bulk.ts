@@ -1,9 +1,9 @@
 'use server';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 import { BULK_MIN, bulkTier } from '@/lib/bulk';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notifyBulkQuote } from '@/lib/notifications';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
@@ -28,8 +28,8 @@ export async function submitBulkQuote(_prev: BulkState, fd: FormData): Promise<B
   // Echoed back on failure: React resets uncontrolled fields after an action, so the form refills from this.
   const values: Record<string, string> = {};
   for (const [k, val] of fd.entries()) if (typeof val === 'string' && k !== 'uploadPaths') values[k] = val;
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`bulk:${ip}`, 5, 30 * 60_000).ok) return { ok: false, values, message: 'Too many requests. Please try again in a little while, or message us on WhatsApp.' };
+  const ip = await clientIp();
+  if (!(await rateLimit(`bulk:${ip}`, 5, 30 * 60_000)).ok) return { ok: false, values, message: 'Too many requests. Please try again in a little while, or message us on WhatsApp.' };
 
   let uploadPaths: string[] = [];
   try { uploadPaths = JSON.parse(String(fd.get('uploadPaths') ?? '[]')); } catch { /* treated as empty */ }

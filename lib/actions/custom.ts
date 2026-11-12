@@ -1,9 +1,9 @@
 'use server';
-import { headers } from 'next/headers';
 import { customRequestSchema, type CustomRequestInput } from '@/lib/custom/schema';
 import { TIERS } from '@/lib/custom/tiers';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { getRpc } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 
@@ -17,8 +17,8 @@ export type SaveCustomResult =
  * (Phase 4); the order then moves the request to awaiting_proof.
  */
 export async function saveCustomRequest(input: CustomRequestInput): Promise<SaveCustomResult> {
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`custom:${ip}`, 15, 10 * 60_000).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.' };
+  const ip = await clientIp();
+  if (!(await rateLimit(`custom:${ip}`, 15, 10 * 60_000)).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.' };
 
   const parsed = customRequestSchema.safeParse(input);
   if (!parsed.success) {

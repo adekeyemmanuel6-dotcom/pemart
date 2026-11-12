@@ -1,5 +1,4 @@
 'use server';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 import { NIGERIAN_STATES, normalizeDestination } from '@/lib/shipping';
 import { createOrderAndInitPayment, publicQuote, quoteCart, type PublicQuote, type StartResult } from '@/lib/checkout/service';
@@ -8,6 +7,7 @@ import { getProfile } from '@/lib/auth';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { getSettings } from '@/lib/settings';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 
@@ -26,11 +26,11 @@ const pricingSchema = z.object({
   extras: z.object({ giftWrap: z.boolean().optional(), surpriseNote: z.boolean().optional(), express: z.boolean().optional(), shipReadyFirst: z.boolean().optional() }).optional(),
 });
 
-const ip = async () => (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+const ip = clientIp;
 
 /** Price a bag for display (bag drawer, bag page, checkout summary). Never trusted for charging. */
 export async function quoteBag(raw: unknown): Promise<{ ok: true; quote: PublicQuote } | { ok: false; message: string }> {
-  if (!rateLimit(`quote:${await ip()}`, 120, 60_000).ok) return { ok: false, message: 'Too many requests. Please slow down.' };
+  if (!(await rateLimit(`quote:${await ip()}`, 120, 60_000)).ok) return { ok: false, message: 'Too many requests. Please slow down.' };
   const parsed = pricingSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: 'Something is wrong with your bag. Please refresh.' };
   const profile = await getProfile();
@@ -50,7 +50,7 @@ export type StartCheckoutResult = Extract<StartResult, { ok: true }> | { ok: fal
 
 /** The real checkout. Re-validates and re-prices everything on the server, creates the order, starts payment. */
 export async function startCheckout(rawPricing: unknown, rawDetails: unknown): Promise<StartCheckoutResult> {
-  if (!rateLimit(`checkout:${await ip()}`, 15, 10 * 60_000).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.', fieldErrors: {} };
+  if (!(await rateLimit(`checkout:${await ip()}`, 15, 10 * 60_000)).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.', fieldErrors: {} };
   if ((await getSettings()).maintenance_mode) return { ok: false, message: 'We are making a few updates and are not taking orders right now. Please try again shortly.', fieldErrors: {} };
   const pricing = pricingSchema.safeParse(rawPricing);
   if (!pricing.success) return { ok: false, message: 'Something is wrong with your bag. Please refresh and try again.', fieldErrors: {} };

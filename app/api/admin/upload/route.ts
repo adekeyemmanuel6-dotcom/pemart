@@ -18,7 +18,7 @@ const schema = z.object({ bucket: z.enum(['proofs', 'catalogue']), filename: z.s
 export async function POST(request: NextRequest) {
   const me = await getProfile();
   if (!me || me.role === 'customer') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  if (!rateLimit(`admin-upload:${me.id}`, 60, 10 * 60_000).ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  if (!(await rateLimit(`admin-upload:${me.id}`, 60, 10 * 60_000)).ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 });
   const b = BUCKETS[parsed.data.bucket];

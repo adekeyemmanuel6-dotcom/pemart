@@ -3,11 +3,12 @@ import { getCatalogue } from '@/lib/catalogue/load';
 import { searchLocal, toCollection, toProduct, type SearchResult } from '@/lib/catalogue/search';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
+import { pickClientIp } from '@/lib/client-ip';
 import { createPublicClient } from '@/lib/supabase/public';
 
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`search:${ip}`, 90, 60_000).ok) return NextResponse.json({ results: [], error: 'rate_limited' }, { status: 429 });
+  const ip = pickClientIp(request.headers);
+  if (!(await rateLimit(`search:${ip}`, 90, 60_000)).ok) return NextResponse.json({ results: [], error: 'rate_limited' }, { status: 429 });
 
   const q = (request.nextUrl.searchParams.get('q') ?? '').trim().slice(0, 60);
   if (q.length < 2) return NextResponse.json({ results: [] });

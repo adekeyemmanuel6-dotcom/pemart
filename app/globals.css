@@ -38,6 +38,8 @@
   --color-ember: var(--ember);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-charcoal: var(--charcoal);
+  --color-gold: var(--gold);
 
   --font-display: 'Naira', var(--font-anton), 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
   --font-sans: 'Naira', var(--font-inter), system-ui, sans-serif;
@@ -145,3 +147,8 @@ body {
 @media (max-width: 639px) {
   .wtw-section { padding: 56px 20px; }.wtw-section-tight { padding-top: 0; }.wtw-section-heading { align-items: flex-start; flex-direction: column; gap: 14px; }.wtw-collection-grid { grid-template-columns: 1fr 1fr; gap: 30px 14px; }.wtw-collection, .wtw-collection:nth-child(n+4) { grid-column: span 1; }.wtw-collection:last-child { grid-column: span 2; }.wtw-collection-art { padding: 16px; min-height: 220px; }.wtw-collection-word { font-size: clamp(1.5rem, 6vw, 2.5rem); }.wtw-collection-art .wtw-eyebrow, .wtw-collection-art .wtw-placeholder-note { font-size: 8px; letter-spacing: .06em; }.wtw-themes { grid-template-columns: 1fr; }.wtw-themes a { min-height: 68px; }.wtw-bulk { padding: 30px 24px; }.wtw-manifesto-strip { font-size: 9px; letter-spacing: .1em; }
 }
+
+/* Mega-menu panel entrance: short fade and drop, none for reduced motion */
+@keyframes mega-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.mega-panel:not([hidden]) { animation: mega-in 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .mega-panel:not([hidden]) { animation: none; } }
