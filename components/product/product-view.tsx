@@ -1,12 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Minus, Plus, Truck } from 'lucide-react';
 import { requestStockAlert, type StockAlertState } from '@/lib/actions/stock-alert';
 import { useBag } from '@/lib/cart-store';
 import { colourHex } from '@/lib/colours';
-import { formatDeliveryDate, promisedDate } from '@/lib/delivery';
+import { NIGERIAN_STATES } from '@/lib/shipping';
 import { formatNaira } from '@/lib/money';
 import type { ProductType } from '@/lib/catalogue/types';
 import { SIZE_ORDER } from '@/lib/catalogue/helpers';
@@ -29,8 +29,9 @@ export type ViewZone = { name: string; states: string[]; feeKobo: number; leadDa
 const uniq = <T,>(xs: (T | null)[]) => [...new Set(xs.filter((x): x is T => x !== null))];
 const OPTION_LABELS: Partial<Record<ProductType, string>> = { frame: 'Frame', perfume: 'Scent', bracelet: 'Style', jewellery: 'Style', glasses: 'Frame', fun: 'Colour', gift_card: 'Amount' };
 
-export function ProductView({ product: p, bundle, zones, children }: { product: ViewProduct; bundle: ViewBundle | null; zones: ViewZone[]; children?: React.ReactNode }) {
+export function ProductView({ product: p, bundle, children }: { product: ViewProduct; bundle: ViewBundle | null; zones: ViewZone[]; children?: React.ReactNode }) {
   const router = useRouter();
+  const zoom = useRef<HTMLDialogElement>(null);
   const add = useBag((s) => s.add);
   const colours = useMemo(() => uniq(p.variants.map((v) => v.colour)), [p.variants]);
   const sizes = useMemo(() => uniq(p.variants.map((v) => v.size)).sort((a, b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b)), [p.variants]);
@@ -44,13 +45,11 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
   const [gcEmail, setGcEmail] = useState('');
   const [gcMsg, setGcMsg] = useState('');
   const [added, setAdded] = useState(false);
-  const [state, setState] = useState('Lagos');
-  const [today, setToday] = useState<Date | null>(null);
+  const [state, setState] = useState('');
   const [slide, setSlide] = useState(0);
   const [alert, alertAction, alertPending] = useActionState<StockAlertState, FormData>(requestStockAlert, null);
 
   useEffect(() => {
-    setToday(new Date());
     try { const s = localStorage.getItem('pemart-state'); if (s) setState(s); } catch { /* storage may be blocked */ }
   }, []);
   const chooseState = (s: string) => { setState(s); try { localStorage.setItem('pemart-state', s); } catch { /* ignore */ } };
@@ -69,8 +68,6 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
 
   const price = selected?.priceKobo ?? Math.min(...p.variants.map((v) => v.priceKobo));
   const hasRange = !selected && new Set(p.variants.map((v) => v.priceKobo)).size > 1;
-  const zone = zones.find((z) => z.states.includes(state)) ?? zones[zones.length - 1];
-  const eta = today && zone ? formatDeliveryDate(promisedDate(today, zone.leadDays)) : null;
   const garment = p.type === 'tee' || p.type === 'hoodie';
 
   useEffect(() => {
@@ -106,6 +103,8 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
         {/* Gallery */}
         <div className="lg:sticky lg:top-24 lg:self-start">
           <div className="overflow-hidden rounded-lg border border-line">{current.node}</div>
+          <button type="button" className="mt-2 min-h-11 text-sm font-semibold underline underline-offset-4" onClick={() => zoom.current?.showModal()}>Zoom image</button>
+          <dialog ref={zoom} aria-label={p.name + ' image zoom'} className="fixed inset-0 m-auto max-h-[90dvh] w-[min(90vw,900px)] overflow-auto border border-line bg-paper p-4 backdrop:bg-black/70"><button type="button" className="sticky top-0 z-10 min-h-11 border border-line bg-paper px-5" onClick={() => zoom.current?.close()}>Close image</button><div className="mt-3">{current.node}</div></dialog>
           {slides.length > 1 && (
             <ul className="mt-3 grid grid-cols-4 gap-2" aria-label="Product views">
               {slides.map((s, i) => (
@@ -126,7 +125,7 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
               <span className="font-semibold">{formatNaira(price)}</span>
               {p.compareAtKobo && p.compareAtKobo > price && <span className="ml-2 text-lg text-muted line-through">{formatNaira(p.compareAtKobo)}</span>}
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-mocha"><Truck className="size-4" aria-hidden />{p.type === 'gift_card' ? 'Delivered by email, instantly after payment' : <>Arrives in {zone?.leadDays ?? 5} days{p.madeToOrder ? ' · made to order' : ''}</>}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-mocha"><Truck className="size-4" aria-hidden />{p.type === 'gift_card' ? 'Delivered by email, instantly after payment' : <>{p.madeToOrder ? 'Made to order · ' : ''}Delivery confirmed at checkout</>}</p>
           </div>
 
           {need.colour && (
@@ -197,18 +196,17 @@ export function ProductView({ product: p, bundle, zones, children }: { product: 
             </div>
             <Button className="flex-1" disabled={disabled} onClick={addToBag}>{added && <Check className="size-5" aria-hidden />}{label}</Button>
           </div>
-          <Button variant="secondary" className="w-full" disabled={disabled} onClick={() => { if (addToBag()) router.push('/bag'); }}>Buy now</Button>
+          <Button variant="secondary" className="w-full" disabled={disabled} onClick={() => { if (addToBag()) router.push('/checkout'); }}>Buy now</Button>
           <p role="status" aria-live="polite" className="min-h-5 text-sm text-mocha">{added && <>Added. <Link href="/bag" className="font-semibold underline">View your bag</Link></>}</p>
           <WishlistButton productId={p.id} slug={p.slug} />
 
  {p.type !== 'gift_card' && (<div className="rounded-lg border border-line bg-white p-4">
             <label htmlFor="state" className="text-sm font-semibold">Where are we delivering?</label>
             <select id="state" value={state} onChange={(e) => chooseState(e.target.value)} className="mt-2 min-h-12 w-full rounded-btn border border-line bg-paper px-3 text-base">
-              {zones.flatMap((z) => z.states).sort((a, b) => a.localeCompare(b)).map((s) => (<option key={s}>{s}</option>))}
+              <option value="">Select your state</option>{NIGERIAN_STATES.map((s) => (<option key={s}>{s}</option>))}
             </select>
             <p className="mt-3 text-sm" aria-live="polite">
-              {eta ? <>Order today and it arrives by <strong>{eta}</strong>.</> : 'Arrives in 5 days.'}{' '}
-              {zone && <span className="text-muted">Delivery from {formatNaira(zone.feeKobo)} in {zone.name}.</span>}
+              Enter your city at checkout to see confirmed delivery services and fees. <Link href="/delivery" className="underline">Delivery information</Link>.
             </p>
           </div>)}
 

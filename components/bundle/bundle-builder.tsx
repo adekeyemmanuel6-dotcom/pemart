@@ -199,7 +199,7 @@ export function BundleBuilder({ ctx, giftWrapKobo }: { ctx: BundleContext; giftW
           <div role="alert" aria-live="assertive">
             {issues.length > 0 && (<ul className="mt-3 list-disc space-y-1 rounded-md bg-ember/10 p-3 pl-7 text-sm">{issues.slice(0, 6).map((m, i) => (<li key={i}>{m}</li>))}{issues.length > 6 && <li>and {issues.length - 6} more</li>}</ul>)}
           </div>
-          <p className="mt-3 text-xs text-muted">Arrives in 5 days from payment. Prices are confirmed again at checkout.</p>
+          <p className="mt-3 text-xs text-muted">Delivery services and timing are confirmed at checkout. Prices are confirmed again at checkout.</p>
         </div>
       </aside>
     </div>

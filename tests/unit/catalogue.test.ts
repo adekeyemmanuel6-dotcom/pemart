@@ -74,9 +74,11 @@ describe('pricing and stock', () => {
 
 describe('delivery', () => {
   it('maps states to zones and adds lead days', () => {
-    expect(zoneForState(cat.zones, 'Lagos')?.name).toBe('Lagos');
-    expect(zoneForState(cat.zones, 'Ogun')?.name).toBe('South-West');
-    expect(zoneForState(cat.zones, 'Kano')?.name).toBe('Other states');
+    expect(zoneForState(cat.zones, 'Lagos')).toBeUndefined();
+    expect(zoneForState(cat.zones.map((z) => ({ ...z, rate_verified: true })), 'Unknown')).toBeUndefined();
+    expect(zoneForState(cat.zones.map((z) => ({ ...z, rate_verified: true })), 'Lagos')?.name).toBe('Lagos');
+    expect(zoneForState(cat.zones.map((z) => ({ ...z, rate_verified: true })), 'Ogun')?.name).toBe('South-West');
+    expect(zoneForState(cat.zones.map((z) => ({ ...z, rate_verified: true })), 'Kano')?.name).toBe('Other states');
     const d = promisedDate(new Date('2026-12-10T12:00:00Z'), 5);
     expect(d.toISOString().slice(0, 10)).toBe('2026-12-15');
     expect(formatDeliveryDate(d)).toContain('15');

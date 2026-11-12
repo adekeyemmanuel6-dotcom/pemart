@@ -1,7 +1,7 @@
 'use server';
 import { headers } from 'next/headers';
 import { z } from 'zod';
-import { getCatalogue } from '@/lib/catalogue/load';
+import { NIGERIAN_STATES, normalizeDestination } from '@/lib/shipping';
 import { createOrderAndInitPayment, publicQuote, quoteCart, type PublicQuote, type StartResult } from '@/lib/checkout/service';
 import type { PricingInput } from '@/lib/checkout/types';
 import { getProfile } from '@/lib/auth';
@@ -22,7 +22,7 @@ const lineSchema = z.discriminatedUnion('kind', [
 ]);
 const pricingSchema = z.object({
   lines: z.array(lineSchema).max(50), code: z.string().max(40).optional(), giftCode: z.string().max(40).optional(), useCredit: z.boolean().optional(),
-  state: z.string().max(40).optional(), acceptFinalSale: z.boolean().optional(), giftMessage: z.string().max(400).optional(),
+  state: z.string().max(40).optional(), city: z.string().max(80).optional(), shippingRateId: z.uuid().optional(), acceptFinalSale: z.boolean().optional(), giftMessage: z.string().max(400).optional(),
   extras: z.object({ giftWrap: z.boolean().optional(), surpriseNote: z.boolean().optional(), express: z.boolean().optional(), shipReadyFirst: z.boolean().optional() }).optional(),
 });
 
@@ -42,7 +42,7 @@ const phone = z.string().trim().refine((v) => normaliseNigerianPhone(v) !== null
 const detailsSchema = z.object({
   email: z.email('Enter a valid email address').max(254).transform((v) => v.toLowerCase()), phone,
   isGift: z.boolean(), giftMessage: z.string().trim().max(300).optional(),
-  address: z.object({ recipient: z.string().trim().min(2, 'Enter the recipient name').max(80), phone, line1: z.string().trim().min(4, 'Enter the street address').max(160), area: z.string().trim().max(80).optional(), city: z.string().trim().min(2, 'Enter the city or town').max(80), state: z.string().min(2, 'Choose a state') }),
+  address: z.object({ recipient: z.string().trim().min(2, 'Enter the recipient name').max(80), phone, line1: z.string().trim().min(4, 'Enter the street address').max(160), area: z.string().trim().max(80).optional(), city: z.string().trim().min(2, 'Enter the city or town').max(80), state: z.string().min(2, 'Choose a state'), instructions: z.string().trim().max(300).optional() }),
   createAccount: z.boolean().optional(),
 });
 
@@ -55,16 +55,15 @@ export async function startCheckout(rawPricing: unknown, rawDetails: unknown): P
   const pricing = pricingSchema.safeParse(rawPricing);
   if (!pricing.success) return { ok: false, message: 'Something is wrong with your bag. Please refresh and try again.', fieldErrors: {} };
   const details = detailsSchema.safeParse(rawDetails);
-  const cat = await getCatalogue();
   const fieldErrors: Record<string, string> = {};
   if (!details.success) for (const i of details.error.issues) fieldErrors[i.path.join('.')] ??= i.message;
-  const state = details.success ? details.data.address.state : '';
-  if (details.success && !cat.zones.some((z) => z.states.includes(state))) fieldErrors['address.state'] = 'Choose a state from the list';
+  const state = details.success ? NIGERIAN_STATES.find((s) => normalizeDestination(s) === normalizeDestination(details.data.address.state)) ?? '' : '';
+  if (details.success && !NIGERIAN_STATES.some((s) => normalizeDestination(s) === normalizeDestination(state))) fieldErrors['address.state'] = 'Choose a state from the list';
   if (Object.keys(fieldErrors).length) return { ok: false, message: 'Please check the highlighted fields.', fieldErrors };
 
   const d = details.data!;
   const profile = await getProfile();
-  const result = await createOrderAndInitPayment({ ...(pricing.data as PricingInput), state }, { email: d.email, phone: d.phone, isGift: d.isGift, giftMessage: d.giftMessage || pricing.data.giftMessage, address: d.address }, { profileId: profile?.id, email: d.email });
+  const result = await createOrderAndInitPayment({ ...(pricing.data as PricingInput), state, city: d.address.city }, { email: d.email, phone: d.phone, isGift: d.isGift, giftMessage: d.giftMessage || pricing.data.giftMessage, address: { ...d.address, state } }, { profileId: profile?.id, email: d.email });
   // Optional account: email a magic link so the buyer can follow the order from an account. Never blocks the order.
   if (result.ok && d.createAccount && !profile && isSupabaseConfigured) {
     try { await (await createClient()).auth.signInWithOtp({ email: d.email, options: { emailRedirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent('/account')}`, shouldCreateUser: true } }); }

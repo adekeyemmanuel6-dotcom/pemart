@@ -7,8 +7,8 @@ import { C, EmailLayout, button, h1, p } from './layout';
  */
 export default function SignInLink({ link, siteUrl }: { link: string; siteUrl: string }) {
   return (
-    <EmailLayout preview="Your Pemart sign-in link" siteUrl={siteUrl}>
-      <Text style={h1}>Sign in to Pemart</Text>
+    <EmailLayout preview="Your Wear The Word sign-in link" siteUrl={siteUrl}>
+      <Text style={h1}>Sign in to Wear The Word</Text>
       <Text style={p}>Tap the button to sign in. No password needed. The link works once and expires soon.</Text>
       <Section style={{ margin: '20px 0 8px' }}><Button href={link} style={button}>Sign in</Button></Section>
       <Text style={{ fontSize: 13, color: C.muted }}>If you did not ask for this, you can ignore this email.</Text>

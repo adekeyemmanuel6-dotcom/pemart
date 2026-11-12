@@ -15,6 +15,9 @@ export async function reset() {
     insert into public.ambassadors (name, email, code, commission_rate, payout_note) values ('Demo Ambassador', 'ambassador@example.com', 'GRACE10', 0.10, 'Demo only');
     insert into public.discount_codes (code, type, value) values ('PEMART10', 'percentage', 10);
     insert into public.discount_codes (code, type, value, ambassador_id) values ('GRACE10', 'percentage', 10, (select id from public.ambassadors where code = 'GRACE10'));
+    -- Synthetic verified delivery services, ONLY in the isolated test database.
+    update public.delivery_zones set rate_verified = true, is_active = true, min_days = 5, max_days = 5;
+    update public.settings set free_shipping_threshold_kobo = 20000000;
     -- seeded configuration that admin tests edit
     update public.delivery_zones set fee_kobo = 350000, free_over_kobo = 7500000, lead_days = 5, christmas_cutoff_date = '2026-12-17' where name = 'Lagos';
     update public.delivery_zones set fee_kobo = 550000, free_over_kobo = null, lead_days = 5, christmas_cutoff_date = '2026-12-15' where name = 'South-West';

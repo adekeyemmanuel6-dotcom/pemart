@@ -1,9 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { startCheckout } from '@/lib/actions/checkout';
 import { useBag } from '@/lib/cart-store';
+import { NIGERIAN_STATES, SHIPPING_PENDING } from '@/lib/shipping';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
 import { track } from '@/lib/analytics';
@@ -12,12 +13,12 @@ import { openPaystack } from '@/lib/paystack-client';
 import { confirmPayment } from '@/lib/payment-client';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { BagContents } from '@/components/bag/bag-contents';
+import { Progress } from '@/components/bag/bag-contents';
 import { MockPaystack } from './mock-paystack';
 
 type Session = { reference: string; accessCode: string; mock: boolean; number: string; token: string; totalKobo: number };
 
-export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones: { name: string; states: string[] }[]; defaultEmail: string; signedIn: boolean; addOns: { giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; expressEnabled: boolean } }) {
+export function CheckoutForm({ defaultEmail, signedIn, addOns }: { zones: { name: string; states: string[] }[]; defaultEmail: string; signedIn: boolean; addOns: { giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; expressEnabled: boolean } }) {
   const router = useRouter();
   const lines = useBag((s) => s.lines), code = useBag((s) => s.code), giftCode = useBag((s) => s.giftCode), clear = useBag((s) => s.clear);
   const [deliveryState, setDeliveryState] = useDeliveryState();
@@ -25,12 +26,15 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
   const [email, setEmail] = useState(defaultEmail), [phone, setPhone] = useState('');
   const [isGift, setIsGift] = useState(false), [giftMessage, setGiftMessage] = useState('');
   const [recipient, setRecipient] = useState(''), [rPhone, setRPhone] = useState('');
+  const [shippingRateId, setShippingRateId] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [line1, setLine1] = useState(''), [area, setArea] = useState(''), [city, setCity] = useState('');
   const [giftWrap, setGiftWrap] = useState(false), [surpriseNote, setSurpriseNote] = useState(false), [express, setExpress] = useState(false), [shipReadyFirst, setShipReadyFirst] = useState(false);
   const [useCredit, setUseCredit] = useState(false), [consent, setConsent] = useState(false), [createAccount, setCreateAccount] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [session, setSession] = useState<Session | null>(null);
   const [mockOpen, setMockOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -38,7 +42,7 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
   useEffect(() => setMounted(true), []);
 
   const extras = { giftWrap, surpriseNote, express, shipReadyFirst };
-  const { quote: q, loading } = useQuote({ state: deliveryState, extras, useCredit, acceptFinalSale: consent, giftMessage });
+  const { quote: q, loading } = useQuote({ state: deliveryState, city, shippingRateId: shippingRateId || undefined, extras, useCredit, acceptFinalSale: consent, giftMessage });
   const beganCheckout = useRef(false);
   useEffect(() => {
     if (!q || beganCheckout.current || !q.lines.length) return;
@@ -46,7 +50,7 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
     track('begin_checkout', { valueKobo: q.totalKobo, items: q.lines.map((l) => ({ id: l.slug ?? l.id, name: l.name, priceKobo: l.unitKobo, quantity: l.quantity, category: l.kind })) });
   }, [q]);
   const digital = !!q?.digitalOnly;
-  const stateOptions = useMemo(() => zones.flatMap((z) => z.states.map((s) => ({ s, zone: z.name }))).sort((a, b) => a.s.localeCompare(b.s)), [zones]);
+  const stateOptions = NIGERIAN_STATES;
 
   const err = (k: string) => errors[k];
   const field = (k: string) => ({ 'aria-invalid': !!err(k) || undefined, 'aria-describedby': err(k) ? `${k}-e` : undefined });
@@ -72,13 +76,14 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
   }
 
   async function pay() {
-    if (!q) return;
+    if (!q || submitting.current) return;
+    submitting.current = true;
     setBusy(true); setMessage(null); setErrors({});
     const pricing = { lines: toInputLines(lines), code: code || undefined, giftCode: giftCode || undefined, state: deliveryState, extras, useCredit, acceptFinalSale: consent, giftMessage: giftMessage || undefined };
     const details = {
       email, phone, isGift, giftMessage: giftMessage || undefined, createAccount,
       address: digital ? { recipient: 'Digital order', phone, line1: 'Delivered by email', city: 'Lagos', state: 'Lagos' }
-        : { recipient: isGift ? recipient : recipient || email.split('@')[0] || 'Customer', phone: isGift ? rPhone : rPhone || phone, line1, area: area || undefined, city, state: deliveryState },
+        : { recipient, phone: isGift ? rPhone : rPhone || phone, line1, area: area || undefined, city, state: deliveryState, instructions },
     };
     try {
       const res = await startCheckout(pricing, details);
@@ -87,7 +92,7 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
       const s: Session = { reference: res.reference, accessCode: res.accessCode, mock: res.mock, number: res.number, token: res.token, totalKobo: res.totalKobo };
       setSession(s); openPayment(s);
     } catch { setMessage('Something went wrong. Please try again.'); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; setBusy(false); }
   }
 
   if (mounted && lines.length === 0 && !session && !confirming) {
@@ -95,7 +100,7 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
   }
 
   const hasConsent = q?.needsFinalSaleConsent;
-  const canPay = !!q && !busy && !confirming && q.issues.length === 0 && (digital || (!!line1.trim() && !!city.trim()));
+  const canPay = !!q && !loading && !busy && !confirming && q.issues.length === 0 && (digital || (!q.shippingPending && !!recipient.trim() && !!deliveryState && !!line1.trim() && !!city.trim()));
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
@@ -116,13 +121,15 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
               <div><Label htmlFor="rphone">{isGift ? "Recipient's phone" : 'Delivery phone'}</Label><Input id="rphone" type="tel" inputMode="tel" placeholder={isGift ? '' : 'Same as above'} value={rPhone} onChange={(e) => setRPhone(e.target.value)} {...field('address.phone')} /><Err k="address.phone" /></div>
               <div className="sm:col-span-2"><Label htmlFor="line1">Street address</Label><Input id="line1" autoComplete="address-line1" value={line1} onChange={(e) => setLine1(e.target.value)} {...field('address.line1')} /><Err k="address.line1" /></div>
               <div><Label htmlFor="area">Area / landmark (optional)</Label><Input id="area" value={area} onChange={(e) => setArea(e.target.value)} /></div>
-              <div><Label htmlFor="city">City / town</Label><Input id="city" autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} {...field('address.city')} /><Err k="address.city" /></div>
+              <div><Label htmlFor="city">City / town</Label><Input id="city" autoComplete="address-level2" value={city} onChange={(e) => { setCity(e.target.value); setShippingRateId(''); }} {...field('address.city')} /><Err k="address.city" /></div>
               <div className="sm:col-span-2"><Label htmlFor="state">State</Label>
-                <select id="state" value={deliveryState} onChange={(e) => setDeliveryState(e.target.value)} className="min-h-12 w-full rounded-btn border border-line bg-white px-3 text-base" {...field('address.state')}>
-                  {stateOptions.map(({ s }) => (<option key={s}>{s}</option>))}
+                <select id="state" value={deliveryState} onChange={(e) => { setDeliveryState(e.target.value); setShippingRateId(''); }} className="min-h-12 w-full rounded-btn border border-line bg-white px-3 text-base" {...field('address.state')}>
+                  <option value="">Select your state</option>{stateOptions.map((s) => (<option key={s}>{s}</option>))}
                 </select>
-                <p className="mt-1 text-sm text-muted">{q?.zone ? `${q.zone.name}: delivery ${q.deliveryFeeKobo === 0 ? 'is free' : formatNaira(q.deliveryFeeKobo)}.` : ''}</p><Err k="address.state" /></div>
+                <p className="mt-1 text-sm text-muted">{q?.shippingPending ? SHIPPING_PENDING : q?.zone ? `${q.zone.name}: delivery ${q.deliveryFeeKobo === 0 ? 'is free' : formatNaira(q.deliveryFeeKobo)}.` : ''}</p><Err k="address.state" /></div>
             </div>
+            {q && q.shippingOptions.length > 1 && <div className="mt-4"><Label htmlFor="shipping-service">Delivery service</Label><select id="shipping-service" className="min-h-12 w-full border border-line p-3" value={shippingRateId || q.zone?.id || ''} onChange={(e) => setShippingRateId(e.target.value)}>{q.shippingOptions.map((z) => <option key={z.id} value={z.id}>{[z.name, z.provider, z.service].filter(Boolean).join(' · ')}</option>)}</select></div>}
+            <div className="mt-4"><Label htmlFor="instructions">Delivery instructions (optional)</Label><textarea id="instructions" maxLength={300} value={instructions} onChange={(e) => setInstructions(e.target.value)} className="w-full border border-line p-3" /></div>
             {isGift && (<div className="mt-4"><Label htmlFor="gm">Gift message (optional)</Label><textarea id="gm" rows={3} maxLength={300} value={giftMessage} onChange={(e) => setGiftMessage(e.target.value)} className="w-full rounded-btn border border-line bg-paper p-3 text-base" placeholder="A note for the recipient" /></div>)}
           </section>
         )}
@@ -138,30 +145,29 @@ export function CheckoutForm({ zones, defaultEmail, signedIn, addOns }: { zones:
           </section>
         )}
 
-        <section className={`${section} lg:hidden`} aria-label="Order summary (mobile)"><h2 className="display mb-3 text-3xl">Your bag</h2><BagContents variant="drawer" /></section>
       </div>
 
       <aside className="h-fit space-y-4 rounded-lg border-2 border-ink bg-white p-5 lg:sticky lg:top-24" aria-label="Review and pay" aria-busy={loading}>
         <h2 className="display text-3xl">{digital ? '2' : '4'}. Review and pay</h2>
         {!q ? <div className="skeleton h-40" /> : (<>
-          <ul className="divide-y divide-line text-sm">{q.lines.map((l) => (<li key={l.id} className="flex justify-between gap-3 py-2"><span>{l.quantity > 1 ? `${l.quantity} × ` : ''}{l.name}{l.detail.length ? <span className="text-muted"> ({l.detail.join(', ')})</span> : null}</span><span className="shrink-0 font-semibold">{formatNaira(l.lineKobo)}</span></li>))}</ul>
+          <Progress q={q} /><ul className="divide-y divide-line text-sm">{q.lines.map((l) => (<li key={l.id} className="flex justify-between gap-3 py-2"><span>{l.quantity > 1 ? `${l.quantity} × ` : ''}{l.name}{l.detail.length ? <span className="text-muted"> ({l.detail.join(', ')})</span> : null}</span><span className="shrink-0 font-semibold">{formatNaira(l.lineKobo)}</span></li>))}</ul>
           <dl className="space-y-1 text-sm">
             <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatNaira(q.subtotalKobo)}</dd></div>
             {q.discount && <div className="flex justify-between text-mocha"><dt>Discount ({q.discount.code})</dt><dd>-{formatNaira(q.discount.amountKobo)}</dd></div>}
-            {!digital && <div className="flex justify-between"><dt>Delivery ({q.zone?.name ?? deliveryState})</dt><dd>{q.deliveryFeeKobo === 0 ? 'Free' : formatNaira(q.deliveryFeeKobo)}</dd></div>}
+            {!digital && <div className="flex justify-between"><dt>Delivery ({q.zone?.name ?? deliveryState})</dt><dd>{q.shippingPending ? 'Awaiting confirmation' : q.deliveryFeeKobo === 0 ? 'Free' : formatNaira(q.deliveryFeeKobo)}</dd></div>}
             {q.giftWrapKobo > 0 && <div className="flex justify-between"><dt>Gift wrap</dt><dd>{formatNaira(q.giftWrapKobo)}</dd></div>}
             {q.surpriseNoteKobo > 0 && <div className="flex justify-between"><dt>Surprise note</dt><dd>{formatNaira(q.surpriseNoteKobo)}</dd></div>}
             {q.expressKobo > 0 && <div className="flex justify-between"><dt>Express production</dt><dd>{formatNaira(q.expressKobo)}</dd></div>}
             {q.shipReadyFirstKobo > 0 && <div className="flex justify-between"><dt>Second delivery</dt><dd>{formatNaira(q.shipReadyFirstKobo)}</dd></div>}
             {q.giftCardAppliedKobo > 0 && <div className="flex justify-between text-mocha"><dt>Gift card</dt><dd>-{formatNaira(q.giftCardAppliedKobo)}</dd></div>}
             {q.creditAppliedKobo > 0 && <div className="flex justify-between text-mocha"><dt>Store credit</dt><dd>-{formatNaira(q.creditAppliedKobo)}</dd></div>}
-            <div className="flex justify-between border-t border-line pt-2 text-xl font-bold"><dt>Total</dt><dd>{formatNaira(q.totalKobo)}</dd></div>
+            <div className="flex justify-between border-t border-line pt-2 text-xl font-bold"><dt>{q.shippingPending ? 'Before delivery' : 'Total'}</dt><dd>{formatNaira(q.totalKobo)}</dd></div>
           </dl>
           {signedIn && q.creditAvailableKobo > 0 && <label className={check}><input type="checkbox" className="size-5 accent-ink" checked={useCredit} onChange={(e) => setUseCredit(e.target.checked)} /><span className="text-sm font-semibold">Use my store credit ({formatNaira(q.creditAvailableKobo)})</span></label>}
 
           <div className="rounded-md bg-sand/60 p-3 text-sm" aria-live="polite">
-            {q.promise.customBy ? (<><strong>Estimated delivery {formatDeliveryDate(new Date(q.promise.customBy))}.</strong> Your proof arrives within {q.promise.proofHours} hours. <strong>The 5-day clock starts when you approve your proof.</strong></>)
-              : q.promise.readyBy ? <><strong>Promised by {formatDeliveryDate(new Date(q.promise.readyBy))}.</strong> The 5 days start when your payment is confirmed.</> : <>Delivered to your email right after payment.</>}
+            {q.promise.customBy ? (<><strong>Estimated delivery {formatDeliveryDate(new Date(q.promise.customBy))}.</strong> Your proof arrives within {q.promise.proofHours} hours. <strong>Production starts when you approve your proof.</strong></>)
+              : q.promise.readyBy ? <><strong>Estimated by {formatDeliveryDate(new Date(q.promise.readyBy))}.</strong> Timing starts after payment confirmation.</> : digital ? <>Delivered to your email after verified payment.</> : <>Delivery timing will be confirmed for your destination.</>}
           </div>
           {q.warnings.map((w) => (<p key={w} role="alert" className="rounded-md bg-ember/15 p-3 text-sm font-semibold">{w}</p>))}
 

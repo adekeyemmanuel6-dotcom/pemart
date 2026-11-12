@@ -4,7 +4,8 @@ import type { Bundle, Catalogue, Product, Variant } from '@/lib/catalogue/types'
 import { TIERS } from '@/lib/custom/tiers';
 import { clampKobo, percentOf } from '@/lib/money';
 import { formatNaira } from '@/lib/money';
-import { promisedDate, formatDeliveryDate, zoneForState } from '@/lib/delivery';
+import { promisedDate, formatDeliveryDate } from '@/lib/delivery';
+import { FREE_DELIVERY_KOBO, SHIPPING_PENDING, shippingQuote } from '@/lib/shipping';
 import type { CartLineInput, DbContext, DbItem, PricingInput, PricingSettings, Quote, QuoteLine } from './types';
 
 export const MAX_LINE_QTY = 20;
@@ -167,12 +168,22 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
   const goodsAfterDiscount = subtotalKobo - discountKobo;
 
   // ---------------------------------------------------------------- delivery
-  const zoneRow = input.state ? zoneForState(cat.zones, input.state) : undefined;
-  const zone = zoneRow ? { id: zoneRow.id, name: zoneRow.name, feeKobo: zoneRow.fee_kobo, freeOverKobo: zoneRow.free_over_kobo, leadDays: zoneRow.lead_days } : null;
-  const lagos = cat.zones.find((z) => z.free_over_kobo != null);
-  let deliveryFeeKobo = 0;
-  if (!digitalOnly && zone) deliveryFeeKobo = zone.freeOverKobo != null && goodsAfterDiscount >= zone.freeOverKobo ? 0 : zone.feeKobo;
-  const freeDeliveryAwayKobo = lagos?.free_over_kobo != null && !digitalOnly && goodsAfterDiscount < lagos.free_over_kobo ? lagos.free_over_kobo - goodsAfterDiscount : null;
+  const eligibleMerchandiseKobo = Math.max(0, sum(goods.filter((l) => l.kind !== 'gift_card' && l.kind !== 'revision').map((l) => l.lineKobo)) - discountKobo);
+  const threshold = settings.freeShippingThresholdKobo ?? FREE_DELIVERY_KOBO;
+  let weightGrams: number | null = 0;
+  for (const line of goods.filter((l) => l.kind !== 'gift_card' && l.kind !== 'revision')) {
+    const raw = input.lines.find((l) => l.id === line.id);
+    const product = raw?.kind === 'variant' ? variantIndex.get(raw.refId)?.product : undefined;
+    if (!product?.weight_grams || weightGrams === null) weightGrams = null;
+    else weightGrams += product.weight_grams * line.quantity;
+  }
+  const shipping = shippingQuote(cat.zones, input.state ?? '', input.city ?? '', eligibleMerchandiseKobo, threshold, input.shippingRateId, weightGrams);
+  const zoneRow = shipping.zone;
+  const zone = zoneRow ? { id: zoneRow.id, name: zoneRow.name, feeKobo: zoneRow.fee_kobo, freeOverKobo: zoneRow.free_shipping_eligible !== false ? threshold : null, leadDays: zoneRow.max_days ?? 0 } : null;
+  const shippingPending = !digitalOnly && shipping.pending;
+  const deliveryFeeKobo = digitalOnly ? 0 : shipping.feeKobo;
+  const freeDeliveryAwayKobo = !digitalOnly && eligibleMerchandiseKobo < threshold ? threshold - eligibleMerchandiseKobo : null;
+  if (shippingPending) issues.push(SHIPPING_PENDING);
 
   // ---------------------------------------------------------------- add-ons
   const ex = input.extras ?? {};
@@ -211,11 +222,11 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
   const totalKobo = afterAddons - creditAppliedKobo;
 
   // ---------------------------------------------------------------- promise and Christmas
-  const leadDays = zone?.leadDays ?? 5;
-  const readyLead = express && expressKobo > 0 ? 2 : leadDays;
-  const readyBy = hasReadyPhysical ? promisedDate(now, readyLead) : null;
+  const leadDays = zone?.leadDays ?? 0;
+  const readyLead = leadDays;
+  const readyBy = hasReadyPhysical && leadDays > 0 && !shippingPending ? promisedDate(now, readyLead) : null;
   // Custom items: proof first (12 to 48 hours), then the 5-day clock starts at approval. This is the estimate.
-  const customBy = hasCustom ? promisedDate(new Date(now.getTime() + proofHours * 3600_000), leadDays) : null;
+  const customBy = hasCustom && leadDays > 0 && !shippingPending ? promisedDate(new Date(now.getTime() + proofHours * 3600_000), leadDays) : null;
   const latest = hasCustom ? customBy : readyBy;
   const year = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Africa/Lagos' }).format(now));
   const christmasEnd = new Date(`${year}-12-24T23:59:59+01:00`);
@@ -243,7 +254,7 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
 
   return {
     ok: issues.length === 0, issues, warnings, lines, subtotalKobo, discount, codeError, giftCodeError,
-    zone, deliveryFeeKobo, freeDeliveryAwayKobo, freeDeliveryThresholdKobo: !digitalOnly ? lagos?.free_over_kobo ?? null : null, upsell, giftWrapKobo, surpriseNoteKobo, expressKobo, shipReadyFirstKobo,
+    zone, deliveryFeeKobo, shippingPending, eligibleMerchandiseKobo, shippingOptions: shipping.options.map((z) => ({ id: z.id, name: z.name, provider: z.provider ?? null, service: z.service ?? null })), freeDeliveryAwayKobo, freeDeliveryThresholdKobo: !digitalOnly && zoneRow?.free_shipping_eligible !== false ? threshold : null, upsell, giftWrapKobo, surpriseNoteKobo, expressKobo, shipReadyFirstKobo,
     giftCardAppliedKobo, creditAppliedKobo, creditAvailableKobo, totalKobo, hasCustom, hasBundle, digitalOnly, needsFinalSaleConsent,
     promise: { readyBy: readyBy?.toISOString() ?? null, customBy: customBy?.toISOString() ?? null, leadDays: readyLead, proofHours: hasCustom ? proofHours : null, express: expressKobo > 0 },
     reservations: [...reserve].map(([variantId, qty]) => ({ variantId, qty })), dbItems,

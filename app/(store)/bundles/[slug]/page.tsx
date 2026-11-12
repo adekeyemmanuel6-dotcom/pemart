@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const b = (await getCatalogue()).bundles.find((x) => x.slug === slug);
   if (!b) return {};
-  return { title: b.name, description: b.description ?? undefined, alternates: { canonical: `/bundles/${slug}` }, openGraph: { title: `${b.name} | Pemart`, description: b.description ?? undefined, images: [{ url: `/og/bundle-${slug}`, width: 1200, height: 630 }] } };
+  return { title: b.name, description: b.description ?? undefined, alternates: { canonical: `/bundles/${slug}` }, openGraph: { title: `${b.name} | Wear The Word`, description: b.description ?? undefined, images: [{ url: `/og/bundle-${slug}`, width: 1200, height: 630 }] } };
 }
 
 export default async function BundlePage({ params }: Props) {

@@ -36,7 +36,7 @@ export function MobileNav() {
             ))}
             <li><Link href="/gift-cards" onClick={close} className="flex min-h-12 items-center border-b border-line text-lg font-semibold">Gift cards</Link></li>
           </ul>
-          <ul className="mt-6 grid grid-cols-2 gap-x-4 text-sm text-muted">
+          <Link href="/account" onClick={close} className="flex min-h-12 items-center font-semibold">My account & wishlist</Link><Link href="/bulk" onClick={close} className="flex min-h-12 items-center font-semibold">Bulk orders</Link><ul className="mt-6 grid grid-cols-2 gap-x-4 text-sm text-muted">
             {HELP_LINKS.map((h) => (
               <li key={h.href}><Link href={h.href} onClick={close} className="flex min-h-11 items-center">{h.name}</Link></li>
             ))}

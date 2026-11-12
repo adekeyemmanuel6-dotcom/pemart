@@ -12,7 +12,7 @@ export default function TermsPage() {
       <h2>Payment</h2>
       <p>We accept card, bank transfer and USSD through Paystack. Pay on delivery is not offered at this time. Unpaid orders are cancelled after 24 hours.</p>
       <h2>Delivery</h2>
-      <p>We aim to deliver within 5 days of the start date described on our <Link href="/delivery">Delivery</Link> page: payment for ready designs, or proof approval for custom orders. Dates are our promise, but couriers can occasionally be delayed by circumstances outside our control. We will keep you informed.</p>
+      <p>Delivery fees and any verified estimates are shown before payment. Custom orders require proof approval before production. Contact our team for timing specific to your order; courier delays may affect estimates.</p>
       <h2>Custom and personalised orders</h2>
       <ul>
         <li>You approve a design proof before printing. Every custom order includes one free revision; further revisions can be bought as an add-on.</li>

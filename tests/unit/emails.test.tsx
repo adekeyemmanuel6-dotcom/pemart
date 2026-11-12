@@ -43,7 +43,7 @@ describe('email templates render with the right content', () => {
   it('gift card and sign-in emails render', async () => {
     const g = await text(<GiftCardEmail code="PG-AAAA-BBBB-CCCC" amountKobo={2500000} message="Enjoy" from="Ada" siteUrl={site} />);
     expect(g).toContain('PG-AAAA-BBBB-CCCC'); expect(g).toContain('₦25,000'); expect(g).toContain('Enjoy');
-    expect(await text(<SignInLink link="https://x" siteUrl={site} />)).toMatch(/Sign in to Pemart/);
+    expect(await text(<SignInLink link="https://x" siteUrl={site} />)).toMatch(/Sign in to Wear The Word/);
   });
   it('welcome offer: shows the code, expiry and an apply-it link', async () => {
     const html = await render(<WelcomeOffer code="PEM-AB3K9Z" expires="10 January 2027" siteUrl={site} />);

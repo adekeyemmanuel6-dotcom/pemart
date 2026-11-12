@@ -1,13 +1,15 @@
+import { ShippingZoneForm } from '@/components/admin/shipping-zone-form';
+import type { DeliveryZone } from '@/lib/catalogue/types';
 import type { Metadata } from 'next';
 import { ActionForm } from '@/components/admin/action-form';
 import { AdminUploader } from '@/components/admin/admin-uploader';
 import { Card, PageTitle, inputCls, labelCls } from '@/components/admin/ui';
 import { adm, requireAdmin } from '@/lib/admin/db';
-import { saveSettingsAction, saveZoneAction } from '@/lib/admin/actions-admin';
+import { saveSettingsAction } from '@/lib/admin/actions-admin';
 
 export const metadata: Metadata = { title: 'Settings' };
 type S = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-type Zone = { id: string; name: string; states: string[]; fee_kobo: number; free_over_kobo: number | null; lead_days: number; christmas_cutoff_date: string | null };
+type Zone = DeliveryZone;
 const n = (k: number | null | undefined) => (k === null || k === undefined ? '' : String(k / 100));
 
 export default async function SettingsPage() {
@@ -20,15 +22,26 @@ export default async function SettingsPage() {
       <ActionForm action={saveSettingsAction} submitLabel="Save settings" pendingLabel="Saving…">
         <div className="space-y-4">
           <Card title="Announcement bar">
-            <div className="grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><label className={labelCls} htmlFor="at">Text</label><input id="at" name="announcement_text" defaultValue={s.announcement_text ?? ''} className={inputCls} placeholder="Order by 17 Dec for Christmas delivery in Lagos" /></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><label className={labelCls} htmlFor="at">Text</label><input id="at" name="announcement_text" defaultValue={s.announcement_text ?? ''} className={inputCls} placeholder="Leave blank for the current national free-delivery offer" /></div>
               <div><label className={labelCls} htmlFor="al">Link (optional)</label><input id="al" name="announcement_link" defaultValue={s.announcement_link ?? ''} className={inputCls} placeholder="/gift-boxes" /></div><div className="flex items-end"><Check name="announcement_active" label="Show the bar" on={s.announcement_active} /></div></div>
           </Card>
           <Card title="Brand and contact">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="logo_url" label="Logo (PNG, SVG or JPG). Leave empty to use the PEMART wordmark." accept=".png,.jpg,.jpeg,.svg,.webp" initial={s.logo_url ?? ''} />{s.logo_url && <p className="text-sm text-muted">Current logo: <a href={s.logo_url} className="underline" target="_blank" rel="noopener noreferrer">{s.logo_url}</a></p>}</div>
+              <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="logo_url" label="Logo (PNG, SVG or JPG). Leave empty to use the WEAR THE WORD wordmark." accept=".png,.jpg,.jpeg,.svg,.webp" initial={s.logo_url ?? ''} />{s.logo_url && <p className="text-sm text-muted">Current logo: <a href={s.logo_url} className="underline" target="_blank" rel="noopener noreferrer">{s.logo_url}</a></p>}</div>
               <div><label className={labelCls} htmlFor="wa">WhatsApp number (digits, international)</label><input id="wa" name="whatsapp_number" defaultValue={s.whatsapp_number ?? ''} placeholder="2348031234567" inputMode="numeric" className={inputCls} /></div><div />
               <div><label className={labelCls} htmlFor="ig">Instagram URL</label><input id="ig" name="instagram_url" defaultValue={s.instagram_url ?? ''} placeholder="https://instagram.com/…" className={inputCls} /></div>
               <div><label className={labelCls} htmlFor="tk">TikTok URL</label><input id="tk" name="tiktok_url" defaultValue={s.tiktok_url ?? ''} placeholder="https://tiktok.com/@…" className={inputCls} /></div></div>
+          </Card>
+          <Card title="Homepage campaign">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="hero_image_url" label="Editorial campaign photograph" accept=".jpg,.jpeg,.png,.webp" initial={s.hero_image_url ?? ''} /></div>
+              <div><label className={labelCls} htmlFor="hero-alt">Image description</label><input id="hero-alt" name="hero_image_alt" defaultValue={s.hero_image_alt ?? ''} className={inputCls} /></div>
+              <div><label className={labelCls} htmlFor="hero-title">Headline</label><input id="hero-title" name="hero_headline" defaultValue={s.hero_headline ?? 'WEAR WHAT YOU STAND ON.'} maxLength={100} className={inputCls} /></div>
+              <div className="sm:col-span-2"><label className={labelCls} htmlFor="hero-copy">Supporting copy</label><textarea id="hero-copy" name="hero_copy" defaultValue={s.hero_copy ?? "Your faith is more than what you believe. It’s what you live, represent and carry every day."} maxLength={400} className={inputCls} /></div>
+            </div>
+          </Card>
+          <Card title="Nationwide delivery">
+            <div className="grid gap-3 sm:grid-cols-2"><div><label className={labelCls} htmlFor="origin">Dispatch origin</label><input id="origin" name="dispatch_origin" defaultValue={s.dispatch_origin ?? 'Akure, Ondo State, Nigeria'} className={inputCls} /></div><div><label className={labelCls} htmlFor="threshold">Free-delivery threshold (₦)</label><input id="threshold" name="free_shipping_threshold" defaultValue={n(s.free_shipping_threshold_kobo ?? 20000000)} required inputMode="decimal" className={inputCls} /></div></div><p className="mt-3 text-sm text-muted">Counted after merchandise discounts, before shipping and extras. Verify every existing rate before enabling checkout for that service.</p>
           </Card>
           <Card title="Add-ons and fees (₦)">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,16 +62,9 @@ export default async function SettingsPage() {
         </div>
       </ActionForm>
 
-      <h2 className="display mb-3 mt-10 text-3xl">Delivery zones</h2>
-      <p className="mb-3 text-sm text-muted">Fees, free-delivery thresholds, delivery days and the Christmas order cutoff for each area. These are the numbers shoppers see and are charged.</p>
-      <div className="space-y-3">{zones.map((z) => (
-        <Card key={z.id}><ActionForm action={saveZoneAction} submitLabel={`Save ${z.name}`} pendingLabel="Saving…"><input type="hidden" name="id" value={z.id} />
-          <p className="mb-2 font-bold">{z.name} <span className="text-sm font-normal text-muted">({z.states.length} {z.states.length === 1 ? 'state' : 'states'})</span></p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div><label className={labelCls} htmlFor={`f-${z.id}`}>Delivery fee (₦)</label><input id={`f-${z.id}`} name="fee" defaultValue={n(z.fee_kobo)} inputMode="decimal" required className={inputCls} /></div>
-            <div><label className={labelCls} htmlFor={`o-${z.id}`}>Free over (₦, blank = never)</label><input id={`o-${z.id}`} name="free_over" defaultValue={n(z.free_over_kobo)} inputMode="decimal" className={inputCls} /></div>
-            <div><label className={labelCls} htmlFor={`l-${z.id}`}>Delivery days</label><input id={`l-${z.id}`} name="lead_days" type="number" min={0} defaultValue={z.lead_days} className={inputCls} /></div>
-            <div><label className={labelCls} htmlFor={`c-${z.id}`}>Christmas cutoff date</label><input id={`c-${z.id}`} name="cutoff" type="date" defaultValue={z.christmas_cutoff_date ?? ''} className={inputCls} /></div></div></ActionForm></Card>))}</div>
+      <h2 className="display mb-3 mt-10 text-3xl">Nationwide delivery services</h2>
+      <p className="mb-5 text-sm text-muted">Create state or city services, confirm carrier prices, and set verified estimates. Unverified or inactive rates cannot be charged. Existing paid orders retain their shipping charge.</p>
+      <div className="space-y-5">{zones.map((z) => <ShippingZoneForm key={z.id} zone={z} />)}<ShippingZoneForm /></div>
     </>
   );
 }

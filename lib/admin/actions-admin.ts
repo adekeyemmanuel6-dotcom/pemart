@@ -1,4 +1,6 @@
 'use server';
+import { NIGERIAN_STATES } from '@/lib/shipping';
+import { WORD_THEMES, BRAND_COLLECTIONS } from '@/lib/brand';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { adm, refreshStorefront, requireAdmin } from './db';
@@ -37,7 +39,7 @@ export async function saveProductAction(_p: AdminResult, fd: FormData): Promise<
   const r = await run(CAT, async () => {
     const price = kobo(fd, 'price'); if (price === null) throw new Error('Enter a price');
     const saved = await adm<{ id: string }>('admin_save', me, { table: 'products', row: { ...(id ? { id } : {}), slug: slug.parse(str(fd, 'slug')), name: z.string().min(2).max(100).parse(str(fd, 'name')), type: z.enum(PRODUCT_TYPES).parse(str(fd, 'type')),
-      design_id: optStr(fd, 'design_id'), collection_id: optStr(fd, 'collection_id'), description: optStr(fd, 'description'), care: optStr(fd, 'care'), base_price_kobo: price, compare_at_kobo: kobo(fd, 'compare_at'),
+      design_id: optStr(fd, 'design_id'), collection_id: optStr(fd, 'collection_id'), themes: list(fd, 'themes').filter((t) => (WORD_THEMES as readonly string[]).includes(t)), brand_collections: list(fd, 'brand_collections').filter((c) => BRAND_COLLECTIONS.some((b) => b.slug === c)), weight_grams: z.number().int().positive().nullable().parse(int(fd, 'weight_grams')), description: optStr(fd, 'description'), care: optStr(fd, 'care'), base_price_kobo: price, compare_at_kobo: kobo(fd, 'compare_at'),
       is_made_to_order: bool(fd, 'is_made_to_order'), is_active: bool(fd, 'is_active'), is_featured: bool(fd, 'is_featured'), is_seasonal: bool(fd, 'is_seasonal'), seo_title: optStr(fd, 'seo_title'), seo_description: optStr(fd, 'seo_description') } });
     refreshStorefront(); if (!id) go = `/admin/catalogue/products/${saved.id}`;
     return done('Product saved.');
@@ -149,6 +151,8 @@ export async function saveSettingsAction(_p: AdminResult, fd: FormData): Promise
     if (wa && (wa.length < 10 || wa.length > 15)) return { ok: false, message: 'WhatsApp number: use the international format with digits only, like 2348031234567.' };
     const url = (k: string) => { const v = optStr(fd, k); if (v && !/^https?:\/\//.test(v)) throw new Error(`${k.replace(/_/g, ' ')} must start with https://`); return v; };
     await adm('admin_settings_save', me, { settings: {
+      free_shipping_threshold_kobo: kobo(fd, 'free_shipping_threshold') ?? 20_000_000, dispatch_origin: str(fd, 'dispatch_origin') || 'Akure, Ondo State, Nigeria',
+      hero_image_url: url('hero_image_url'), hero_image_alt: optStr(fd, 'hero_image_alt'), hero_headline: str(fd, 'hero_headline').slice(0, 100), hero_copy: str(fd, 'hero_copy').slice(0, 400),
       announcement_text: optStr(fd, 'announcement_text'), announcement_link: optStr(fd, 'announcement_link'), announcement_active: bool(fd, 'announcement_active'), logo_url: optStr(fd, 'logo_url'),
       upsell_product_id: optStr(fd, 'upsell_product_id'), upsell_price_kobo: kobo(fd, 'upsell_price'), gift_wrap_kobo: kobo(fd, 'gift_wrap') ?? 0, surprise_note_kobo: kobo(fd, 'surprise_note') ?? 0, express_kobo: kobo(fd, 'express') ?? 0, express_enabled: bool(fd, 'express_enabled'),
       revision_fee_kobo: kobo(fd, 'revision_fee') ?? 0, review_credit_kobo: kobo(fd, 'review_credit') ?? 0,
@@ -161,8 +165,20 @@ export async function saveSettingsAction(_p: AdminResult, fd: FormData): Promise
 export async function saveZoneAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
   const me = await requireAdmin();
   return run('/admin/settings', async () => {
-    const id = uuid.parse(str(fd, 'id'));
-    await adm('admin_save', me, { table: 'delivery_zones', row: { id, fee_kobo: kobo(fd, 'fee') ?? 0, free_over_kobo: kobo(fd, 'free_over'), lead_days: int(fd, 'lead_days') ?? 5, christmas_cutoff_date: optStr(fd, 'cutoff') } });
+    const id = optStr(fd, 'id');
+    const states = list(fd, 'states');
+    if (!states.length || states.some((s) => !(NIGERIAN_STATES as readonly string[]).includes(s))) throw new Error('Choose valid Nigerian states, using FCT for Abuja.');
+    const min = z.number().int().nonnegative().nullable().parse(int(fd, 'min_days'));
+    const max = z.number().int().nonnegative().nullable().parse(int(fd, 'max_days'));
+    if ((min === null) !== (max === null) || (min !== null && max !== null && min > max)) throw new Error('Enter both estimate limits in increasing order, or leave both blank.');
+    const fee = kobo(fd, 'fee'); if (fee === null) throw new Error('Enter a verified fee, including 0 for a free service.');
+    await adm('admin_save', me, { table: 'delivery_zones', row: {
+      ...(id ? { id: uuid.parse(id) } : {}), name: z.string().min(2).max(100).parse(str(fd, 'name')), states,
+      cities: list(fd, 'cities'), provider: optStr(fd, 'provider'), service: optStr(fd, 'service'), fee_kobo: fee,
+      is_active: bool(fd, 'is_active'), rate_verified: bool(fd, 'rate_verified'), free_shipping_eligible: bool(fd, 'free_shipping_eligible'),
+      min_days: min, max_days: max, lead_days: max ?? 0, weight_allowance_grams: z.number().int().positive().nullable().parse(int(fd, 'weight_allowance_grams')),
+      additional_kg_kobo: kobo(fd, 'additional_kg'), sort_order: z.number().int().nonnegative().parse(int(fd, 'sort_order') ?? 0),
+    } });
     refreshStorefront(); return done('Zone saved.');
   });
 }

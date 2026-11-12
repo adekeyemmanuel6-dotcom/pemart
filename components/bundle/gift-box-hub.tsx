@@ -22,12 +22,13 @@ export function GiftBoxHub({ zones, boxes, suggestions }: { zones: HubZone[]; bo
   }, []);
   const choose = (s: string) => { setState(s); try { localStorage.setItem('pemart-state', s); } catch { /* ignore */ } };
 
-  const zone = zones.find((z) => z.states.includes(state)) ?? zones[zones.length - 1]!;
-  const passed = !!now && !!zone.cutoff && cutoffStatus(zone.cutoff, now).state === 'passed';
+  const zone = zones.find((z) => z.states.includes(state));
+  const currentCampaign = !!now && !!zone?.cutoff && new Date(zone.cutoff).getFullYear() === now.getFullYear();
+  const passed = !!now && !!zone?.cutoff && cutoffStatus(zone.cutoff, now).state === 'passed';
 
   return (
     <div>
-      <section className="mb-10 rounded-lg border-2 border-ink p-5 sm:p-8" aria-labelledby="cut-h">
+      {zone && currentCampaign && <section className="mb-10 rounded-lg border-2 border-ink p-5 sm:p-8" aria-labelledby="cut-h">
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <h2 id="cut-h" className="display text-3xl sm:text-4xl">{passed ? `The ${zone.name} Christmas cutoff has passed` : `Order for Christmas delivery in ${zone.name}`}</h2>
@@ -41,7 +42,7 @@ export function GiftBoxHub({ zones, boxes, suggestions }: { zones: HubZone[]; bo
           </div>
           {zone.cutoff && !passed && <Countdown isoDate={zone.cutoff} />}
         </div>
-        {passed && (
+        {zone && currentCampaign && passed && (
           <div role="alert" className="mt-5 rounded-md bg-ember/15 p-4">
             <p className="font-semibold">Gift boxes ordered now will not arrive before Christmas in {zone.name}.</p>
             <p className="mt-1 text-sm">You can still order a box as an early New Year gift, or choose something that is ready to ship below and add a digital gift card for an instant present.</p>
@@ -50,7 +51,7 @@ export function GiftBoxHub({ zones, boxes, suggestions }: { zones: HubZone[]; bo
         <ul className="mt-6 grid gap-2 border-t border-line pt-4 text-sm sm:grid-cols-3" aria-label="Cutoff dates by area">
           {zones.map((z) => (<li key={z.name}><span className="font-semibold">{z.name}:</span> {z.cutoff ? new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' }).format(cutoffInstant(z.cutoff)) : 'no cutoff'}</li>))}
         </ul>
-      </section>
+      </section>}
 
       {passed && (
         <section className="mb-12" aria-labelledby="ready-h">
