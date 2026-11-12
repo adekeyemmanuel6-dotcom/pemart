@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupabaseConfigured } from '@/lib/env';
 import { dbMode } from '@/lib/db';
 import { devProfile } from '@/lib/dev-auth';
+import { mfaPath, sessionAssurance } from '@/lib/mfa';
 
 export type Role = 'customer' | 'staff' | 'admin';
 export type Profile = { id: string; email: string | null; full_name: string | null; phone: string | null; role: Role; store_credit_kobo: number };
@@ -41,7 +42,19 @@ export async function requireRole(allowed: Role[], next = '/admin'): Promise<Pro
   const profile = await requireProfile(next);
   // Staff who wander into an admin-only screen go back to the dashboard; everyone else goes home.
   if (!allowed.includes(profile.role)) redirect(profile.role === 'staff' ? '/admin?denied=1' : '/?denied=1');
+  // Privileged access needs a two-factor session, not just a password or magic link.
+  if (profile.role !== 'customer' && (await sessionAssurance()) !== 'aal2') redirect(mfaPath(next));
   return profile;
+}
+
+/**
+ * For route handlers (which cannot redirect a fetch): the staff/admin profile only when the session has
+ * passed two-factor authentication, otherwise null.
+ */
+export async function getPrivilegedProfile(allowed: Role[] = ['staff', 'admin']): Promise<Profile | null> {
+  const profile = await getProfile();
+  if (!profile || !allowed.includes(profile.role)) return null;
+  return (await sessionAssurance()) === 'aal2' ? profile : null;
 }
 
 export const requireStaff = (next?: string) => requireRole(['staff', 'admin'], next);

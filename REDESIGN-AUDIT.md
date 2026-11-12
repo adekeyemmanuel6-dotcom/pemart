@@ -40,7 +40,7 @@ This compares the "Premium ecommerce redesign, mega menu and security hardening"
 | S1 | Rate limits were per-instance, bypassable on serverless | High | Fixed in code; effective once migration 0015 is applied |
 | S2 | IP for rate limiting read from client-controllable header (outside Vercel) | Low on Vercel | Fixed |
 | S3 | `CRON_SECRET` unset, so order-expiry and reminder jobs refused every call | Medium (operational) | Fixed in Vercel env |
-| S4 | No MFA required for admin accounts | High | **Open – launch blocker.** Needs Supabase MFA (TOTP) enrolment plus an `aal2` check in the admin guard, tested against real Supabase |
+| S4 | No MFA required for admin accounts | High | Fixed in code (app gate live on Preview); database layer in migration 0016. Needs one real end-to-end sign-in test by an admin |
 | S5 | No audit log of critical admin mutations (prices, stock, discounts, refunds) | Medium | **Open.** Needs an append-only table written inside the existing admin RPCs |
 | S6 | Paystack keys exist for Production only | — | Add **test** keys for Preview to exercise checkout safely |
 | S7 | `@react-email/*` packages deprecated upstream | Low | Open; upgrade separately with email regression tests |
@@ -56,4 +56,12 @@ This compares the "Premium ecommerce redesign, mega menu and security hardening"
 
 ## Release order (unchanged, plus 0015)
 
-Back up Supabase → apply 0014 → apply 0015 → confirm delivery rates in admin → add Paystack test keys to Preview and run a test payment + webhook replay → resolve S4 → promote to Production. Rollback scripts for both migrations are in `supabase/rollback/`.
+Back up Supabase → every admin/staff signs in on the Preview and sets up two-factor → apply 0014 → apply 0015 → confirm delivery rates in admin → add Paystack test keys to Preview and run a test payment + webhook replay → promote to Production → **then** apply 0016. Rollback scripts for all three migrations are in `supabase/rollback/`.
+
+## Admin two-factor sign-in (S4)
+
+- **App:** `requireStaff`/`requireAdmin` (every admin page and server action) and `getPrivilegedProfile` (admin upload API) require a Supabase `aal2` session. Without it, staff/admins go to `/auth/mfa`: first time, scan a QR code (or type the key) into an authenticator app and enter the 6-digit code; afterwards, just the code. Customers are never asked. Local Postgres dev mode is exempt; production never is.
+- **Database (migration 0016):** `is_staff()` and `is_admin()` also require `aal2`, so every RLS and storage policy that grants staff/admin access needs two-factor too. Tested in PGlite across admin/staff/customer/anonymous × aal1/aal2 and rollback.
+- **Order matters:** apply 0016 only after the two-factor app code is in Production. Applied earlier, admins on the old site would lose database access (the old site cannot create an aal2 session).
+- **Supabase setting:** TOTP must be enabled under Authentication → Multi-factor (it is on by default for Supabase projects).
+- **Lost phone:** another admin or the Supabase dashboard (Authentication → Users → the user → remove the MFA factor) resets it; the person then sets up again on next sign-in. Keep at least two admin accounts, or store the setup key from first enrolment in a password manager.
