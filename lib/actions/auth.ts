@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { isSupabaseConfigured, publicEnv } from '@/lib/env';
+import { GOOGLE_SIGN_IN_ENABLED, isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { safeNext } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/client-ip';
@@ -15,7 +15,7 @@ const emailSchema = z.object({ email: z.email('Enter a valid email address').max
 const callbackUrl = (next: string) => `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`;
 
 export async function signInWithGoogle(formData: FormData) {
-  if (!isSupabaseConfigured) redirect('/auth/sign-in?error=not-configured');
+  if (!isSupabaseConfigured || !GOOGLE_SIGN_IN_ENABLED) redirect('/auth/sign-in?error=not-configured');
   if (!(await rateLimit(`auth-ip:${await clientIp()}`, 10, 10 * 60_000)).ok) redirect('/auth/sign-in?error=rate');
   const next = safeNext(String(formData.get('next') ?? ''));
   const supabase = await createClient();

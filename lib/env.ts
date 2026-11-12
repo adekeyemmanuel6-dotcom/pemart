@@ -19,6 +19,12 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
 
+/**
+ * "Continue with Google" is off unless NEXT_PUBLIC_GOOGLE_SIGN_IN=1. Turn it on only after enabling the
+ * Google provider in Supabase (Authentication → Sign In / Providers), otherwise sign-in fails.
+ */
+export const GOOGLE_SIGN_IN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN === '1';
+
 /** True once a Supabase project URL and anon key are present. The shell renders without it. */
 export const isSupabaseConfigured = Boolean(publicEnv.NEXT_PUBLIC_SUPABASE_URL && publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
