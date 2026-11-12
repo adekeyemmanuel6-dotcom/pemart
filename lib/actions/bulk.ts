@@ -50,7 +50,7 @@ export async function submitBulkQuote(_prev: BulkState, fd: FormData): Promise<B
   if (sizeTotal > v.quantity) return { ok: false, values, message: 'Please fix the highlighted fields.', fieldErrors: { sizes: 'Your size breakdown adds up to more than the quantity.' } };
   const tier = bulkTier(v.quantity);
 
-  if (!isSupabaseConfigured || !process.env.SUPABASE_SERVICE_ROLE_KEY)
+  if (!isSupabaseConfigured || !(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY))
     return { ok: true, demo: true, quantity: v.quantity, message: `Demo mode: your request is valid (${tier?.note ?? 'quote'}) but was not saved because the database is not connected yet.` };
 
   const { data, error } = await createAdminClient().from('bulk_quotes').insert({

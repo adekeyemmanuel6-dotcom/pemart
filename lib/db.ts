@@ -32,7 +32,7 @@ async function getPgRpc(): Promise<Rpc> {
 }
 
 export const dbMode = (): 'supabase' | 'pg' | 'none' =>
-  isSupabaseConfigured && process.env.SUPABASE_SERVICE_ROLE_KEY ? 'supabase'
+  isSupabaseConfigured && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY) ? 'supabase'
   : process.env.DATABASE_URL && process.env.NODE_ENV !== 'production' ? 'pg' : 'none';
 
 /** The RPC transport, or null when no database is configured (the app then runs in demo mode). */

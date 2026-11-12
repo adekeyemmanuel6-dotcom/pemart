@@ -52,7 +52,7 @@ export const getCatalogue = unstable_cache(
       if (r.data) return r.data;
     }
     if (!isSupabaseConfigured) {
-      if (process.env.NODE_ENV === 'production') throw new Error('Supabase must be configured for a production catalogue.');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase configuration is missing for this deployment. Set NEXT_PUBLIC_SUPABASE_URL and either NEXT_PUBLIC_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in the matching Vercel environment (Preview for feature branches), then redeploy.');
       return fromFixture();
     }
     // Fail closed: database outages must never publish demonstration inventory.
