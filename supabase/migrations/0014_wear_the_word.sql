@@ -78,7 +78,11 @@ begin
   select exists(select 1 from jsonb_array_elements(p->'items') i where i->>'kind' not in ('gift_card','revision')) into physical;
   if physical then
     select * into z from public.delivery_zones where id = (p->>'delivery_zone_id')::uuid for share;
-    if z.id is null or not z.is_active or not z.rate_verified or not exists(select 1 from unnest(z.states) st where lower(st) = lower(p->'address'->>'state'))
+    if z.id is null or not z.is_active or not z.rate_verified or not exists(
+      select 1 from unnest(z.states) st where
+        (case when trim(st) ~* '^(abuja|fct|fct\s*\(abuja\)|federal capital territory)$' then 'fct' else lower(trim(st)) end) =
+        (case when trim(p->'address'->>'state') ~* '^(abuja|fct|fct\s*\(abuja\)|federal capital territory)$' then 'fct' else lower(trim(p->'address'->>'state')) end)
+    )
       or nullif(trim(p->'address'->>'city'),'') is null
       or (cardinality(z.cities) > 0 and not exists(select 1 from unnest(z.cities) city where lower(trim(city)) = lower(trim(p->'address'->>'city'))))
       then raise exception 'shipping_confirmation_required'; end if;

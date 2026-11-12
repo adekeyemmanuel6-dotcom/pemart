@@ -42,7 +42,7 @@ export const NIGERIAN_STATES = [
   'Zamfara',
 ] as const;
 export const normalizeDestination = (s: string) =>
-  /^(abuja|fct|federal capital territory)$/i.test(s.trim()) ? 'fct' : s.trim().toLowerCase();
+  /^(abuja|fct|fct\s*\(abuja\)|federal capital territory)$/i.test(s.trim()) ? 'fct' : s.trim().toLowerCase();
 
 export function matchingRates(zones: DeliveryZone[], state: string, city: string) {
   if (!city.trim() || !NIGERIAN_STATES.some((s) => normalizeDestination(s) === normalizeDestination(state))) return [];

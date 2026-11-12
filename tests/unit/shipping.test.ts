@@ -46,8 +46,10 @@ describe('nationwide shipping', () => {
   it('validates provider selection for the destination', () => {
     expect(shippingQuote([rate], 'Ondo', 'Akure', 100, 20000000, 'wrong').pending).toBe(true);
   });
-  it('accepts FCT aliases', () => {
-    expect(shippingQuote([{ ...rate, states: ['FCT'] }], 'Abuja', 'Garki', 100).pending).toBe(false);
+  it.each(['FCT', 'Abuja', 'FCT (Abuja)', 'Federal Capital Territory', ' fct (ABUJA) '])('accepts FCT alias %s on either side', (alias) => {
+    expect(shippingQuote([{ ...rate, states: ['FCT'] }], alias, 'Garki', 100).pending).toBe(false);
+    expect(shippingQuote([{ ...rate, states: [alias] }], 'FCT', 'Garki', 100).pending).toBe(false);
+    expect(shippingQuote([{ ...rate, states: [alias], rate_verified: false }], 'FCT', 'Garki', 100).pending).toBe(true);
   });
   it('supports service exclusions and verified weight charges', () => {
     expect(shippingQuote([{ ...rate, free_shipping_eligible: false }], 'Ondo', 'Akure', 22000000).feeKobo).toBe(500000);
