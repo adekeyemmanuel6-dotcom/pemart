@@ -16,7 +16,7 @@ import { sendEmail } from './email';
 import WelcomeOffer from '@/emails/welcome-offer';
 
 const site = () => publicEnv.NEXT_PUBLIC_SITE_URL;
-const wa = async () => whatsappLink((await getSettings()).whatsapp_number, 'Hi Pemart, I have a question.');
+const wa = async () => whatsappLink((await getSettings()).whatsapp_number, 'Hi Wear The Word, I have a question.');
 
 /** Notification entry points. Each event fans out to its channels (email now, WhatsApp API later). */
 export async function notifyOrderConfirmed(to: string, order: EmailOrder) {
@@ -24,7 +24,7 @@ export async function notifyOrderConfirmed(to: string, order: EmailOrder) {
 }
 
 export async function notifyGiftCard(g: { to: string; code: string; amountKobo: number; message?: string | null; from?: string | null }) {
-  return sendEmail({ to: g.to, subject: 'You have a Pemart gift card', tag: 'gift-card', react: createElement(GiftCardEmail, { ...g, siteUrl: site(), whatsappUrl: await wa() }) });
+  return sendEmail({ to: g.to, subject: 'You have a Wear The Word gift card', tag: 'gift-card', react: createElement(GiftCardEmail, { ...g, siteUrl: site(), whatsappUrl: await wa() }) });
 }
 
 export async function notifyBulkQuote(q: { to: string; name: string; quantity: number; ref: string; summary: string }) {
@@ -67,7 +67,7 @@ export async function notifyAdmin(subject: string, text: string) {
 }
 
 export async function notifyQuoteReady(o: { to: string; name: string; number: string; token: string; totalKobo: number }) {
-  return sendEmail({ to: o.to, subject: `Your Pemart bulk quote: ${o.number}`, tag: 'bulk-quote-ready', react: createElement(BulkQuoteReady, { name: o.name, totalKobo: o.totalKobo, link: orderLink(o.number, o.token), siteUrl: site(), whatsappUrl: await wa() }) });
+  return sendEmail({ to: o.to, subject: `Your Wear The Word bulk quote: ${o.number}`, tag: 'bulk-quote-ready', react: createElement(BulkQuoteReady, { name: o.name, totalKobo: o.totalKobo, link: orderLink(o.number, o.token), siteUrl: site(), whatsappUrl: await wa() }) });
 }
 
 export async function notifyWelcomeOffer(o: { to: string; code: string; expires?: string }) {

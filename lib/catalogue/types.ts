@@ -20,6 +20,7 @@ export type Variant = {
 export type ProductImage = { id: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail'; sort_order: number };
 
 export type Product = {
+  themes?: string[]; brand_collections?: string[]; weight_grams?: number | null;
   id: string; slug: string; name: string; type: ProductType; design_id: string | null; collection_id: string | null;
   description: string | null; care: string | null; base_price_kobo: number; compare_at_kobo: number | null;
   is_made_to_order: boolean; is_active: boolean; is_featured: boolean; is_seasonal: boolean;
@@ -41,6 +42,9 @@ export type Bundle = {
 };
 
 export type DeliveryZone = {
+  cities?: string[]; provider?: string | null; service?: string | null; is_active?: boolean; rate_verified?: boolean;
+  free_shipping_eligible?: boolean; min_days?: number | null; max_days?: number | null;
+  weight_allowance_grams?: number | null; additional_kg_kobo?: number | null;
   id: string; name: string; states: string[]; fee_kobo: number; free_over_kobo: number | null;
   lead_days: number; christmas_cutoff_date: string | null; sort_order: number;
 };

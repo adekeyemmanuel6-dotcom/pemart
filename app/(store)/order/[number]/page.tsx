@@ -47,7 +47,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
       {!pending && !cancelled && (
         <div className="mt-5 rounded-lg bg-sand/60 p-4" role="status">
-          {o.has_custom && !o.promised_by ? (<><p className="font-semibold">Next: your design proof.</p><p className="text-sm text-muted">We&apos;ll email you within the promised time. Approve it (or ask for one free revision) and <strong className="text-ink">your 5-day delivery clock starts when you approve</strong>.</p></>)
+          {o.has_custom && !o.promised_by ? (<><p className="font-semibold">Next: your design proof.</p><p className="text-sm text-muted">We&apos;ll email you within the promised time. Approve it (or ask for one free revision) and <strong className="text-ink">production can begin after you approve</strong>.</p></>)
             : o.promised_by ? (<p className="font-semibold">Arriving by {formatDeliveryDate(new Date(o.promised_by))}</p>) : null}
           <p className="mt-1 text-sm text-muted">A confirmation was sent to {o.contact_email}.</p>
         </div>

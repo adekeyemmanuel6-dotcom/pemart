@@ -1,3 +1,4 @@
+import { WORD_THEMES, BRAND_COLLECTIONS } from '@/lib/brand';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,7 +9,7 @@ import { adm, requireAdmin } from '@/lib/admin/db';
 import { adjustStockAction, generateVariantsAction, saveProductAction, saveVariantAction } from '@/lib/admin/actions-admin';
 
 export const metadata: Metadata = { title: 'Edit product' };
-type P = { id: string; slug: string; name: string; type: string; design_id: string | null; collection_id: string | null; description: string | null; care: string | null; base_price_kobo: number; compare_at_kobo: number | null; is_made_to_order: boolean; is_active: boolean; is_featured: boolean; is_seasonal: boolean; seo_title: string | null; seo_description: string | null;
+type P = { themes?: string[]; brand_collections?: string[]; weight_grams?: number | null; id: string; slug: string; name: string; type: string; design_id: string | null; collection_id: string | null; description: string | null; care: string | null; base_price_kobo: number; compare_at_kobo: number | null; is_made_to_order: boolean; is_active: boolean; is_featured: boolean; is_seasonal: boolean; seo_title: string | null; seo_description: string | null;
   variants: { id: string; sku: string; colour: string | null; size: string | null; option: string | null; option_group: string | null; price_kobo: number | null; stock_qty: number | null; reserved_qty: number; is_active: boolean }[]; images: { id: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail' }[] };
 const naira = (k: number | null) => (k === null ? '' : String(k / 100));
 const TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
@@ -33,10 +34,13 @@ export default async function ProductEdit({ params }: { params: Promise<{ id: st
             <div><label className={labelCls} htmlFor="d">Design</label><select id="d" name="design_id" defaultValue={p.design_id ?? ''} className={inputCls}><option value="">None</option>{cat.designs.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}</select></div>
             <div className="sm:col-span-2 lg:col-span-3"><label className={labelCls} htmlFor="de">Description</label><textarea id="de" name="description" defaultValue={p.description ?? ''} rows={3} className={`${inputCls} py-2`} /></div>
             <div className="sm:col-span-2 lg:col-span-3"><label className={labelCls} htmlFor="ca">Fabric and care</label><textarea id="ca" name="care" defaultValue={p.care ?? ''} rows={2} className={`${inputCls} py-2`} /></div>
+            <div className="sm:col-span-2"><label className={labelCls} htmlFor="themes">Messages (comma-separated)</label><input id="themes" name="themes" defaultValue={p.themes?.join(', ') ?? ''} className={inputCls} /><p className="text-xs text-muted">{WORD_THEMES.join(', ')}</p></div>
+            <div><label className={labelCls} htmlFor="brand-collections">Brand collections (comma-separated slugs)</label><input id="brand-collections" name="brand_collections" defaultValue={p.brand_collections?.join(', ') ?? ''} className={inputCls} /><p className="text-xs text-muted">{BRAND_COLLECTIONS.map((c) => c.slug).join(', ')}</p></div>
+            <div><label className={labelCls} htmlFor="weight">Verified packed weight (grams, optional)</label><input id="weight" type="number" min="1" name="weight_grams" defaultValue={p.weight_grams ?? ''} className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="st">SEO title</label><input id="st" name="seo_title" defaultValue={p.seo_title ?? ''} className={inputCls} /></div>
             <div className="sm:col-span-2"><label className={labelCls} htmlFor="sd">SEO description</label><input id="sd" name="seo_description" defaultValue={p.seo_description ?? ''} className={inputCls} /></div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-5 text-sm">{([['is_active', 'Visible on the store', p.is_active], ['is_made_to_order', 'Made to order', p.is_made_to_order], ['is_featured', 'Best-seller', p.is_featured], ['is_seasonal', 'Seasonal', p.is_seasonal]] as const).map(([k, l, v]) => (<label key={k} className="flex min-h-11 items-center gap-2"><input type="checkbox" name={k} defaultChecked={v} className="size-5 accent-ink" />{l}</label>))}</div>
+          <div className="mt-2 flex flex-wrap gap-x-5 text-sm">{([['is_active', 'Visible on the store', p.is_active], ['is_made_to_order', 'Made to order', p.is_made_to_order], ['is_featured', 'Featured product', p.is_featured], ['is_seasonal', 'Seasonal', p.is_seasonal]] as const).map(([k, l, v]) => (<label key={k} className="flex min-h-11 items-center gap-2"><input type="checkbox" name={k} defaultChecked={v} className="size-5 accent-ink" />{l}</label>))}</div>
         </ActionForm></Card>
 
         <Card title="Photos"><ImageManager productId={p.id} initial={p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, view: i.view }))} /></Card>

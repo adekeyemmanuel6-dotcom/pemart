@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getProfile } from '@/lib/auth';
+import { getPrivilegedProfile } from '@/lib/auth';
 import { dbMode } from '@/lib/db';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
@@ -16,9 +16,10 @@ const schema = z.object({ bucket: z.enum(['proofs', 'catalogue']), filename: z.s
  * in local development it points at the PUT handler below, which writes into ./public/uploads (never available in production).
  */
 export async function POST(request: NextRequest) {
-  const me = await getProfile();
-  if (!me || me.role === 'customer') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  if (!rateLimit(`admin-upload:${me.id}`, 60, 10 * 60_000).ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  // Staff/admin with a two-factor session only.
+  const me = await getPrivilegedProfile();
+  if (!me) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await rateLimit(`admin-upload:${me.id}`, 60, 10 * 60_000)).ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 });
   const b = BUCKETS[parsed.data.bucket];
@@ -41,8 +42,8 @@ export async function POST(request: NextRequest) {
 /** DEV ONLY: store the file under public/uploads so it can be served locally. */
 export async function PUT(request: NextRequest) {
   if (dbMode() !== 'pg') return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const me = await getProfile();
-  if (!me || me.role === 'customer') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  const me = await getPrivilegedProfile();
+  if (!me) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const name = (request.nextUrl.searchParams.get('name') ?? '').replace(/[^a-zA-Z0-9._-]/g, '');
   if (!name) return NextResponse.json({ error: 'invalid' }, { status: 400 });
   const buf = Buffer.from(await request.arrayBuffer());

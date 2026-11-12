@@ -14,11 +14,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const bundle = slug.startsWith('bundle-') ? cat.bundles.find((b) => `bundle-${b.slug}` === slug) : undefined;
   const p = bundle ? undefined : productBySlug(cat, slug);
   const font = await readFile(path.join(process.cwd(), 'assets/fonts/Anton-Regular.ttf'));
-  const name = (bundle?.name ?? p?.name ?? 'Pemart').toUpperCase();
+  const name = (bundle?.name ?? p?.name ?? 'Wear The Word').toUpperCase();
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#141414', color: '#F6F1E8', padding: 72, fontFamily: 'Anton' }}>
-        <div style={{ fontSize: 40, letterSpacing: 6, color: '#E4D8C4', display: 'flex' }}>PEMART</div>
+        <div style={{ fontSize: 40, letterSpacing: 6, color: '#E4D8C4', display: 'flex' }}>WEAR THE WORD</div>
         <div style={{ fontSize: name.length > 24 ? 110 : 140, lineHeight: 1, display: 'flex' }}>{name}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 44, color: '#E4D8C4' }}>
           <span style={{ display: 'flex' }}>WEAR WHAT YOU BELIEVE.</span>

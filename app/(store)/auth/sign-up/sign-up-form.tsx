@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { signInWithGoogle, signUpWithPassword, type AuthState } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { GOOGLE_SIGN_IN_ENABLED } from '@/lib/env';
 
 export function SignUpForm({ next, disabled }: { next: string; disabled: boolean }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(signUpWithPassword, null);
@@ -18,11 +19,15 @@ export function SignUpForm({ next, disabled }: { next: string; disabled: boolean
         <p id="su-status" role="status" aria-live="polite" className={`min-h-5 text-sm ${state?.ok ? 'text-mocha' : 'text-ember'}`}>{state?.message}</p>
         <p className="text-sm">Already have an account? <Link href="/auth/sign-in" className="font-semibold underline">Sign in</Link></p>
       </form>
-      <div className="flex items-center gap-3 text-sm text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="next" value={next} />
-        <Button type="submit" variant="secondary" className="w-full" disabled={disabled}>Continue with Google</Button>
-      </form>
+      {GOOGLE_SIGN_IN_ENABLED && (
+        <>
+          <div className="flex items-center gap-3 text-sm text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+          <form action={signInWithGoogle}>
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="secondary" className="w-full" disabled={disabled}>Continue with Google</Button>
+          </form>
+        </>
+      )}
     </div>
   );
 }

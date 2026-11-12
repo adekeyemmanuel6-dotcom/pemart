@@ -27,7 +27,7 @@ export async function sendEmail(o: { to: string; subject: string; react: ReactEl
     }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.EMAIL_FROM ?? 'Pemart <onboarding@resend.dev>', to: [o.to], subject: o.subject, html, tags: [{ name: 'type', value: o.tag }] }),
+      body: JSON.stringify({ from: process.env.EMAIL_FROM ?? 'Wear The Word <onboarding@resend.dev>', to: [o.to], subject: o.subject, html, tags: [{ name: 'type', value: o.tag }] }),
     });
     if (!res.ok) { logEvent('email.failed', { tag: o.tag, status: res.status }); return { sent: false, reason: `status_${res.status}` }; }
     logEvent('email.sent', { tag: o.tag });

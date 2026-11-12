@@ -1,5 +1,6 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
+import { track } from '@/lib/analytics';
 import { submitBulkQuote, type BulkState } from '@/lib/actions/bulk';
 import { BULK_MIN, bulkTier } from '@/lib/bulk';
 import { whatsappLink } from '@/lib/site';
@@ -11,6 +12,8 @@ const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
 export function BulkForm({ whatsapp }: { whatsapp: string | null }) {
   const [state, action, pending] = useActionState<BulkState, FormData>(submitBulkQuote, null);
+  const tracked = useRef(false);
+  useEffect(() => { if (state?.ok && !tracked.current) { tracked.current = true; track('bulk_order_enquiry', { items: [], valueKobo: 0 }); } }, [state]);
   const [paths, setPaths] = useState<string[]>([]);
   const [qty, setQty] = useState('');
   const tier = bulkTier(parseInt(qty, 10) || 0);
@@ -26,7 +29,7 @@ export function BulkForm({ whatsapp }: { whatsapp: string | null }) {
         <h2 className="display text-4xl">Request received</h2>
         <p className="mx-auto mt-2 max-w-md text-muted">{state.message}</p>
         {state.ref && <p className="mt-2 text-sm">Reference: <strong>{state.ref}</strong></p>}
-        <Button asChild className="mt-6"><a href={whatsappLink(whatsapp, `Hi Pemart, I just sent a bulk quote request for ${state.quantity} pieces${state.ref ? ` (ref ${state.ref})` : ''}.`)} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a></Button>
+        <Button asChild className="mt-6"><a href={whatsappLink(whatsapp, `Hi Wear The Word, I just sent a bulk quote request for ${state.quantity} pieces${state.ref ? ` (ref ${state.ref})` : ''}.`)} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a></Button>
       </div>
     );
   }

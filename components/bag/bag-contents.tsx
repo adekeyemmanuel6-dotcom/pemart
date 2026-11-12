@@ -22,13 +22,13 @@ function LineVisual({ l }: { l: QLine }) {
   return <ProductVisual type={v.type as ProductType} designSlug={v.designSlug} colour={v.colour} finish={v.finish} imageUrl={v.imageUrl} alt="" sizes="80px" />;
 }
 
-function Progress({ q }: { q: PublicQuote }) {
+export function Progress({ q }: { q: PublicQuote }) {
   if (!q.freeDeliveryThresholdKobo) return null;
-  const goods = q.subtotalKobo - (q.discount?.amountKobo ?? 0);
+  const goods = q.eligibleMerchandiseKobo;
   const pct = Math.min(100, Math.round((goods / q.freeDeliveryThresholdKobo) * 100));
   return (
     <div aria-live="polite" className="rounded-lg bg-sand/60 p-3">
-      <p className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4" aria-hidden />{q.freeDeliveryAwayKobo ? `${formatNaira(q.freeDeliveryAwayKobo)} away from free delivery in Lagos` : 'You have free delivery in Lagos'}</p>
+      <p className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4" aria-hidden />{q.freeDeliveryAwayKobo ? `Add ${formatNaira(q.freeDeliveryAwayKobo)} more to unlock FREE delivery.` : 'Congratulations! Your order qualifies for FREE delivery.'}</p>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to free delivery"><div className="h-full bg-ink transition-[width] duration-200" style={{ width: `${pct}%` }} /></div>
     </div>
   );
@@ -74,8 +74,8 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
   if (!q) return <div className="space-y-3 p-5" role="status" aria-busy="true" aria-label="Loading your bag">{lines.map((l) => (<div key={l.id} className="skeleton h-28" />))}{error && <p role="alert" className="text-sm text-ember">{error}</p>}</div>;
 
   const blocked = q.lines.some((l) => l.issues.length > 0);
-  const eta = q.promise.customBy ? { text: `Estimated delivery ${formatDeliveryDate(new Date(q.promise.customBy))}`, note: `Your proof arrives within ${q.promise.proofHours} hours. The 5-day clock starts when you approve it.` }
-    : q.promise.readyBy ? { text: `Arrives by ${formatDeliveryDate(new Date(q.promise.readyBy))}`, note: 'Order today for delivery within 5 days.' } : null;
+  const eta = q.promise.customBy ? { text: `Estimated delivery ${formatDeliveryDate(new Date(q.promise.customBy))}`, note: `Your proof arrives within ${q.promise.proofHours} hours. Production starts when you approve it.` }
+    : q.promise.readyBy ? { text: `Arrives by ${formatDeliveryDate(new Date(q.promise.readyBy))}`, note: 'Estimate confirmed for your selected service.' } : null;
 
   return (
     <div className={variant === 'page' ? 'grid gap-8 lg:grid-cols-[1fr_380px]' : 'flex min-h-full flex-col'}>
@@ -131,8 +131,8 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatNaira(q.subtotalKobo)}</dd></div>
           {q.discount && <div className="flex justify-between text-mocha"><dt>Discount ({q.discount.code})</dt><dd>-{formatNaira(q.discount.amountKobo)}</dd></div>}
           {q.giftWrapKobo > 0 && <div className="flex justify-between"><dt>Gift wrap</dt><dd>{formatNaira(q.giftWrapKobo)}</dd></div>}
-          <div className="flex justify-between text-muted"><dt>Delivery to {q.zone?.name ?? state}</dt><dd>{q.digitalOnly ? 'None' : q.zone ? (q.deliveryFeeKobo === 0 ? 'Free' : formatNaira(q.deliveryFeeKobo)) : 'At checkout'}</dd></div>
-          <div className="flex justify-between border-t border-line pt-2 text-lg font-bold"><dt>Total</dt><dd>{formatNaira(q.totalKobo)}</dd></div>
+          <div className="flex justify-between text-muted"><dt>Delivery to {q.zone?.name ?? state}</dt><dd>{q.digitalOnly ? 'None' : !q.shippingPending && q.zone ? (q.deliveryFeeKobo === 0 ? 'Free' : formatNaira(q.deliveryFeeKobo)) : 'At checkout'}</dd></div>
+          <div className="flex justify-between border-t border-line pt-2 text-lg font-bold"><dt>{q.shippingPending ? 'Subtotal before delivery' : 'Total'}</dt><dd>{formatNaira(q.totalKobo)}</dd></div>
         </dl>
         {eta && <p className="text-sm"><strong>{eta.text}.</strong> <span className="text-muted">{eta.note}</span></p>}
         {q.warnings.map((w) => (<p key={w} role="status" className="rounded-md bg-ember/15 p-3 text-sm font-semibold">{w}</p>))}

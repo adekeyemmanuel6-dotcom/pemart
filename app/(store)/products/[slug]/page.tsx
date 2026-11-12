@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return {};
   const title = p.seo_title ?? p.name;
   const description = p.seo_description ?? p.description?.slice(0, 160) ?? undefined;
-  return { title, description, alternates: { canonical: `/products/${slug}` }, openGraph: { title: `${title} | Pemart`, description, type: 'website', images: [{ url: `/og/${slug}`, width: 1200, height: 630 }] }, twitter: { card: 'summary_large_image', images: [`/og/${slug}`] } };
+  return { title, description, alternates: { canonical: `/products/${slug}` }, openGraph: { title: `${title} | Wear The Word`, description, type: 'website', images: [{ url: `/og/${slug}`, width: 1200, height: 630 }] }, twitter: { card: 'summary_large_image', images: [`/og/${slug}`] } };
 }
 
 const OPTION_LABEL: Record<string, string> = { frame: 'Frame', perfume: 'Scent', bracelet: 'Style', jewellery: 'Style', glasses: 'Frame', fun: 'Colour', gift_card: 'Amount' };
@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: Props) {
   const lowPrice = Math.min(...prices), highPrice = Math.max(...prices);
   const ld = {
     '@context': 'https://schema.org', '@type': 'Product', name: p.name, description: p.description ?? undefined, sku: p.product_variants[0]?.sku,
-    brand: { '@type': 'Brand', name: 'Pemart' }, image: [`${base}/og/${p.slug}`],
+    brand: { '@type': 'Brand', name: 'Wear The Word' }, image: [`${base}/og/${p.slug}`],
     offers: lowPrice === highPrice ? { ...offerBase, price: (lowPrice / 100).toFixed(2) }
       : { '@type': 'AggregateOffer', priceCurrency: 'NGN', lowPrice: (lowPrice / 100).toFixed(2), highPrice: (highPrice / 100).toFixed(2), offerCount: view.variants.length, availability: offerBase.availability },
     ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1), reviewCount: reviews.length } } : {}),
@@ -82,7 +82,7 @@ export default async function ProductPage({ params }: Props) {
             <section className="rounded-lg bg-ink p-6 text-paper" aria-labelledby="story-h">
               <h2 id="story-h" className="font-script text-2xl text-sand">the story behind it</h2>
               <blockquote className="mt-2 text-lg leading-relaxed">&ldquo;{design.story_or_verse}&rdquo;</blockquote>
-              {design.verse_reference && <p className="mt-3 text-sm font-semibold uppercase tracking-widest text-sand">{design.verse_reference} (KJV)</p>}
+              {design.verse_reference && <p className="mt-3 text-sm font-semibold uppercase tracking-widest text-sand">{design.verse_reference}</p>}
             </section>
           )}
           <details className="group rounded-lg border border-line bg-white p-5" open>
@@ -91,11 +91,11 @@ export default async function ProductPage({ params }: Props) {
           </details>
           <details className="group rounded-lg border border-line bg-white p-5">
             <summary className="cursor-pointer list-none text-lg font-semibold">Fabric and care</summary>
-            <p className="mt-3 text-muted">{p.type === 'tee' ? 'Heavyweight 100% cotton jersey, pre-shrunk. ' : p.type === 'hoodie' ? 'Heavy cotton-rich fleece with a soft brushed inside. ' : ''}{p.care}</p>
+            <p className="mt-3 text-muted">{p.care || 'Contact our team for verified fabric, fit and care details for this piece.'}</p>
           </details>
           <details className="group rounded-lg border border-line bg-white p-5">
             <summary className="cursor-pointer list-none text-lg font-semibold">Delivery and returns</summary>
-            <p className="mt-3 text-muted">{p.is_made_to_order ? 'Made to order and delivered within 5 days of payment. ' : 'In stock and delivered within 5 days of payment. '}Unworn, unwashed ready designs can be exchanged for another size within 7 days. See <Link href="/returns" className="underline">Returns and Exchanges</Link>.</p>
+            <p className="mt-3 text-muted">Delivery fees and available estimates are confirmed at checkout. Unworn, unwashed ready designs can be exchanged for another size within 7 days. See <Link href="/returns" className="underline">Returns and Exchanges</Link>.</p>
           </details>
         </div>
       </ProductView>

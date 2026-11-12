@@ -43,7 +43,7 @@ export async function respondToProof(a: ProofDecision) {
 /** A URL the customer can open for a stored proof. Supabase: a 1-hour signed URL. Paths starting with "/" are served as-is (demo/dev). */
 export async function proofUrl(path: string): Promise<string | null> {
   if (path.startsWith('/')) return path;
-  if (isSupabaseConfigured && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (isSupabaseConfigured && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)) {
     const { data } = await createAdminClient().storage.from('proofs').createSignedUrl(path, 3600);
     return data?.signedUrl ?? null;
   }

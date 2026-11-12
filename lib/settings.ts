@@ -4,6 +4,14 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { dbMode, getRpc } from '@/lib/db';
 
 export type StoreSettings = {
+  website_content?: unknown;
+  website_revision?: number;
+  free_shipping_threshold_kobo: number;
+  dispatch_origin: string;
+  hero_image_url: string | null;
+  hero_image_alt: string | null;
+  hero_headline: string;
+  hero_copy: string;
   announcement_text: string | null;
   announcement_link: string | null;
   announcement_active: boolean;
@@ -24,13 +32,19 @@ export type StoreSettings = {
 
 // Matches seed data, so the shell looks right before Supabase is connected.
 export const DEFAULT_SETTINGS: StoreSettings = {
-  announcement_text: 'Order by 17 Dec for Christmas delivery in Lagos',
-  announcement_link: '/gift-boxes',
+  free_shipping_threshold_kobo: 20_000_000,
+  dispatch_origin: 'Akure, Ondo State, Nigeria',
+  hero_image_url: null,
+  hero_image_alt: null,
+  hero_headline: 'WEAR WHAT YOU STAND ON.',
+  hero_copy: 'Your faith is more than what you believe. It’s what you live, represent and carry every day.',
+  announcement_text: null,
+  announcement_link: '/delivery',
   announcement_active: true,
   logo_url: null,
-  whatsapp_number: '2340000000000',
-  instagram_url: 'https://instagram.com/pemart',
-  tiktok_url: 'https://tiktok.com/@pemart',
+  whatsapp_number: null,
+  instagram_url: null,
+  tiktok_url: null,
   maintenance_mode: false,
   gift_wrap_kobo: 200000,
   surprise_note_kobo: 300000,
@@ -51,15 +65,18 @@ export const getSettings = unstable_cache(
     }
     if (!isSupabaseConfigured) {
       // Local/demo: the offer is the seeded bracelet at ₦4,500, like the seed data.
-      const fx = (await import('@/lib/catalogue/fixture.json')).default as unknown as { products: { id: string; slug: string }[] };
-      return { ...DEFAULT_SETTINGS, upsell_product_id: fx.products.find((p) => p.slug === 'faith-bracelet')?.id ?? null, upsell_price_kobo: 450000 };
+      const fx = (await import('@/lib/catalogue/fixture.json')).default as unknown as {
+        products: { id: string; slug: string }[];
+      };
+      return {
+        ...DEFAULT_SETTINGS,
+        upsell_product_id: fx.products.find((p) => p.slug === 'faith-bracelet')?.id ?? null,
+        upsell_price_kobo: 450000,
+      };
     }
     try {
-      const { data } = await createPublicClient()
-        .from('settings')
-        .select('announcement_text,announcement_link,announcement_active,logo_url,whatsapp_number,instagram_url,tiktok_url,maintenance_mode,gift_wrap_kobo,surprise_note_kobo,express_kobo,express_enabled,upsell_product_id,upsell_price_kobo,revision_fee_kobo,review_credit_kobo')
-        .single();
-      return data ?? DEFAULT_SETTINGS;
+      const { data } = await createPublicClient().from('settings').select('*').single();
+      return { ...DEFAULT_SETTINGS, ...data };
     } catch {
       return DEFAULT_SETTINGS;
     }

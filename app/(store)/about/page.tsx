@@ -1,23 +1,61 @@
-import type { Metadata } from 'next';
+import { getWebsitePage, websitePageMetadata } from '@/lib/website/server';
+import { WebsitePageView } from '@/components/website-page';
 import Link from 'next/link';
-import { ContentPage } from '@/components/content-page';
-
-export const metadata: Metadata = { title: 'About', description: 'Pemart is a Nigerian label for faith-inspired, message-led merch and gifts. Wear what you believe.', alternates: { canonical: '/about' } };
-
-export default function AboutPage() {
+import type { Metadata } from 'next';
+export async function generateMetadata(): Promise<Metadata> {
+  return websitePageMetadata('about', {
+    title: 'Our Story',
+    description:
+      'Discover Wear The Word by Pemart Global. Christian lifestyle, apparel and gifting, rooted in Scripture and made for everyday life.',
+    alternates: { canonical: '/about' },
+  });
+}
+export default async function AboutPage() {
+  const websitePage = await getWebsitePage('about');
+  if (websitePage) return <WebsitePageView page={websitePage} />;
   return (
-    <ContentPage title="Wear what you believe" kicker="about pemart" intro="Pemart makes the kind of faith merch you actually want to wear: bold, honest and never preachy.">
-      <p>We started Pemart because most Christian clothing felt like clip art. We wanted tees and hoodies with real design behind them, scripture set in confident type, and a little Naija humour in the mix, because faith lives in everyday life too.</p>
-      <h2>What we make</h2>
-      <p>Oversized heavyweight tees, hoodies and wall frames carrying original designs, plus perfume, jewellery, bracelets and fun gifts. Many customers shop our combos, couple packs and Christmas gift boxes, where a few good things come together in one parcel.</p>
-      <h2>How it works</h2>
-      <ul>
-        <li>Ready designs are printed to order and delivered within 5 days of payment.</li>
-        <li>Want something personal? <Link href="/custom">Design your own</Link> with your name, your words or your idea. You approve a proof before anything is printed.</li>
-        <li>Churches, events and businesses can <Link href="/bulk">order in bulk</Link> at group prices.</li>
-      </ul>
-      <h2>Say hello</h2>
-      <p>Questions are welcome, before or after you buy. The quickest way is WhatsApp: use the green button on any page.</p>
-    </ContentPage>
+    <article className="wtw-section">
+      <p className="wtw-eyebrow">Wear The Word — Our Story</p>
+      <h1 className="display mt-8 max-w-4xl text-6xl sm:text-8xl">The Word was never meant to be kept on a page.</h1>
+      <div className="prose-pemart mt-12">
+        <p>
+          Every season of life comes with its own questions, challenges, battles, decisions and victories. And in every
+          season, there is a Word from God to stand on.
+        </p>
+        <p>
+          A Word that gives courage when fear shows up. A Word that reminds us who we are when life tries to define us.
+          A Word that gives hope when the future seems uncertain.
+        </p>
+        <p>
+          But we believe God’s Word should be more than something we read, quote or hear on Sundays. It should become
+          part of who we are. It should shape how we think, how we live, how we speak and how we show up in the world.
+        </p>
+        <h2>This is why Wear The Word was born.</h2>
+        <p>
+          Inspired by{' '}
+          <a
+            href="https://www.biblegateway.com/passage/?search=Psalm%20138%3A2&amp;version=KJV"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Psalm 138:2
+          </a>
+          , we believe God’s Word deserves to be honoured, remembered, lived and boldly represented.
+        </p>
+        <p>
+          We create clothing and lifestyle pieces that turn timeless biblical truths into meaningful everyday
+          expressions. Every design carries a message. Every message has a meaning. Every piece is an opportunity to
+          remind someone of what God has said.
+        </p>
+        <p>Because faith is not just what we say. It is what we believe, how we live and what we stand for.</p>
+        <h2>Don’t just read the Word. Don’t just speak the Word. Wear the Word.</h2>
+        <p>
+          Wear The Word by Pemart Global. Christian lifestyle, apparel &amp; gifting. From Akure, Ondo State, Nigeria.
+        </p>
+        <Link href="/collections/all">Shop the collection →</Link>
+      </div>
+    </article>
   );
 }
+
+export const revalidate = 300;

@@ -1,18 +1,11 @@
 export const SITE = {
-  name: 'Pemart',
-  tagline: 'Wear what you believe.',
-  description: 'Faith-inspired and message-led merch and gifts, made in Nigeria. Oversized tees, hoodies, frames, couple packs and Christmas gift boxes.',
+  name: 'Wear The Word by Pemart Global',
+  tagline: 'Wear what you stand on.',
+  description: 'Christian lifestyle, apparel and gifting from Akure, Nigeria. Meaningful clothing, matching pieces and thoughtful gifts. The Word. Worn. Lived. Shared.',
 };
 
 // Static in Phase 1; Phase 2 reads collections from the database.
-export const COLLECTION_LINKS = [
-  { slug: 'kingdom', name: 'Kingdom', blurb: 'Scripture worn loud' },
-  { slug: 'word', name: 'Word', blurb: 'Type-led verses' },
-  { slug: 'naija-mood', name: 'Naija Mood', blurb: 'Faith, our way' },
-  { slug: 'two-of-us', name: 'Two of Us', blurb: 'Matching for two' },
-  { slug: 'christmas-drop', name: 'Christmas Drop', blurb: 'Limited season' },
-  { slug: 'accessories', name: 'Accessories', blurb: 'Finish the look' },
-] as const;
+export { BRAND_COLLECTIONS as COLLECTION_LINKS } from '@/lib/brand';
 
 export const PRODUCT_TYPE_LINKS = [
   { href: '/collections/all?type=tee', name: 'Oversized tees' },
@@ -23,10 +16,11 @@ export const PRODUCT_TYPE_LINKS = [
 ] as const;
 
 export const MAIN_NAV = [
-  { href: '/gift-boxes', name: 'Gift Boxes', highlight: true },
-  { href: '/couples', name: 'Couples' },
-  { href: '/custom', name: 'Design Your Own' },
-  { href: '/bulk', name: 'Bulk Orders' },
+  { href: '/', name: 'Home' },
+  { href: '/collections', name: 'Collections' },
+  { href: '/gift-boxes', name: 'Gift Boxes' },
+  { href: '/about', name: 'Our Story' },
+  { href: '/custom', name: 'Custom Orders' },
 ] as const;
 
 export const HELP_LINKS = [

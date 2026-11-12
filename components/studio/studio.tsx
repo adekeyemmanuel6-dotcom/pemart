@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { track } from '@/lib/analytics';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Check, Clock } from 'lucide-react';
 import { saveCustomRequest } from '@/lib/actions/custom';
@@ -80,6 +81,7 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
       if (!res.ok) { setErrors(res.fieldErrors ?? {}); setResult({ ok: false, message: res.message }); return; }
       const summary = `${tierInfo.name} · ${colour} ${productType} · ${size} · ${PRINT_POSITIONS.find((p) => p.id === position)!.label.toLowerCase()}`;
       add({ id: crypto.randomUUID(), kind: 'custom', refId: res.id, quantity: 1, selection: { request: input, persisted: res.persisted, summary, feeKobo: res.feeKobo } });
+      if (res.persisted) track('custom_design_enquiry', { items: [], valueKobo: 0 });
       setResult({ ok: true, demo: !res.persisted, message: 'Added to your bag.' });
     });
   }
@@ -177,7 +179,7 @@ export function Studio({ designs, basePrices }: { designs: StudioDesign[]; baseP
           </div>
           <ul className="mt-4 space-y-1.5 text-xs text-muted">
             <li><strong className="text-ink">Your proof arrives within {tierInfo.proofHours} hours</strong> of payment.</li>
-            <li><strong className="text-ink">The 5-day delivery clock starts when you approve your proof</strong>, not when you pay.</li>
+            <li><strong className="text-ink">Production starts when you approve your proof</strong>, not when you pay.</li>
             <li>One free revision is included. More revisions can be added.</li>
             <li>Custom items are final sale, except for print defects. You will confirm this at checkout.</li>
           </ul>

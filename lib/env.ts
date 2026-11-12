@@ -14,8 +14,16 @@ const publicSchema = z.object({
 export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  // Accept both legacy projects and current Supabase/Vercel integration keys.
+  // Keep static NEXT_PUBLIC accesses so Next can inline the browser-safe key.
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
+
+/**
+ * "Continue with Google" is off unless NEXT_PUBLIC_GOOGLE_SIGN_IN=1. Turn it on only after enabling the
+ * Google provider in Supabase (Authentication → Sign In / Providers), otherwise sign-in fails.
+ */
+export const GOOGLE_SIGN_IN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN === '1';
 
 /** True once a Supabase project URL and anon key are present. The shell renders without it. */
 export const isSupabaseConfigured = Boolean(publicEnv.NEXT_PUBLIC_SUPABASE_URL && publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -26,5 +34,5 @@ const serverSchema = z.object({
 
 export function serverEnv() {
   if (typeof window !== 'undefined') throw new Error('serverEnv() must not be called in the browser');
-  return serverSchema.parse({ SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY });
+  return serverSchema.parse({ SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY });
 }

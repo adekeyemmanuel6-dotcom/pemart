@@ -1,3 +1,4 @@
+import { BRAND_COLLECTIONS, brandProducts } from '@/lib/brand';
 import type { Bundle, Catalogue, CardProduct, Collection, Product, ProductType, Variant } from './types';
 
 // ---------- stock and price ----------
@@ -78,6 +79,8 @@ export function sortCards(cards: CardProduct[], sort: SortKey): CardProduct[] {
 
 export function collectionProducts(cat: Catalogue, slug: string): { collection: Collection | null; products: Product[] } {
   if (slug === 'all') return { collection: null, products: cat.products };
+  const brand = BRAND_COLLECTIONS.find((c) => c.slug === slug);
+  if (brand) return { collection: cat.collections.find((c) => c.slug === slug) ?? { id: 'brand-' + slug, slug, name: brand.name, intro: brand.blurb, hero_image: null, sort_order: 0, is_active: true, is_seasonal: false }, products: brandProducts(cat, slug) };
   const collection = cat.collections.find((c) => c.slug === slug) ?? null;
   return { collection, products: collection ? cat.products.filter((p) => p.collection_id === collection.id) : [] };
 }

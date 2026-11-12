@@ -13,6 +13,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/catalogue', label: 'Catalogue', roles: ['admin'] },
   { href: '/admin/discounts', label: 'Discounts', roles: ['admin'] },
   { href: '/admin/reports', label: 'Reports', roles: ['admin'] },
+  { href: '/admin/website', label: 'Website', roles: ['admin'] },
   { href: '/admin/settings', label: 'Settings', roles: ['admin'] },
   { href: '/admin/help', label: 'Help', roles: ['staff', 'admin'] },
 ];

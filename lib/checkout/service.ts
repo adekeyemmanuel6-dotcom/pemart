@@ -13,12 +13,12 @@ import type { DbContext, PricingInput, PricingSettings, PublicQuote, Quote } fro
 export type Who = { profileId?: string | null; email?: string | null };
 export type Details = {
   email: string; phone: string; isGift: boolean; giftMessage?: string;
-  address: { recipient: string; phone: string; line1: string; area?: string; city: string; state: string };
+  address: { recipient: string; phone: string; line1: string; area?: string; city: string; state: string; instructions?: string };
 };
 
 export async function pricingSettings(): Promise<PricingSettings> {
   const s = await getSettings();
-  return { giftWrapKobo: s.gift_wrap_kobo, surpriseNoteKobo: s.surprise_note_kobo, expressKobo: s.express_kobo, expressEnabled: s.express_enabled, upsellProductId: s.upsell_product_id, upsellPriceKobo: s.upsell_price_kobo, revisionFeeKobo: s.revision_fee_kobo };
+  return { giftWrapKobo: s.gift_wrap_kobo, surpriseNoteKobo: s.surprise_note_kobo, expressKobo: s.express_kobo, expressEnabled: s.express_enabled, upsellProductId: s.upsell_product_id, upsellPriceKobo: s.upsell_price_kobo, revisionFeeKobo: s.revision_fee_kobo, freeShippingThresholdKobo: s.free_shipping_threshold_kobo };
 }
 
 /** Quote a bag: catalogue + settings + what the database says about codes, credit and custom briefs. */
@@ -59,6 +59,7 @@ export type StartResult =
   | { ok: false; message: string; issues?: string[] };
 
 const friendlyDbError = async (msg: string): Promise<string> => {
+  if (msg.includes('shipping_')) return 'Your delivery service needs confirmation. Please refresh your quote or contact our team before paying.';
   if (msg.startsWith('out_of_stock:')) {
     const sku = msg.split(':')[1] ?? '';
     const cat = await getCatalogue();
@@ -78,7 +79,7 @@ const friendlyDbError = async (msg: string): Promise<string> => {
 export async function createOrderAndInitPayment(input: PricingInput, details: Details, who: Who, now = new Date()): Promise<StartResult> {
   const rpc = await getRpc();
   if (!rpc) return { ok: false, message: 'Checkout is not connected to a database yet. Add your Supabase keys to take orders.' };
-  const quote = await quoteCart(input, { ...who, email: details.email }, now);
+  const quote = await quoteCart({ ...input, state: details.address.state, city: details.address.city }, { ...who, email: details.email }, now);
   if (!quote.ok) return { ok: false, message: quote.issues[0] ?? 'Please review your bag.', issues: quote.issues };
   if (!quote.digitalOnly && !quote.zone) return { ok: false, message: 'Choose where we are delivering to.' };
 
@@ -87,6 +88,7 @@ export async function createOrderAndInitPayment(input: PricingInput, details: De
     profile_id: who.profileId ?? null, contact_email: details.email, contact_phone: details.phone, address: details.address,
     delivery_zone_id: quote.zone?.id ?? null, delivery_zone_name: quote.zone?.name ?? null, is_gift: details.isGift, gift_message: details.giftMessage ?? null,
     ship_ready_first: quote.shipReadyFirstKobo > 0, express: quote.expressKobo > 0, surprise_note: quote.surpriseNoteKobo > 0,
+    shipping_eligible_subtotal: quote.eligibleMerchandiseKobo,
     subtotal: quote.subtotalKobo, discount: quote.discount?.amountKobo ?? 0, delivery_fee: quote.deliveryFeeKobo, gift_wrap: quote.giftWrapKobo,
     surprise_note_fee: quote.surpriseNoteKobo, express_fee: quote.expressKobo, ship_ready_first_fee: quote.shipReadyFirstKobo,
     credit_used: quote.creditAppliedKobo, gift_card_used: quote.giftCardAppliedKobo, total: quote.totalKobo,

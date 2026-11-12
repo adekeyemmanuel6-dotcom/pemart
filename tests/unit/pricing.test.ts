@@ -19,17 +19,17 @@ describe('basic pricing', () => {
     const a3 = variantOf('SEEK-FIRST-FRAME-A3-WOOD');
     expect(price({ lines: [line(a3.id)] }).subtotalKobo).toBe(2500000);
   });
-  it('free Lagos delivery over ₦75,000, and the progress bar distance', () => {
+  it('free nationwide delivery at ₦200,000, and the progress bar distance', () => {
     const near = price({ lines: [line(tee().id, 3)] }); // ₦66,000
     expect(near.deliveryFeeKobo).toBe(350000);
-    expect(near.freeDeliveryAwayKobo).toBe(900000);     // ₦9,000 away
-    const free = price({ lines: [line(tee().id, 4)] }); // ₦88,000
+    expect(near.freeDeliveryAwayKobo).toBe(13400000);     // ₦134,000 away
+    const free = price({ lines: [line(tee().id, 10)] }); // ₦220,000
     expect(free.deliveryFeeKobo).toBe(0);
     expect(free.freeDeliveryAwayKobo).toBeNull();
-    expect(price({ lines: [line(tee().id, 4)], state: 'Ogun' }).deliveryFeeKobo).toBe(550000); // not free outside Lagos
+    expect(price({ lines: [line(tee().id, 10)], state: 'Ogun' }).deliveryFeeKobo).toBe(0);
   });
   it('free delivery is judged after the discount', () => {
-    const q = price({ lines: [line(tee().id, 4)], code: 'PEMART10' }, discountCtx()); // 88,000 - 8,800 = 79,200
+    const q = price({ lines: [line(tee().id, 11)], code: 'PEMART10' }, discountCtx()); // 88,000 - 8,800 = 79,200
     expect(q.deliveryFeeKobo).toBe(0);
     const q2 = price({ lines: [line(tee().id, 4)], code: 'BIG' }, discountCtx({ type: 'fixed', value: 1500000 })); // 73,000
     expect(q2.deliveryFeeKobo).toBe(350000);
@@ -150,7 +150,7 @@ describe('add-ons', () => {
     const q = price({ lines: [line(tee().id)], extras: { giftWrap: true, surpriseNote: true, express: true } });
     expect(q.giftWrapKobo).toBe(200000); expect(q.surpriseNoteKobo).toBe(300000); expect(q.expressKobo).toBe(500000);
     expect(q.totalKobo).toBe(2200000 + 350000 + 200000 + 300000 + 500000);
-    expect(q.promise.readyBy?.slice(0, 10)).toBe('2026-11-13');  // express = 2 days
+    expect(q.promise.readyBy?.slice(0, 10)).toBe('2026-11-16');  // express production does not invent a faster carrier estimate
     expect(price({ lines: [line(tee().id)], state: 'Ogun', extras: { surpriseNote: true } }).ok).toBe(false);
   });
   it('express can be switched off in settings', () => {

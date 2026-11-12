@@ -4,7 +4,9 @@ import { buildBundleContext, unitOptions, unitProduct, type BundleSelection } fr
 import { priceCart } from '@/lib/checkout/pricing';
 import type { DbContext, PricingInput, PricingSettings } from '@/lib/checkout/types';
 
-export const cat = fixture as unknown as Catalogue;
+const source = fixture as unknown as Catalogue;
+// Verified synthetic rates for pricing tests only. Production defaults remain unverified.
+export const cat: Catalogue = { ...source, zones: source.zones.map((z) => ({...z, rate_verified:true, is_active:true, free_shipping_eligible:true, min_days:z.lead_days, max_days:z.lead_days})) };
 export const NOW = new Date('2026-11-11T10:00:00+01:00');
 export const SETTINGS: PricingSettings = { giftWrapKobo: 200000, surpriseNoteKobo: 300000, expressKobo: 500000, expressEnabled: true, upsellProductId: cat.products.find((p) => p.slug === 'faith-bracelet')!.id, upsellPriceKobo: 450000, revisionFeeKobo: 200000 };
 
@@ -27,7 +29,7 @@ export function bundleSelection(slug: string, over: Partial<BundleSelection> = {
 }
 
 export const price = (input: Partial<PricingInput> & { lines: PricingInput['lines'] }, ctx: DbContext = {}, now = NOW, settings = SETTINGS) =>
-  priceCart(cat, settings, ctx, { state: 'Lagos', acceptFinalSale: true, ...input }, now);
+  priceCart(cat, settings, ctx, { state: 'Lagos', city: 'Test city', acceptFinalSale: true, ...input }, now);
 
 export const discountCtx = (over: Partial<NonNullable<DbContext['discount']>> = {}): DbContext => ({
   discount: { id: 'd1', code: 'PEMART10', type: 'percentage', value: 10, min_spend_kobo: 0, starts_at: null, ends_at: null, usage_limit: null, times_used: 0, per_customer_limit: null, customer_uses: 0, collection_ids: [], product_ids: [], ambassador_id: null, ambassador_rate: null, ...over },

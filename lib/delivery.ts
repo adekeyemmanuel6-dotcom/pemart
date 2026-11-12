@@ -1,8 +1,8 @@
 import type { DeliveryZone } from '@/lib/catalogue/types';
 
-/** The zone that serves a state. Falls back to the last (catch-all) zone. */
+/** The zone that serves a state. Never substitutes an unrelated zone. */
 export function zoneForState(zones: DeliveryZone[], state: string): DeliveryZone | undefined {
-  return zones.find((z) => z.states.includes(state)) ?? zones[zones.length - 1];
+  return zones.find((z) => z.states.includes(state) && z.is_active !== false && z.rate_verified === true);
 }
 
 /** Promised date = start + lead days (calendar days). The clock starts at payment, or proof approval for custom orders. */

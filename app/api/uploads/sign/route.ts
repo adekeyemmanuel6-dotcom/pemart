@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { UPLOAD_RULES } from '@/lib/custom/tiers';
 import { isSupabaseConfigured } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
+import { pickClientIp } from '@/lib/client-ip';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 const BUCKETS = { custom: 'design-uploads', bulk: 'bulk-uploads', review: 'review-photos' } as const;
@@ -21,8 +22,8 @@ const schema = z.object({
  * rules are enforced here, before any URL is issued.
  */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`upload:${ip}`, 20, 10 * 60_000).ok) return NextResponse.json({ error: 'rate_limited', message: 'Too many uploads. Please wait a few minutes.' }, { status: 429 });
+  const ip = pickClientIp(request.headers);
+  if (!(await rateLimit(`upload:${ip}`, 20, 10 * 60_000)).ok) return NextResponse.json({ error: 'rate_limited', message: 'Too many uploads. Please wait a few minutes.' }, { status: 429 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid', message: 'Invalid upload request.' }, { status: 400 });

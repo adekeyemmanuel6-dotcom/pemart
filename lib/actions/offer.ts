@@ -1,8 +1,8 @@
 'use server';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 import { getRpc } from '@/lib/db';
 import { rateLimit } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 import { notifyWelcomeOffer } from '@/lib/notifications';
 
 export type OfferState = { ok: boolean; message: string; email?: string; phone?: string; code?: string } | null;
@@ -19,8 +19,8 @@ export async function claimFirstOrderOffer(source: 'popup' | 'footer', formData:
   const rawEmail = String(formData.get('email') ?? '').trim().toLowerCase();
   const rawPhone = String(formData.get('phone') ?? '').replace(/[\s-]/g, '');
   const echo = { email: rawEmail, phone: rawPhone };
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!rateLimit(`offer:${ip}`, 5, 10 * 60_000).ok) return { ok: false, ...echo, message: 'Too many attempts. Please try again in a few minutes.' };
+  const ip = await clientIp();
+  if (!(await rateLimit(`offer:${ip}`, 5, 10 * 60_000)).ok) return { ok: false, ...echo, message: 'Too many attempts. Please try again in a few minutes.' };
 
   if (!rawEmail && !rawPhone) return { ok: false, ...echo, message: 'Enter your email or phone number.' };
   if (rawEmail) { const r = email.safeParse(rawEmail); if (!r.success) return { ok: false, ...echo, message: r.error.issues[0]!.message }; }

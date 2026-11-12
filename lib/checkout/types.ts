@@ -15,6 +15,8 @@ export type PricingInput = {
   giftCode?: string;
   useCredit?: boolean;
   state?: string;
+  city?: string;
+  shippingRateId?: string;
   extras?: Extras;
   acceptFinalSale?: boolean;
   giftMessage?: string;
@@ -37,6 +39,7 @@ export type PricingSettings = {
   giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; expressEnabled: boolean;
   upsellProductId: string | null; upsellPriceKobo: number | null;
   revisionFeeKobo: number;
+  freeShippingThresholdKobo?: number;
 };
 
 export type QuoteLine = {
@@ -63,7 +66,10 @@ export type Quote = {
   giftCodeError?: string;
   zone: { id: string; name: string; feeKobo: number; freeOverKobo: number | null; leadDays: number } | null;
   deliveryFeeKobo: number;
-  freeDeliveryAwayKobo: number | null;   // how far the goods are from free delivery in Lagos (null once reached / n/a)
+  shippingPending: boolean;
+  shippingOptions: { id: string; name: string; provider: string | null; service: string | null }[];
+  eligibleMerchandiseKobo: number;
+  freeDeliveryAwayKobo: number | null;   // how far the goods are from free delivery nationwide (null once reached / n/a)
   freeDeliveryThresholdKobo: number | null;
   upsell: { productName: string; offerKobo: number; regularKobo: number; variants: { id: string; option: string }[] } | null;
   giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; shipReadyFirstKobo: number;

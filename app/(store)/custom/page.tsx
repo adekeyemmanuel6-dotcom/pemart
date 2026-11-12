@@ -18,7 +18,7 @@ export default async function CustomPage() {
       <header className="mb-8 max-w-2xl">
         <p className="font-script text-3xl text-mocha">make it yours</p>
         <h1 className="display text-5xl sm:text-7xl">Design your own</h1>
-        <p className="mt-3 text-lg text-muted">Pick a lane, watch it come to life on the garment, and pay upfront. We send a proof to approve before anything is printed. <strong className="text-ink">Your 5-day delivery clock starts when you approve it.</strong></p>
+        <p className="mt-3 text-lg text-muted">Pick a lane, watch it come to life on the garment, and pay upfront. We send a proof to approve before anything is printed. <strong className="text-ink">Production starts after you approve your proof; delivery timing is confirmed for your order.</strong></p>
       </header>
       <Studio designs={designs} basePrices={{ tee: base('tee'), hoodie: base('hoodie') }} />
     </div>

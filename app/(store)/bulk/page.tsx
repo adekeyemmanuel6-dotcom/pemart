@@ -35,7 +35,7 @@ export default async function BulkPage() {
         <section aria-labelledby="quote-h"><h2 id="quote-h" className="display mb-5 text-3xl sm:text-4xl">Request a quote</h2><BulkForm whatsapp={settings.whatsapp_number} /></section>
         <aside className="h-fit rounded-lg bg-sand/60 p-6" aria-label="What to expect">
           <h2 className="display text-2xl">What happens next</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-ink"><li>We review your request and reply on WhatsApp or email with a quote.</li><li>You approve the design proof before anything is printed.</li><li>Your order is delivered within 5 days of proof approval.</li></ol>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-ink"><li>We review your request and reply on WhatsApp or email with a quote.</li><li>You approve the design proof before anything is printed.</li><li>Production and delivery timing are confirmed in your quote.</li></ol>
           <p className="mt-4 text-sm text-ink">Under 10 pieces? Just order from the shop. Bulk pricing starts at 10.</p>
         </aside>
       </div>

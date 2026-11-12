@@ -19,10 +19,10 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim() || '';
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || '';
 
 export type TrackItem = { id: string; name: string; priceKobo: number; quantity: number; category?: string };
-export type TrackEvent = 'view_item' | 'add_to_cart' | 'begin_checkout' | 'purchase';
+export type TrackEvent = 'view_item' | 'add_to_cart' | 'begin_checkout' | 'purchase' | 'newsletter_signup' | 'whatsapp_click' | 'custom_design_enquiry' | 'bulk_order_enquiry';
 type Payload = { items: TrackItem[]; valueKobo: number; transactionId?: string };
 
-const META_NAME: Record<TrackEvent, string> = { view_item: 'ViewContent', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'Purchase' };
+const META_NAME: Record<TrackEvent, string> = { view_item: 'ViewContent', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'Purchase', newsletter_signup: 'Lead', whatsapp_click: 'Contact', custom_design_enquiry: 'Lead', bulk_order_enquiry: 'Lead' };
 const naira = (kobo: number) => Math.round(kobo) / 100;
 
 function loadScript(src: string) {
