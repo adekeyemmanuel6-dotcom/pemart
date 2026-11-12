@@ -4,6 +4,8 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { dbMode, getRpc } from '@/lib/db';
 
 export type StoreSettings = {
+  website_content?: unknown;
+  website_revision?: number;
   free_shipping_threshold_kobo: number;
   dispatch_origin: string;
   hero_image_url: string | null;
@@ -35,7 +37,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   hero_image_url: null,
   hero_image_alt: null,
   hero_headline: 'WEAR WHAT YOU STAND ON.',
-  hero_copy: "Your faith is more than what you believe. It’s what you live, represent and carry every day.",
+  hero_copy: 'Your faith is more than what you believe. It’s what you live, represent and carry every day.',
   announcement_text: null,
   announcement_link: '/delivery',
   announcement_active: true,
@@ -63,14 +65,17 @@ export const getSettings = unstable_cache(
     }
     if (!isSupabaseConfigured) {
       // Local/demo: the offer is the seeded bracelet at ₦4,500, like the seed data.
-      const fx = (await import('@/lib/catalogue/fixture.json')).default as unknown as { products: { id: string; slug: string }[] };
-      return { ...DEFAULT_SETTINGS, upsell_product_id: fx.products.find((p) => p.slug === 'faith-bracelet')?.id ?? null, upsell_price_kobo: 450000 };
+      const fx = (await import('@/lib/catalogue/fixture.json')).default as unknown as {
+        products: { id: string; slug: string }[];
+      };
+      return {
+        ...DEFAULT_SETTINGS,
+        upsell_product_id: fx.products.find((p) => p.slug === 'faith-bracelet')?.id ?? null,
+        upsell_price_kobo: 450000,
+      };
     }
     try {
-      const { data } = await createPublicClient()
-        .from('settings')
-        .select('*')
-        .single();
+      const { data } = await createPublicClient().from('settings').select('*').single();
       return { ...DEFAULT_SETTINGS, ...data };
     } catch {
       return DEFAULT_SETTINGS;

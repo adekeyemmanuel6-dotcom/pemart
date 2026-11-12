@@ -16,3 +16,7 @@ Status: prepared and tested in an isolated PGlite PostgreSQL database with local
 ## Operational limitations
 
 Weight-restricted services need verified packed product weights. Bundles/custom garments have no verified package-weight source in the original schema; they require a confirmed flat-rate service until the business provides that data. Historical orders without snapshots retain their existing timing behavior. No migration can verify carrier prices or production promises automatically.
+
+## Website editor addition
+
+The unapplied migration also adds public website content and a revision counter to settings, plus the service-role-only admin_website_save RPC. It preserves operational settings and checks the administrator role and expected revision before publishing. See WEBSITE-ADMIN.md for scope and release requirements. Existing delivery rates remain unverified as explicitly requested by the owner.

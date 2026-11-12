@@ -281,4 +281,23 @@ begin
   end if;
   return new_status;
 end $$;
+
+-- Website publishing: content only, with optimistic locking. Existing settings RLS remains in force.
+alter table public.settings
+  add column website_content jsonb not null default '{}'::jsonb check (jsonb_typeof(website_content) = 'object'),
+  add column website_revision integer not null default 0 check (website_revision >= 0);
+create or replace function public.admin_website_save(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $website$
+declare version integer;
+begin
+  perform public._require((p->>'actor')::uuid, array['admin']);
+  if p->'content' is null or jsonb_typeof(p->'content') <> 'object' or length((p->'content')::text) > 200000 then raise exception 'invalid_website_content'; end if;
+  update public.settings set website_content = p->'content', website_revision = website_revision + 1
+    where id and website_revision = (p->>'revision')::integer returning website_revision into version;
+  if version is null then raise exception 'website_conflict'; end if;
+  return jsonb_build_object('revision', version);
+end $website$;
+revoke all on function public.admin_website_save(jsonb) from public, anon, authenticated;
+grant execute on function public.admin_website_save(jsonb) to service_role;
+
 commit;

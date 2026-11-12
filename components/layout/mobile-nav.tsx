@@ -2,45 +2,47 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { COLLECTION_LINKS, MAIN_NAV, HELP_LINKS } from '@/lib/site';
-
-export function MobileNav() {
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import type { WebsiteContent } from '@/lib/website/schema';
+export function MobileNav({ navigation }: { navigation: WebsiteContent['navigation'] }) {
   const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger className="grid size-12 place-items-center rounded-btn hover:bg-sand lg:hidden" aria-label="Open menu">
+      <SheetTrigger
+        className="grid size-12 place-items-center rounded-btn hover:bg-sand lg:hidden"
+        aria-label="Open menu"
+      >
         <Menu className="size-6" aria-hidden />
       </SheetTrigger>
       <SheetContent side="left" title="Menu">
         <nav className="flex flex-col p-5" aria-label="Mobile">
-          <SheetClose asChild>
-            <Link href="/gift-boxes" onClick={close} className="display mb-4 flex min-h-14 items-center justify-between rounded-btn bg-ember px-5 text-2xl text-white">
-              Gift Boxes <span aria-hidden>→</span>
-            </Link>
-          </SheetClose>
-          <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-widest text-muted">Shop</p>
-          <ul>
-            {COLLECTION_LINKS.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/collections/${c.slug}`} onClick={close} className="flex min-h-12 items-center border-b border-line text-lg font-semibold">{c.name}</Link>
-              </li>
-            ))}
-            <li><Link href="/collections/all" onClick={close} className="flex min-h-12 items-center border-b border-line text-lg font-semibold">Shop all</Link></li>
-          </ul>
-          <p className="mb-2 mt-6 text-xs font-semibold uppercase tracking-widest text-muted">More</p>
-          <ul>
-            {MAIN_NAV.filter((n) => !('highlight' in n && n.highlight)).map((n) => (
-              <li key={n.href}><Link href={n.href} onClick={close} className="flex min-h-12 items-center border-b border-line text-lg font-semibold">{n.name}</Link></li>
-            ))}
-            <li><Link href="/gift-cards" onClick={close} className="flex min-h-12 items-center border-b border-line text-lg font-semibold">Gift cards</Link></li>
-          </ul>
-          <Link href="/account" onClick={close} className="flex min-h-12 items-center font-semibold">My account & wishlist</Link><Link href="/bulk" onClick={close} className="flex min-h-12 items-center font-semibold">Bulk orders</Link><ul className="mt-6 grid grid-cols-2 gap-x-4 text-sm text-muted">
-            {HELP_LINKS.map((h) => (
-              <li key={h.href}><Link href={h.href} onClick={close} className="flex min-h-11 items-center">{h.name}</Link></li>
-            ))}
-          </ul>
+          {(['main', 'shop', 'help'] as const).map((group) => (
+            <div key={group}>
+              <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-widest text-muted">
+                {group === 'main' ? 'Explore' : group}
+              </p>
+              <ul>
+                {navigation[group].map((link, i) => (
+                  <li key={i}>
+                    <Link
+                      href={link.href}
+                      onClick={() => setOpen(false)}
+                      className="flex min-h-12 items-center border-b border-line font-semibold"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <Link
+            href="/account"
+            onClick={() => setOpen(false)}
+            className="mt-5 flex min-h-12 items-center font-semibold"
+          >
+            My account & wishlist
+          </Link>
         </nav>
       </SheetContent>
     </Sheet>

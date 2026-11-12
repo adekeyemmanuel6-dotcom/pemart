@@ -1,12 +1,18 @@
+import { getWebsitePage, websitePageMetadata } from '@/lib/website/server';
+import { WebsitePageView } from '@/components/website-page';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = {
-  title: 'Our Story',
-  description:
-    'Discover Wear The Word by Pemart Global. Christian lifestyle, apparel and gifting, rooted in Scripture and made for everyday life.',
-  alternates: { canonical: '/about' },
-};
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  return websitePageMetadata('about', {
+    title: 'Our Story',
+    description:
+      'Discover Wear The Word by Pemart Global. Christian lifestyle, apparel and gifting, rooted in Scripture and made for everyday life.',
+    alternates: { canonical: '/about' },
+  });
+}
+export default async function AboutPage() {
+  const websitePage = await getWebsitePage('about');
+  if (websitePage) return <WebsitePageView page={websitePage} />;
   return (
     <article className="wtw-section">
       <p className="wtw-eyebrow">Wear The Word — Our Story</p>
@@ -51,3 +57,5 @@ export default function AboutPage() {
     </article>
   );
 }
+
+export const revalidate = 300;

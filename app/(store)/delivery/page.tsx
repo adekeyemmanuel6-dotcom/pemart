@@ -1,14 +1,20 @@
+import { getWebsitePage, websitePageMetadata } from '@/lib/website/server';
+import { WebsitePageView } from '@/components/website-page';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getSettings } from '@/lib/settings';
 import { formatNaira } from '@/lib/money';
-export const metadata: Metadata = {
-  title: 'Nationwide Delivery',
-  description:
-    'Delivery across all 36 Nigerian states and the FCT from Akure. Confirm your shipping fee and service before payment.',
-  alternates: { canonical: '/delivery' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return websitePageMetadata('delivery', {
+    title: 'Nationwide Delivery',
+    description:
+      'Delivery across all 36 Nigerian states and the FCT from Akure. Confirm your shipping fee and service before payment.',
+    alternates: { canonical: '/delivery' },
+  });
+}
 export default async function DeliveryPage() {
+  const websitePage = await getWebsitePage('delivery');
+  if (websitePage) return <WebsitePageView page={websitePage} />;
   const s = await getSettings();
   return (
     <article className="wtw-section">
@@ -43,3 +49,5 @@ export default async function DeliveryPage() {
     </article>
   );
 }
+
+export const revalidate = 300;

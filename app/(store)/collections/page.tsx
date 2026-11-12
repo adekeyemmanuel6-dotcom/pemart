@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-import { BRAND_COLLECTIONS, brandProducts } from '@/lib/brand';
+import { brandProducts } from '@/lib/brand';
+import { getSettings } from '@/lib/settings';
+import { resolveWebsite } from '@/lib/website/schema';
 import { getCatalogue } from '@/lib/catalogue/load';
 import { CollectionEditorial } from '@/components/collection-editorial';
 export const metadata: Metadata = {
@@ -9,23 +11,27 @@ export const metadata: Metadata = {
 };
 export default async function CollectionsPage() {
   const cat = await getCatalogue();
+  const content = resolveWebsite(await getSettings());
   return (
     <section className="wtw-section">
       <p className="wtw-eyebrow">A Word for every season</p>
       <h1 className="display mt-6 mb-12 text-6xl sm:text-8xl">The collections.</h1>
       <div className="wtw-collection-grid">
-        {BRAND_COLLECTIONS.map((c, i) => (
-          <CollectionEditorial
-            key={c.slug}
-            collection={c}
-            index={i}
-            image={
-              cat.collections.find((x) => x.slug === c.slug)?.hero_image ||
-              brandProducts(cat, c.slug)[0]?.product_images[0]?.url ||
-              null
-            }
-          />
-        ))}
+        {content.collections
+          .filter((c) => c.enabled)
+          .map((c, i) => (
+            <CollectionEditorial
+              key={c.slug}
+              collection={c}
+              index={i}
+              image={
+                c.image ||
+                cat.collections.find((x) => x.slug === c.slug)?.hero_image ||
+                brandProducts(cat, c.slug)[0]?.product_images[0]?.url ||
+                null
+              }
+            />
+          ))}
       </div>
     </section>
   );
