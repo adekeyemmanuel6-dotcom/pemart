@@ -47,7 +47,9 @@ Keep `profiles.role` as the coarse gate and add `profiles.permissions text[]` fr
 
 ## 4. Release order
 
-0014 → 0015 → (admins set up two-factor) → deploy this branch → 0016 → 0017. Each has a rollback script in `supabase/rollback/`. Until 0017 is applied, Team, Activity and Website history show a "needs database update" notice instead of failing.
+0014 → 0015 → (admins set up two-factor) → deploy this branch → 0016 → 0017 → 0018.
+
+**Important:** without 0014, publishing from the Website editor cannot work (the `admin_website_save` function does not exist yet). That is why edits did not reach the storefront. The editor now says so plainly instead of failing quietly. Each has a rollback script in `supabase/rollback/`. Until 0017 is applied, Team, Activity and Website history show a "needs database update" notice instead of failing.
 
 ## 5. Verification (this round)
 
@@ -57,3 +59,27 @@ Keep `profiles.role` as the coarse gate and add `profiles.permissions text[]` fr
 - **Browser walkthrough (local Chrome, local Postgres)**: sidebar, collapse persisted, breadcrumbs, global search; custom mega menu published → storefront header changed → switched back → version 1 restored from history → storefront changed again; team grant / self-demotion refused / unknown email refused; activity log shows `role: customer → staff`; staff see only operational links and are refused Team, Activity, Website, Settings; mobile drawer at 390 px without horizontal scroll; no browser errors.
 - **Without 0017** (the current production database): Team and Activity show a "needs a database update" notice, the editor hides history, and publishing still works.
 - Two gaps in the local Supabase stand-in were fixed so tests match real Supabase: `auth.jwt()` (used by 0016) and `auth.users.last_sign_in_at`.
+
+## 6. Round 2: storefront look and crypto payments
+
+- **Logo**: new Wear The Word logo, black on light backgrounds (header) and white on dark (footer, admin sidebar). Both can be replaced in Website editor → Brand & SEO.
+- **Colours**: black, white and gold throughout. Menu items have no underline and turn gold on hover; buttons turn gold on hover. Gold used for text is a darker gold (#8C6B1F, 4.9:1 on white) so it stays readable.
+- **Hero styles** (Website editor → Homepage → hero): Sliding banners (up to 3, separate desktop / laptop / phone images, arrows, dots, swipe, keyboard, pause button, no autoplay for reduced motion), Text and image (50/50), or Banner with centred text and a rounded button.
+- **Section style** for every homepage section: heading font, letter case, heading size, text font, background (white, ivory, black, gold), alignment and spacing. The newsletter section is now centred.
+- **Pay with crypto** (migration `0018_crypto_payments.sql`): Settings → Pay with crypto holds up to 4 wallets (coin, network, address, note) and instructions. Buyers choose crypto at checkout, see the addresses and the Naira amount, and send their transaction hash. Only an admin can confirm the money arrived; that settles the order through the same code as Paystack. Wallets are copied onto each order, so a later address change never redirects an existing order. Tested: 7 integration tests against Postgres, plus a browser walkthrough (setup → checkout → hash → staff refused → admin confirms → paid).
+
+## 7. Round 3: roles, media, product status and import, section templates, payments status
+
+| Feature | Where | Database update |
+| --- | --- | --- |
+| Detailed roles: Store Manager, Content Editor, Fulfilment, Support, or a custom mix | Team & permissions | `0019_staff_permissions.sql` |
+| Media library: search, descriptions (alt text), where each image is used, safe delete, "Choose from library" on every image field | Website → Media library | `0020_media_library.sql` |
+| Product status (Draft / Active / Archived), bulk status change, CSV import with a check step, CSV export | Products & gift boxes | `0021_product_status_import.sql` |
+| Homepage sections from templates: text, image and text, banner, call to action, product grid, questions and answers, quote | Website editor → Homepage → Add a section | none (stored in website content) |
+| Payments status: key mode (test/live, never the key), live check with Paystack, webhook address, last webhook, rejected webhooks, recent payments | Store → Payments status | `0022_payment_health.sql` |
+
+**How roles are enforced.** The database decides. `_require()` reads which permission the calling admin function needs (`admin_function_permissions`) and checks the staff member's permissions (`staff_permissions`, readable only by the server). Settings, delivery, payments, crypto confirmation, commission payouts, team and activity stay owner-only. Staff with no role set keep exactly the old Staff access. Every permission change is in the Activity log.
+
+**Release order:** 0014 → 0015 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022, then 0016. Each has a rollback in `supabase/rollback/` (roll back in reverse order).
+
+**Verified:** 202 unit tests and 115 Postgres integration tests pass (23 new: roles for every preset, refused cases, audit, media usage and delete protection, all-or-nothing import, SKU protection, status sync both ways, export, payments health). Browser walkthrough: owner made a Content Editor; the editor saw only Website, Media, Discounts and Reviews and was sent away from Orders and Settings; uploaded an image (it appeared in the library), added and published a Q&A section (visible on the storefront); owner imported the CSV template (check, then import; new products arrived as Draft) and opened Payments status. No browser errors.

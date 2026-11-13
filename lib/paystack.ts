@@ -65,3 +65,35 @@ export async function verifyTransaction(reference: string): Promise<VerifyResult
     return { ok: true, status: j.data.status, amountKobo: j.data.amount, currency: j.data.currency, reference: j.data.reference, raw: j.data };
   } catch { return { ok: false, message: 'Could not reach the payment provider.' }; }
 }
+
+export type PaystackConfig = {
+  mock: boolean; secretSet: boolean; publicSet: boolean;
+  secretMode: 'test' | 'live' | 'unknown' | null; publicMode: 'test' | 'live' | 'unknown' | null;
+};
+const modeOf = (k: string | undefined, prefix: 'sk' | 'pk') => (!k ? null : k.startsWith(`${prefix}_live_`) ? 'live' : k.startsWith(`${prefix}_test_`) ? 'test' : 'unknown');
+
+/** What is configured, WITHOUT revealing any key: only whether it is set and whether it is a test or live key. */
+export function paystackConfig(): PaystackConfig {
+  return {
+    mock: paystackMock(),
+    secretSet: !!process.env.PAYSTACK_SECRET_KEY, publicSet: !!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+    secretMode: modeOf(process.env.PAYSTACK_SECRET_KEY, 'sk'), publicMode: modeOf(process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY, 'pk'),
+  };
+}
+
+/** A read-only call to Paystack to confirm the secret key is accepted. Returns no account data. */
+export async function paystackPing(): Promise<{ ok: boolean; message: string; ms?: number }> {
+  if (paystackMock()) return { ok: true, message: 'Mock mode (local development only)' };
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return { ok: false, message: 'No secret key is set' };
+  const t = Date.now();
+  try {
+    const res = await fetch(`${API}/transaction?perPage=1`, { headers: { Authorization: `Bearer ${secret}` }, cache: 'no-store', signal: AbortSignal.timeout(6000) });
+    const ms = Date.now() - t;
+    if (res.ok) return { ok: true, message: 'Paystack accepted the secret key', ms };
+    if (res.status === 401) return { ok: false, message: 'Paystack rejected the secret key (401). Check it in Vercel.', ms };
+    return { ok: false, message: `Paystack answered with status ${res.status}`, ms };
+  } catch (e) {
+    return { ok: false, message: (e as Error).name === 'TimeoutError' ? 'Paystack did not answer within 6 seconds' : 'Could not reach Paystack' };
+  }
+}

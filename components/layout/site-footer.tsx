@@ -1,5 +1,7 @@
 import { CookieSettingsLink } from '@/components/consent/cookie-settings-link';
 import Link from 'next/link';
+import { Logo } from './logo';
+import { activeWallets } from '@/lib/crypto-pay';
 import { Camera, MessageCircle } from 'lucide-react';
 import type { StoreSettings } from '@/lib/settings';
 import { whatsappLink } from '@/lib/site';
@@ -15,7 +17,7 @@ export function SiteFooter({ settings }: { settings: StoreSettings }) {
     <footer className="mt-24 bg-ink text-paper">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
         <div>
-          <p className="display text-4xl">{content.brand.name}</p>
+          <Logo on="dark" src={content.brand.logoOnDark} name={content.brand.name} className="h-24 w-auto" />
           <p className="mt-2 text-xs tracking-[.2em]">{content.brand.byline}</p>
           <p className="mt-2 mb-6 max-w-xs text-paper/80">{content.brand.footer}</p>
           <NewsletterForm />
@@ -81,7 +83,7 @@ export function SiteFooter({ settings }: { settings: StoreSettings }) {
           </ul>
           <p className={`${heading} mt-6`}>We accept</p>
           <ul className="flex flex-wrap gap-2 text-xs font-semibold" aria-label="Payment methods">
-            {['Paystack', 'Card', 'Bank transfer', 'USSD'].map((m) => (
+            {['Paystack', 'Card', 'Bank transfer', 'USSD', ...(activeWallets(settings).length ? ['Crypto'] : [])].map((m) => (
               <li key={m} className="rounded border border-paper/30 px-2.5 py-1">
                 {m}
               </li>

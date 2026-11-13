@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ActionForm } from '@/components/admin/action-form';
 import { PageTitle, fmtDate, inputCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { bulkStatusAction } from '@/lib/admin/actions-ops';
 import { STATUS_LABEL } from '@/lib/orders/status';
 
@@ -19,7 +19,7 @@ const COLUMNS: { key: string; title: string; statuses: string[] }[] = [
 ];
 
 export default async function ProductionBoard() {
-  const me = await requireStaff('/admin/production');
+  const me = await requirePerm(['fulfilment', 'orders'], '/admin/production');
   const cards = await adm<Card[]>('admin_board', me);
   return (
     <>

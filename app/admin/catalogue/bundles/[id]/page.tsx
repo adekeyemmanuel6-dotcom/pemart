@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/admin/action-form';
 import { SlotEditor, type Slot } from '@/components/admin/slot-editor';
 import { Card, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireAdmin } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { saveBundleAction } from '@/lib/admin/actions-admin';
 
 export const metadata: Metadata = { title: 'Edit bundle' };
@@ -14,7 +14,7 @@ const local = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 
 
 export default async function BundleEdit({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const me = await requireAdmin(`/admin/catalogue/bundles/${id}`);
+  const me = await requirePerm('catalogue', `/admin/catalogue/bundles/${id}`);
   const isNew = id === 'new';
   const [b, cat, settings] = await Promise.all([isNew ? null : adm<B | null>('admin_bundle_get', me, { id }), adm<{ collections: { id: string; name: string }[] }>('admin_catalogue_list', me), adm<{ products: { id: string; name: string }[] }>('admin_settings_get', me)]);
   if (!isNew && !b) notFound();

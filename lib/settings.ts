@@ -28,6 +28,11 @@ export type StoreSettings = {
   upsell_price_kobo: number | null;
   revision_fee_kobo: number;
   review_credit_kobo: number;
+  // Pay with crypto (migration 0018). Absent before it is applied.
+  crypto_enabled?: boolean;
+  crypto_wallets?: unknown;
+  crypto_instructions?: string | null;
+  crypto_window_hours?: number;
 };
 
 // Matches seed data, so the shell looks right before Supabase is connected.

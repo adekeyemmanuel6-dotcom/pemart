@@ -3,7 +3,7 @@ import { NIGERIAN_STATES } from '@/lib/shipping';
 import { WORD_THEMES, BRAND_COLLECTIONS } from '@/lib/brand';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { adm, refreshStorefront, requireAdmin } from './db';
+import { adm, refreshStorefront, requireAdmin, requirePerm } from './db';
 import { bool, int, kobo, lagosDt, list, optStr, run, str } from './actions-core';
 import type { AdminResult } from './types';
 
@@ -28,7 +28,7 @@ const CAT = ['/admin/catalogue', '/admin'];
 
 // ------------------------------------------------------------ catalogue
 export async function saveCollectionAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run(CAT, async () => {
     const id = optStr(fd, 'id');
     await adm('admin_save', me, {
@@ -50,7 +50,7 @@ export async function saveCollectionAction(_p: AdminResult, fd: FormData): Promi
 }
 
 export async function saveDesignAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run(CAT, async () => {
     const id = optStr(fd, 'id');
     await adm('admin_save', me, {
@@ -76,7 +76,7 @@ export async function saveDesignAction(_p: AdminResult, fd: FormData): Promise<A
 }
 
 export async function saveProductAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   const id = optStr(fd, 'id');
   let go: string | null = null;
   const r = await run(CAT, async () => {
@@ -99,7 +99,10 @@ export async function saveProductAction(_p: AdminResult, fd: FormData): Promise<
         base_price_kobo: price,
         compare_at_kobo: kobo(fd, 'compare_at'),
         is_made_to_order: bool(fd, 'is_made_to_order'),
-        is_active: bool(fd, 'is_active'),
+        // Status (draft / active / archived, migration 0021); is_active is sent too so visibility also works before 0021.
+        ...(fd.has('status')
+          ? { status: z.enum(['draft', 'active', 'archived']).parse(str(fd, 'status')), is_active: str(fd, 'status') === 'active' }
+          : { is_active: bool(fd, 'is_active') }),
         is_featured: bool(fd, 'is_featured'),
         is_seasonal: bool(fd, 'is_seasonal'),
         seo_title: optStr(fd, 'seo_title'),
@@ -115,7 +118,7 @@ export async function saveProductAction(_p: AdminResult, fd: FormData): Promise<
 }
 
 export async function saveVariantAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run(CAT.concat('/admin/catalogue/products/' + str(fd, 'productId')), async () => {
     await adm('admin_save', me, {
       table: 'product_variants',
@@ -127,7 +130,7 @@ export async function saveVariantAction(_p: AdminResult, fd: FormData): Promise<
 }
 
 export async function generateVariantsAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run('/admin/catalogue/products/' + str(fd, 'productId'), async () => {
     const stock = str(fd, 'stock_qty');
     if (!list(fd, 'colours').length && !list(fd, 'sizes').length && !list(fd, 'options').length)
@@ -149,7 +152,7 @@ export async function generateVariantsAction(_p: AdminResult, fd: FormData): Pro
 }
 
 export async function adjustStockAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run(['/admin/catalogue/products/' + str(fd, 'productId'), '/admin'], async () => {
     const r = await adm<{ ok: boolean; error?: string; stock_qty?: number }>('admin_inventory_adjust', me, {
       variant_id: uuid.parse(str(fd, 'variantId')),
@@ -169,7 +172,7 @@ export async function adjustStockAction(_p: AdminResult, fd: FormData): Promise<
 }
 
 export async function saveImagesAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   return run('/admin/catalogue/products/' + str(fd, 'productId'), async () => {
     const images = z
       .array(
@@ -206,7 +209,7 @@ const slotSchema = z.object({
 });
 
 export async function saveBundleAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('catalogue');
   const id = optStr(fd, 'id');
   let go: string | null = null;
   const r = await run(CAT, async () => {
@@ -252,7 +255,7 @@ export async function saveBundleAction(_p: AdminResult, fd: FormData): Promise<A
 
 // ------------------------------------------------------------ discounts and ambassadors
 export async function saveDiscountAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('marketing');
   return run('/admin/discounts', async () => {
     const type = z.enum(['percentage', 'fixed']).parse(str(fd, 'type'));
     const value = type === 'percentage' ? int(fd, 'value') : kobo(fd, 'value');
@@ -292,7 +295,7 @@ export async function saveDiscountAction(_p: AdminResult, fd: FormData): Promise
 }
 
 export async function createAmbassadorAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('marketing');
   return run('/admin/discounts', async () => {
     const r = await adm<{ ok: boolean; error?: string; code?: string }>('admin_ambassador_create', me, {
       name: z.string().min(2).max(80).parse(str(fd, 'name')),
@@ -313,7 +316,7 @@ export async function createAmbassadorAction(_p: AdminResult, fd: FormData): Pro
 }
 
 export async function toggleAmbassadorAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireAdmin();
+  const me = await requirePerm('marketing');
   return run('/admin/discounts', async () => {
     await adm('admin_save', me, {
       table: 'ambassadors',

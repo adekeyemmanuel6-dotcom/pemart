@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/admin/action-form';
 import { Card, StatusBadge, fmtDate, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
+import { confirmCryptoAction } from '@/lib/admin/actions-crypto';
+import type { CryptoOrderView } from '@/lib/crypto-pay';
 import { changeStatusAction, recordRefundAction, saveNoteAction } from '@/lib/admin/actions-ops';
 import { privateFileUrl } from '@/lib/admin/files';
 import { formatNaira } from '@/lib/money';
@@ -19,8 +21,10 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 
 export default async function OrderDetail({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
-  const me = await requireStaff(`/admin/orders/${number}`);
+  const me = await requirePerm(['orders', 'fulfilment'], `/admin/orders/${number}`);
   const o = await adm<Order | null>('admin_order_get', me, { number });
+  // Crypto details exist only after migration 0018; before that (or for Paystack orders) this is null.
+  const crypto = o ? await adm<CryptoOrderView | null>('admin_crypto_get', me, { order_id: o.id }).catch(() => null) : null;
   if (!o) notFound();
   const next = nextStatuses(o.status);
   const primary = next.find((s) => !['cancelled', 'refunded', 'reprint'].includes(s));
@@ -105,6 +109,27 @@ export default async function OrderDetail({ params }: { params: Promise<{ number
           <Card title="Payment">
             <ul className="space-y-1 text-sm">{o.payments.map((p) => (<li key={p.reference} className="flex justify-between gap-2"><span className="break-all text-muted">{p.reference}</span><span className="shrink-0 font-semibold">{formatNaira(p.amount_kobo)} · {p.status}</span></li>))}</ul>
             {o.commission && <p className="mt-2 text-sm">Ambassador {o.ambassador_code}: commission {formatNaira(o.commission.amount_kobo)} ({o.commission.status})</p>}
+            {crypto && (
+              <div className="mt-4 space-y-3 border-t border-line pt-3 text-sm">
+                <p className="font-semibold">Customer chose to pay with crypto</p>
+                <ul className="space-y-1">{crypto.wallets.map((w) => (<li key={`${w.asset}-${w.network}`} className="break-all text-muted">{w.asset} · {w.network}: {w.address}</li>))}</ul>
+                {crypto.submissions.length ? (
+                  <div><p className="font-semibold">Transactions sent by the customer</p>
+                    <ul className="mt-1 space-y-1">{crypto.submissions.map((t) => (<li key={t.hash} className="break-all"><span className="text-muted">{t.asset} · {t.network} · {fmtDate(t.at)}:</span> <code>{t.hash}</code></li>))}</ul></div>
+                ) : <p className="text-muted">No transaction hash sent yet.</p>}
+                {o.status === 'pending_payment' || o.status === 'cancelled' ? (
+                  me.role === 'admin' ? (
+                    <ActionForm action={confirmCryptoAction} submitLabel={`Confirm ${formatNaira(o.total_kobo)} received`} pendingLabel="Confirming…"
+                      confirm={`Mark order ${o.number} as paid? Only do this after you have seen the full ${formatNaira(o.total_kobo)} arrive in the wallet.`}>
+                      <input type="hidden" name="order_id" value={o.id} /><input type="hidden" name="number" value={o.number} />
+                      <label className="flex min-h-11 items-start gap-2"><input type="checkbox" name="checked" className="mt-1 size-5 accent-ink" /><span>I have checked the wallet (or block explorer) and the full amount for this order has arrived.</span></label>
+                      <label htmlFor="crypto-note" className={labelCls}>Note (optional, e.g. amount and coin received)</label>
+                      <input id="crypto-note" name="note" maxLength={300} className={inputCls} />
+                    </ActionForm>
+                  ) : <p className="text-muted">An admin confirms crypto payments.</p>
+                ) : <p className="font-semibold text-mocha">Crypto payment confirmed{o.paid_at ? ` on ${fmtDate(o.paid_at)}` : ''}.</p>}
+              </div>
+            )}
           </Card>
 
           <Card title="Internal notes">

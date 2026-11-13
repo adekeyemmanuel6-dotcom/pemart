@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ActionForm } from '@/components/admin/action-form';
 import { AdminUploader } from '@/components/admin/admin-uploader';
 import { Card, Empty, PageTitle, fmtDate, hoursSince, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { Flash } from '@/components/admin/flash';
 import { sendProofAction } from '@/lib/admin/actions-ops';
 import { privateFileUrl } from '@/lib/admin/files';
@@ -14,7 +14,7 @@ type Q = { id: string; order_number: string; tier: keyof typeof TIERS; product_t
 
 export default async function ProofsQueue({ searchParams }: { searchParams: Promise<{ flash?: string; flashLink?: string; flashLabel?: string }> }) {
   const sp = await searchParams;
-  const me = await requireStaff('/admin/proofs');
+  const me = await requirePerm(['fulfilment', 'orders'], '/admin/proofs');
   const queue = await adm<Q[]>('admin_proofs_queue', me);
   const todo = queue.filter((c) => c.status !== 'proof_sent'), waiting = queue.filter((c) => c.status === 'proof_sent');
   const files = Object.fromEntries(await Promise.all(todo.flatMap((c) => c.upload_paths.map(async (p) => [p, await privateFileUrl('design-uploads', p)] as const))));

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ActionForm } from '@/components/admin/action-form';
+import { bulkProductStatusAction } from '@/lib/admin/actions-catalogue';
 import { Card, DataTable, PageTitle, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireAdmin } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { saveCollectionAction, saveDesignAction, saveProductAction } from '@/lib/admin/actions-admin';
 import { formatNaira } from '@/lib/money';
 
@@ -10,36 +11,60 @@ export const metadata: Metadata = { title: 'Catalogue' };
 type Cat = {
   collections: { id: string; slug: string; name: string; intro: string | null; hero_image: string | null; sort_order: number; is_active: boolean; is_seasonal: boolean }[];
   designs: { id: string; slug: string; name: string; story_or_verse: string | null; verse_reference: string | null; collection_id: string | null; artwork_front: string | null; artwork_back: string | null; preview_image: string | null; is_customisable: boolean; customisable_fields: string[]; is_active: boolean }[];
-  products: { id: string; slug: string; name: string; type: string; is_active: boolean; base_price_kobo: number; variants: number; images: number }[];
+  products: { id: string; slug: string; name: string; type: string; is_active: boolean; status?: 'draft' | 'active' | 'archived'; base_price_kobo: number; variants: number; images: number }[];
   bundles: { id: string; slug: string; name: string; kind: string; price_kobo: number; is_active: boolean; slots: number; available_until: string | null }[];
 };
 const TABS = ['products', 'bundles', 'designs', 'collections'] as const;
+type Status = 'draft' | 'active' | 'archived';
+/** Before migration 0021 there is no status column: derive it from visibility. */
+const statusOf = (p: { status?: Status; is_active: boolean }): Status => p.status ?? (p.is_active ? 'active' : 'draft');
+function StatusPill({ s }: { s: Status }) {
+  const cls = s === 'active' ? 'bg-[#1f3d2b] text-[#bfe6cb]' : s === 'draft' ? 'bg-sand text-ink' : 'bg-transparent text-muted border border-line';
+  return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{s === 'active' ? 'Active' : s === 'draft' ? 'Draft' : 'Archived'}</span>;
+}
 const TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
 
-export default async function CataloguePage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string }> }) {
-  const me = await requireAdmin('/admin/catalogue');
+export default async function CataloguePage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; status?: string }> }) {
+  const me = await requirePerm('catalogue', '/admin/catalogue');
   const sp = await searchParams; const tab = (TABS as readonly string[]).includes(sp.tab ?? '') ? sp.tab! : 'products';
   const cat = await adm<Cat>('admin_catalogue_list', me);
   const q = (sp.q ?? '').toLowerCase();
   const collOpts = cat.collections.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>));
   return (
     <>
-      <PageTitle title="Catalogue" sub="Designs, products, bundles and collections. Changes appear on the store within minutes." />
+      <PageTitle title="Catalogue" sub="Designs, products, bundles and collections. Changes appear on the store within minutes."
+        actions={<div className="flex flex-wrap gap-2"><Link href="/admin/catalogue/import" className="inline-flex min-h-11 items-center rounded-btn border border-line px-4 text-sm font-semibold">Import CSV</Link><a href="/admin/catalogue/export" className="inline-flex min-h-11 items-center rounded-btn border border-line px-4 text-sm font-semibold">Export CSV</a></div>} />
       <nav className="mb-4 flex flex-wrap gap-2" aria-label="Catalogue sections">{TABS.map((t) => (<Link key={t} href={`?tab=${t}`} aria-current={tab === t ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${tab === t ? 'bg-ink text-paper' : 'border border-line'}`}>{t[0]!.toUpperCase() + t.slice(1)}</Link>))}</nav>
 
       {tab === 'products' && (<>
         <form method="get" className="mb-3 flex gap-2"><input type="hidden" name="tab" value="products" /><label htmlFor="pq" className="sr-only">Search products</label><input id="pq" name="q" defaultValue={sp.q} placeholder="Search products" className={inputCls} /><button className="min-h-11 rounded-btn bg-ink px-5 text-sm font-semibold text-paper">Search</button></form>
-        <DataTable caption="Products" head={['Product', 'Type', 'Price', 'Variants', 'Photos', 'Status']}>
-          {cat.products.filter((p) => !q || p.name.toLowerCase().includes(q) || p.slug.includes(q)).map((p) => (
-            <tr key={p.id}><td className="px-3 py-2.5"><Link href={`/admin/catalogue/products/${p.id}`} className="font-semibold underline underline-offset-4">{p.name}</Link><div className="text-xs text-muted">{p.slug}</div></td><td className="px-3 py-2.5">{p.type}</td><td className="px-3 py-2.5">{formatNaira(p.base_price_kobo)}</td><td className="px-3 py-2.5">{p.variants}</td><td className="px-3 py-2.5">{p.images}</td><td className="px-3 py-2.5">{p.is_active ? 'Live' : 'Hidden'}</td></tr>))}
-        </DataTable>
+        <nav className="mb-3 flex flex-wrap gap-2 text-sm" aria-label="Filter by status">
+          {([['', 'All'], ['active', 'Active'], ['draft', 'Draft'], ['archived', 'Archived']] as const).map(([v, l]) => (
+            <Link key={v} href={`?tab=products${v ? `&status=${v}` : ''}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ''}`} aria-current={(sp.status ?? '') === v ? 'page' : undefined}
+              className={`inline-flex min-h-9 items-center rounded-full px-3 ${(sp.status ?? '') === v ? 'bg-ink text-paper' : 'border border-line'}`}>
+              {l} <span className="ml-1 opacity-70">{cat.products.filter((p) => !v || statusOf(p) === v).length}</span>
+            </Link>
+          ))}
+        </nav>
+        <ActionForm action={bulkProductStatusAction} submitLabel="Apply to ticked products" pendingLabel="Updating…" variant="secondary">
+          <DataTable caption="Products" head={['', 'Product', 'Type', 'Price', 'Variants', 'Photos', 'Status']}>
+            {cat.products.filter((p) => (!q || p.name.toLowerCase().includes(q) || p.slug.includes(q)) && (!sp.status || statusOf(p) === sp.status)).map((p) => (
+              <tr key={p.id}>
+                <td className="px-3 py-2.5"><input type="checkbox" name="ids" value={p.id} aria-label={`Select ${p.name}`} className="size-5 accent-ink" /></td>
+                <td className="px-3 py-2.5"><Link href={`/admin/catalogue/products/${p.id}`} className="font-semibold underline underline-offset-4">{p.name}</Link><div className="text-xs text-muted">{p.slug}</div></td><td className="px-3 py-2.5">{p.type}</td><td className="px-3 py-2.5">{formatNaira(p.base_price_kobo)}</td><td className="px-3 py-2.5">{p.variants}</td><td className="px-3 py-2.5">{p.images}</td>
+                <td className="px-3 py-2.5"><StatusPill s={statusOf(p)} /></td>
+              </tr>))}
+          </DataTable>
+          <div className="mt-3 flex flex-wrap items-end gap-2"><label htmlFor="bulk-status" className={labelCls}>Set ticked products to</label>
+            <select id="bulk-status" name="status" className={`${inputCls} max-w-48`}><option value="active">Active (on the store)</option><option value="draft">Draft (hidden)</option><option value="archived">Archived</option></select></div>
+        </ActionForm>
         <Card title="New product" className="mt-5"><ActionForm action={saveProductAction} submitLabel="Create product" pendingLabel="Creating…" resetOnSuccess>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div><label className={labelCls} htmlFor="np-name">Name</label><input id="np-name" name="name" required className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="np-slug">Slug (web address)</label><input id="np-slug" name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="my-new-tee" className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="np-type">Type</label><select id="np-type" name="type" className={inputCls}>{TYPES.map((t) => (<option key={t}>{t}</option>))}</select></div>
             <div><label className={labelCls} htmlFor="np-price">Price (₦)</label><input id="np-price" name="price" inputMode="decimal" required placeholder="22000" className={inputCls} /></div>
-          </div><input type="hidden" name="is_active" value="on" /><label className="mt-2 flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="is_made_to_order" defaultChecked className="size-5 accent-ink" />Made to order (no stock count)</label>
+          </div><div className="mt-3 max-w-xs"><label className={labelCls} htmlFor="np-status">Status</label><select id="np-status" name="status" defaultValue="draft" className={inputCls}><option value="draft">Draft (hidden until ready)</option><option value="active">Active (on the store)</option></select></div><label className="mt-2 flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="is_made_to_order" defaultChecked className="size-5 accent-ink" />Made to order (no stock count)</label>
         </ActionForm></Card></>)}
 
       {tab === 'bundles' && (<>

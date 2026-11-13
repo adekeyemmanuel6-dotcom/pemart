@@ -5,6 +5,7 @@ import { publicEnv } from '@/lib/env';
 import { logEvent } from '@/lib/log';
 import { initializeTransaction, paystackConfigured, paystackMock, paystackPublicKey } from '@/lib/paystack';
 import { getSettings } from '@/lib/settings';
+import { activeWallets, type CryptoOrderView } from '@/lib/crypto-pay';
 import { notifyGiftCard, notifyOrderConfirmed } from '@/lib/notifications';
 import type { EmailOrder } from '@/emails/order-confirmation';
 import { priceCart } from './pricing';
@@ -56,6 +57,7 @@ export type { PublicQuote };
 export type StartResult =
   | { ok: true; mode: 'pay'; reference: string; accessCode: string; publicKey: string; mock: boolean; number: string; token: string; totalKobo: number; email: string }
   | { ok: true; mode: 'paid'; number: string; token: string }
+  | { ok: true; mode: 'crypto'; number: string; token: string }
   | { ok: false; message: string; issues?: string[] };
 
 const friendlyDbError = async (msg: string): Promise<string> => {
@@ -76,9 +78,10 @@ const friendlyDbError = async (msg: string): Promise<string> => {
  * Re-price everything from the database, create the order (stock held, status pending_payment) in one
  * transaction, then start the Paystack transaction for the amount we computed.
  */
-export async function createOrderAndInitPayment(input: PricingInput, details: Details, who: Who, now = new Date()): Promise<StartResult> {
+export async function createOrderAndInitPayment(input: PricingInput, details: Details, who: Who, now = new Date(), method: 'paystack' | 'crypto' = 'paystack'): Promise<StartResult> {
   const rpc = await getRpc();
   if (!rpc) return { ok: false, message: 'Checkout is not connected to a database yet. Add your Supabase keys to take orders.' };
+  if (method === 'crypto' && activeWallets(await getSettings()).length === 0) return { ok: false, message: 'Paying with crypto is not available right now. Please pay with Paystack.' };
   const quote = await quoteCart({ ...input, state: details.address.state, city: details.address.city }, { ...who, email: details.email }, now);
   if (!quote.ok) return { ok: false, message: quote.issues[0] ?? 'Please review your bag.', issues: quote.issues };
   if (!quote.digitalOnly && !quote.zone) return { ok: false, message: 'Choose where we are delivering to.' };
@@ -109,6 +112,17 @@ export async function createOrderAndInitPayment(input: PricingInput, details: De
   if (quote.totalKobo === 0) {
     const settled = await settlePayment(reference, { source: 'free_order', amountKobo: 0, currency: 'NGN', payload: { free: true } });
     return settled.ok ? { ok: true, mode: 'paid', number: order.number, token: order.token } : { ok: false, message: 'We could not complete your order. Please contact us on WhatsApp.' };
+  }
+
+  if (method === 'crypto') {
+    const switched = await rpc('checkout_use_crypto', { order_id: order.order_id, reference });
+    if (switched.error) {
+      logEvent('checkout.crypto_failed', { number: order.number, error: switched.error.message });
+      await rpc('checkout_cancel_order', { order_id: order.order_id, note: 'Crypto payment could not be started' });
+      return { ok: false, message: 'Paying with crypto is not available right now. Please pay with Paystack.' };
+    }
+    logEvent('checkout.crypto_started', { number: order.number });
+    return { ok: true, mode: 'crypto', number: order.number, token: order.token };
   }
 
   if (!paystackConfigured()) {
@@ -142,7 +156,7 @@ export async function settlePayment(reference: string, e: { source: 'verify' | '
   return { ok: true, already: !!d.already, number: d.number, token: d.token, status: d.status, needsRefund: d.needs_refund };
 }
 
-async function sendOrderEmails(number: string, token: string, giftCards: { code: string; amount: number; recipient_email?: string; message?: string }[]) {
+export async function sendOrderEmails(number: string, token: string, giftCards: { code: string; amount: number; recipient_email?: string; message?: string }[]) {
   try {
     const order = await fetchOrder({ number, token });
     if (!order) return;
@@ -168,6 +182,14 @@ export type OrderView = {
   items: { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string }[] | null; unit_price_kobo: number; quantity: number; custom_request_id: string | null; gift_message: string | null; review_status: string | null }[];
   events: { status: string; note: string | null; created_at: string }[];
 };
+
+/** Crypto details for an order the caller has ALREADY authorised (via fetchOrder). Null for Paystack orders or before 0018. */
+export async function fetchCryptoPayment(orderId: string): Promise<CryptoOrderView | null> {
+  const rpc = await getRpc();
+  if (!rpc) return null;
+  const r = await rpc<CryptoOrderView | null>('checkout_get_crypto', { order_id: orderId });
+  return r.error ? null : r.data ?? null;
+}
 
 export async function fetchOrder(q: { number: string; token?: string; contact?: string; profileId?: string | null }): Promise<OrderView | null> {
   const rpc = await getRpc();

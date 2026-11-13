@@ -1,3 +1,4 @@
+import { activeWallets } from '@/lib/crypto-pay';
 import type { Metadata } from 'next';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { getProfile } from '@/lib/auth';
@@ -12,7 +13,7 @@ export default async function CheckoutPage() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="display mb-6 text-5xl sm:text-6xl">Checkout</h1>
-      <CheckoutForm zones={cat.zones.map((z) => ({ name: z.name, states: z.states }))} defaultEmail={profile?.email ?? ''} signedIn={!!profile} addOns={{ giftWrapKobo: settings.gift_wrap_kobo, surpriseNoteKobo: settings.surprise_note_kobo, expressKobo: settings.express_kobo, expressEnabled: settings.express_enabled }} />
+      <CheckoutForm zones={cat.zones.map((z) => ({ name: z.name, states: z.states }))} defaultEmail={profile?.email ?? ''} signedIn={!!profile} addOns={{ giftWrapKobo: settings.gift_wrap_kobo, surpriseNoteKobo: settings.surprise_note_kobo, expressKobo: settings.express_kobo, expressEnabled: settings.express_enabled }} crypto={activeWallets(settings).map((w) => ({ asset: w.asset, network: w.network }))} />
     </section>
   );
 }

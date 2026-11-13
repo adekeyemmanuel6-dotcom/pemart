@@ -7,7 +7,7 @@ import { ORDER_STATUSES, STATUS_LABEL, type OrderStatus } from '@/lib/orders/sta
 import { publicEnv } from '@/lib/env';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 import { redirect } from 'next/navigation';
-import { adm, requireStaff } from './db';
+import { adm, requirePerm } from './db';
 import { flashUrl } from './flash';
 import { run, str } from './actions-core';
 import type { AdminResult } from './types';
@@ -17,7 +17,7 @@ const statusSchema = z.enum(ORDER_STATUSES as unknown as [OrderStatus, ...OrderS
 const ERR: Record<string, string> = { bad_transition: 'That status change is not allowed from the current status.', proof_not_approved: 'The design is not approved yet, so production cannot start.', not_found: 'Order not found.', not_awaiting_proof: 'This design is not waiting for a proof.' };
 
 export async function changeStatusAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm(['orders', 'fulfilment']);
   return run(['/admin', '/admin/orders', '/admin/production'], async () => {
     const id = uuid.parse(str(fd, 'orderId')), to = statusSchema.parse(str(fd, 'to'));
     const r = await changeOrderStatus({ orderId: id, to, note: str(fd, 'note') || undefined, actor: me.id });
@@ -28,7 +28,7 @@ export async function changeStatusAction(_p: AdminResult, fd: FormData): Promise
 
 /** Move several orders at once (production board). Reports exactly which ones could not move. */
 export async function bulkStatusAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm(['orders', 'fulfilment']);
   return run(['/admin', '/admin/orders', '/admin/production'], async () => {
     const ids = fd.getAll('ids').map(String).filter((x) => uuid.safeParse(x).success), to = statusSchema.parse(str(fd, 'to'));
     if (!ids.length) return { ok: false, message: 'Tick at least one order first.' };
@@ -39,13 +39,13 @@ export async function bulkStatusAction(_p: AdminResult, fd: FormData): Promise<A
 }
 
 export async function saveNoteAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm(['orders', 'fulfilment']);
   return run('/admin/orders', async () => { await adm('admin_order_note', me, { order_id: uuid.parse(str(fd, 'orderId')), notes: str(fd, 'notes') }); return { ok: true, message: 'Note saved.' }; });
 }
 
 /** Records a refund. The money itself is returned in the Paystack dashboard; this only updates our records and the customer's page. */
 export async function recordRefundAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm('orders');
   return run(['/admin/orders', '/admin'], async () => {
     const r = await changeOrderStatus({ orderId: uuid.parse(str(fd, 'orderId')), to: 'refunded', note: `Refund recorded: ${str(fd, 'note') || 'no note'} (processed in Paystack)`, actor: me.id });
     return r.ok ? { ok: true, message: 'Refund recorded. Remember to issue it in the Paystack dashboard.' } : { ok: false, message: ERR[r.error] ?? 'Could not record the refund.' };
@@ -53,7 +53,7 @@ export async function recordRefundAction(_p: AdminResult, fd: FormData): Promise
 }
 
 export async function sendProofAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm(['fulfilment', 'orders']);
   return run(['/admin/proofs', '/admin'], async () => {
     const path = str(fd, 'path');
     if (!path) return { ok: false, message: 'Upload the proof image first.' };
@@ -64,7 +64,7 @@ export async function sendProofAction(_p: AdminResult, fd: FormData): Promise<Ad
 }
 
 export async function updateQuoteAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm('orders');
   return run('/admin/quotes', async () => {
     const amt = str(fd, 'amount').replace(/[,₦\s]/g, '');
     if (amt && !/^\d+(\.\d{1,2})?$/.test(amt)) return { ok: false, message: 'Enter the quoted amount in Naira, like 800000.' };
@@ -76,7 +76,7 @@ export async function updateQuoteAction(_p: AdminResult, fd: FormData): Promise<
 
 const addrSchema = z.object({ recipient: z.string().trim().min(2), phone: z.string().refine((v) => normaliseNigerianPhone(v) !== null), line1: z.string().trim().min(4), city: z.string().trim().min(2), state: z.string().min(2) });
 export async function quoteToOrderAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm('orders');
   return run(['/admin/quotes', '/admin/orders'], async () => {
     const a = addrSchema.safeParse({ recipient: str(fd, 'recipient'), phone: str(fd, 'phone'), line1: str(fd, 'line1'), city: str(fd, 'city'), state: str(fd, 'state') });
     if (!a.success) return { ok: false, message: 'Fill in the delivery details (recipient, a valid phone, street, city, state).' };
@@ -88,7 +88,7 @@ export async function quoteToOrderAction(_p: AdminResult, fd: FormData): Promise
 }
 
 export async function moderateReviewAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
-  const me = await requireStaff();
+  const me = await requirePerm('reviews');
   return run(['/admin/reviews', '/admin'], async () => {
     const decision = str(fd, 'decision');
     if (decision !== 'approve' && decision !== 'reject') return { ok: false, message: 'Unknown choice.' };
