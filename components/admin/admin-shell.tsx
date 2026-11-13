@@ -1,5 +1,7 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
+import { DEFAULT_LOGO } from '@/components/layout/logo';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -105,7 +107,7 @@ export function AdminShell({ groups, email, role, children }: { groups: NavGroup
     <div className="flex min-h-screen">
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-paper transition-[width] duration-200 motion-reduce:transition-none lg:flex print:hidden ${collapsed ? 'w-16' : 'w-60'}`}>
         <div className={`flex h-14 items-center border-b border-line ${collapsed ? 'justify-center' : 'justify-between px-4'}`}>
-          {!collapsed && <Link href="/admin" className="display text-xl">Wear The Word <span className="text-xs text-muted">admin</span></Link>}
+          {!collapsed && <Link href="/admin" aria-label="Wear The Word admin home" className="flex items-center gap-2"><Image src={DEFAULT_LOGO.dark} alt="" width={458} height={480} className="h-10 w-auto" /><span className="text-xs uppercase tracking-[0.14em] text-muted">Admin</span></Link>}
           <button type="button" onClick={toggle} className="grid size-9 place-items-center rounded-md hover:bg-sand" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={collapsed}>
             {collapsed ? <PanelLeftOpen className="size-[18px]" aria-hidden /> : <PanelLeftClose className="size-[18px]" aria-hidden />}
           </button>

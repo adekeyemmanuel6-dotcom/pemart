@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_WEBSITE, imageHref, resolveWebsite, safeHref, websiteSchema } from '@/lib/website/schema';
-const auth = vi.hoisted(() => ({ requireAdmin: vi.fn(), adm: vi.fn() }));
+const auth = vi.hoisted(() => ({
+  requireAdmin: vi.fn(),
+  adm: vi.fn(),
+  isMissingFunction: (e: unknown) => /function .* does not exist|could not find the function/i.test(String((e as { message?: string })?.message ?? e)),
+}));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock('@/lib/admin/db', () => auth);
 vi.mock('next/cache', () => cache);
@@ -121,6 +125,13 @@ describe('website publishing action', () => {
     const result = await publishWebsite(fresh(), 1);
     expect(result).toMatchObject({ ok: false });
     expect(result.message).toContain('newer version');
+    expect(cache.revalidateTag).not.toHaveBeenCalled();
+  });
+  it('explains that publishing needs database update 0014 when the function is missing', async () => {
+    auth.adm.mockRejectedValue(new Error('Could not find the function public.admin_website_save(p) in the schema cache'));
+    const result = await publishWebsite(fresh(), 0);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.message).toContain('0014');
     expect(cache.revalidateTag).not.toHaveBeenCalled();
   });
   it('does not expose internal database errors to the editor', async () => {

@@ -2,7 +2,8 @@ import { ShippingZoneForm } from '@/components/admin/shipping-zone-form';
 import type { DeliveryZone } from '@/lib/catalogue/types';
 import type { Metadata } from 'next';
 import { ActionForm } from '@/components/admin/action-form';
-import { AdminUploader } from '@/components/admin/admin-uploader';
+import Link from 'next/link';
+import { CryptoSettings } from '@/components/admin/crypto-settings';
 import { Card, PageTitle, inputCls, labelCls } from '@/components/admin/ui';
 import { adm, requireAdmin } from '@/lib/admin/db';
 import { saveSettingsAction } from '@/lib/admin/actions-admin';
@@ -63,22 +64,10 @@ export default async function SettingsPage() {
           </Card>
           <Card title="Brand and contact">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <AdminUploader
-                  bucket="catalogue"
-                  name="logo_url"
-                  label="Logo (PNG, SVG or JPG). Leave empty to use the WEAR THE WORD wordmark."
-                  accept=".png,.jpg,.jpeg,.svg,.webp"
-                  initial={s.logo_url ?? ''}
-                />
-                {s.logo_url && (
-                  <p className="text-sm text-muted">
-                    Current logo:{' '}
-                    <a href={s.logo_url} className="underline" target="_blank" rel="noopener noreferrer">
-                      {s.logo_url}
-                    </a>
-                  </p>
-                )}
+              <div className="sm:col-span-2 rounded-md bg-sand p-3 text-sm">
+                {/* Kept so saving this form does not clear the old value; it is no longer shown anywhere. */}
+                <input type="hidden" name="logo_url" value={s.logo_url ?? ''} />
+                The logo is now changed in <Link href="/admin/website" className="font-semibold underline">Website editor → Brand &amp; SEO</Link>, with one logo for light backgrounds and one for dark.
               </div>
               <div>
                 <label className={labelCls} htmlFor="wa">
@@ -269,6 +258,8 @@ export default async function SettingsPage() {
           </Card>
         </div>
       </ActionForm>
+
+      <CryptoSettings settings={s} />
 
       <h2 className="display mb-3 mt-10 text-3xl">Nationwide delivery services</h2>
       <p className="mb-5 text-sm text-muted">

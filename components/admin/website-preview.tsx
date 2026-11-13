@@ -1,4 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- local content preview */
+import { Hero } from '@/components/home/hero';
+import { sectionLook } from '@/components/home/section-look';
 import type { CSSProperties } from 'react';
 import { imageHref, type WebsiteContent } from '@/lib/website/schema';
 import { PageBody, WebsitePageView } from '@/components/website-page';
@@ -13,7 +15,7 @@ export function WebsitePreview({ content, tab }: { content: WebsiteContent; tab:
       ? { '--ink': '#132b21', '--paper': '#fafbf8', '--sand': '#e6ece4', '--muted': '#4f6658' }
       : content.brand.palette === 'earth'
         ? { '--ink': '#30251c', '--paper': '#fffdf8', '--sand': '#f0e6d7', '--muted': '#6b5b4b' }
-        : { '--ink': '#111', '--paper': '#fff', '--sand': '#F4F0E8', '--muted': '#605B54' };
+        : { '--ink': '#111', '--paper': '#fff', '--sand': '#F7F5F0', '--muted': '#5C5C5C' };
   const heading =
     content.brand.headingStyle === 'serif'
       ? 'Georgia, serif'
@@ -116,15 +118,26 @@ export function WebsitePreview({ content, tab }: { content: WebsiteContent; tab:
       ) : (
         content.sections
           .filter((s) => s.enabled)
-          .map((s) => (
-            <section key={s.id} className="mb-8 border-t pt-6">
-              <p className="text-xs uppercase">{s.kicker}</p>
-              <h2 className="display my-3 whitespace-pre-line break-words text-4xl">{s.title}</h2>
-              <Photo src={s.image} alt={s.alt} />
-              <PageBody body={s.body} />
-              {s.linkText && <p className="mt-4 font-semibold">{s.linkText} →</p>}
-            </section>
-          ))
+          .map((s) => {
+            if (s.id === 'hero')
+              return (
+                <div key={s.id} className="-mx-6 mb-8 overflow-hidden border-y border-line">
+                  <Hero section={s} brand={content.brand} />
+                </div>
+              );
+            const look = sectionLook(s);
+            return (
+              <section key={s.id} className={`${look.className} -mx-6 mb-2 px-6 py-6`} style={look.style}>
+                <div className={look.align === 'center' ? 'text-center' : ''}>
+                  <p className="wtw-eyebrow">{s.kicker}</p>
+                  <h2 className="display my-3 whitespace-pre-line break-words text-4xl">{s.title}</h2>
+                  <Photo src={s.image} alt={s.alt} />
+                  <div className={`ws-body ${look.align === 'center' ? 'mx-auto max-w-xl' : ''}`}><PageBody body={s.body} /></div>
+                  {s.linkText && <p className="mt-4 font-semibold">{s.linkText} →</p>}
+                </div>
+              </section>
+            );
+          })
       )}
     </div>
   );

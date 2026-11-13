@@ -56,7 +56,7 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
           '@type': 'Organization',
           name: content.brand.name,
           url: publicEnv.NEXT_PUBLIC_SITE_URL,
-          ...(settings.logo_url ? { logo: settings.logo_url } : {}),
+          logo: new URL(content.brand.logoOnLight || '/brand/wear-the-word-logo-black.png', publicEnv.NEXT_PUBLIC_SITE_URL).toString(),
           address: { '@type': 'PostalAddress', addressLocality: 'Akure', addressRegion: 'Ondo', addressCountry: 'NG' },
           sameAs: [settings.instagram_url, settings.tiktok_url].filter(Boolean),
         }}

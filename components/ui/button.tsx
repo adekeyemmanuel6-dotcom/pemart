@@ -8,8 +8,8 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-ink text-paper hover:bg-ink/85',
-        secondary: 'border-2 border-ink bg-transparent text-ink hover:bg-ink hover:text-paper',
+        primary: 'bg-ink text-paper hover:bg-gold hover:text-[#111]',
+        secondary: 'border-2 border-ink bg-transparent text-ink hover:border-gold hover:bg-gold hover:text-[#111]',
         ghost: 'text-ink hover:bg-sand',
         ember: 'bg-ember text-ink hover:bg-ember/90',
       },

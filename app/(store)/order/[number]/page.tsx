@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { Check, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getProfile } from '@/lib/auth';
-import { fetchOrder } from '@/lib/checkout/service';
+import { fetchCryptoPayment, fetchOrder } from '@/lib/checkout/service';
+import { CryptoPayPanel } from '@/components/order/crypto-pay-panel';
 import { ProofPanel } from '@/components/order/proof-panel';
 import { ResumePayment } from '@/components/order/resume-payment';
 import { proofUrl } from '@/lib/orders/service';
@@ -35,6 +36,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   }
 
   const pending = o.status === 'pending_payment', cancelled = o.status === 'cancelled';
+  const crypto = pending ? await fetchCryptoPayment(o.id) : null;
   const proofItems = await Promise.all(o.custom_requests.map(async (c) => ({ ...c, latestUrl: c.proofs.length ? await proofUrl(c.proofs[c.proofs.length - 1]!.path) : null })));
   const canReview = o.status === 'delivered' && o.items.some((i) => (i.kind === 'variant' || i.kind === 'bundle') && !i.review_status);
   const extras = o.gift_wrap_kobo + o.surprise_note_kobo + o.express_kobo + o.ship_ready_first_kobo;
@@ -52,7 +54,16 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           <p className="mt-1 text-sm text-muted">A confirmation was sent to {o.contact_email}.</p>
         </div>
       )}
-      {pending && (
+      {pending && crypto && crypto.wallets.length > 0 && (
+        <>
+          <CryptoPayPanel crypto={crypto} number={o.number} token={t} totalKobo={o.total_kobo} expiresLabel={o.expires_at ? fmtDateTime(o.expires_at) : null} />
+          <details className="mt-4 rounded-lg border border-line p-4">
+            <summary className="cursor-pointer font-semibold">Prefer to pay by card, bank transfer or USSD?</summary>
+            <div className="mt-3"><ResumePayment number={o.number} token={o.token} totalKobo={o.total_kobo} /></div>
+          </details>
+        </>
+      )}
+      {pending && !(crypto && crypto.wallets.length > 0) && (
         <div className="mt-5 rounded-lg bg-ember/15 p-4" role="status"><p className="font-semibold">We haven&apos;t received your payment yet.</p>
           <p className="mb-3 text-sm">If you just paid, give it a minute and refresh. We hold your items and cancel unpaid orders after 24 hours{o.expires_at ? ` (${fmtDateTime(o.expires_at)})` : ''}.</p>
           <ResumePayment number={o.number} token={o.token} totalKobo={o.total_kobo} /></div>

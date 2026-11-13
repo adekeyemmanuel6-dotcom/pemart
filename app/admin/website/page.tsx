@@ -31,6 +31,15 @@ export default async function WebsiteAdminPage() {
           </Link>
         }
       />
+      {settings.website_revision === undefined && (
+        <div role="alert" className="mb-5 rounded-lg border border-ember bg-ember/15 p-4 text-sm">
+          <p className="font-semibold">Publishing is not available yet</p>
+          <p className="mt-1">
+            The live database is missing update <code className="font-mono">0014_wear_the_word.sql</code>, so changes made here cannot be saved to the
+            storefront. Apply that update in Supabase (see <code className="font-mono">MIGRATION-REVIEW.md</code>), then publish again.
+          </p>
+        </div>
+      )}
       <WebsiteEditor initial={content} revision={settings.website_revision ?? 0} products={products} automaticMenu={automaticMenu} />
       {history && <div className="mt-8"><WebsiteHistory history={history} revision={settings.website_revision ?? 0} /></div>}
       <div className="my-8 grid gap-4 sm:grid-cols-3">

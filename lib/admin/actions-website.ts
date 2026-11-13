@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { websiteSchema } from '@/lib/website/schema';
-import { adm, requireAdmin } from './db';
+import { adm, isMissingFunction, requireAdmin } from './db';
 
 export async function publishWebsite(
   content: unknown,
@@ -31,6 +31,12 @@ export async function publishWebsite(
   } catch (e) {
     if (typeof e === 'object' && e && 'digest' in e) throw e;
     const message = e instanceof Error ? e.message : '';
+    if (isMissingFunction(e))
+      return {
+        ok: false,
+        message:
+          'Publishing is switched off until the database update 0014 has been applied (supabase/migrations/0014_wear_the_word.sql). Your changes are still in this editor.',
+      };
     return {
       ok: false,
       message: message.includes('website_conflict')

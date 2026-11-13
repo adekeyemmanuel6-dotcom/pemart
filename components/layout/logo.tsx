@@ -1,33 +1,33 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-/** Uses the logo uploaded in admin when present; otherwise a typographic wordmark. */
+export const DEFAULT_LOGO = { light: '/brand/wear-the-word-logo-black.png', dark: '/brand/wear-the-word-logo-white.png' } as const;
+
+/**
+ * The brand logo. `on` is the background it sits on: the black logo on light backgrounds, the white one on dark.
+ * Either can be replaced in Website editor → Brand; the built-in Wear The Word logos are the default.
+ */
 export function Logo({
-  logoUrl,
+  on = 'light',
+  src,
   name = 'Wear The Word',
-  byline = 'BY PEMART GLOBAL',
+  className = 'h-12 w-auto sm:h-14',
+  link = true,
+  priority = false,
 }: {
-  logoUrl: string | null;
+  on?: 'light' | 'dark';
+  src?: string | null;
   name?: string;
-  byline?: string;
+  className?: string;
+  link?: boolean;
+  priority?: boolean;
 }) {
-  return (
-    <Link href="/" aria-label={`${name} home`} className="inline-flex items-center">
-      {logoUrl ? (
-        <Image
-          src={logoUrl}
-          alt={name}
-          width={160}
-          height={64}
-          className="h-12 w-auto max-w-40 object-contain"
-          priority
-        />
-      ) : (
-        <span className="flex flex-col">
-          <span className="display text-xl leading-none tracking-tight sm:text-2xl">{name}</span>
-          <span className="mt-1 text-[9px] font-semibold tracking-[.22em]">{byline}</span>
-        </span>
-      )}
-    </Link>
+  const img = (
+    <Image src={src || DEFAULT_LOGO[on]} alt={link ? '' : name} width={458} height={480} priority={priority} className={`${className} object-contain`} />
   );
+  return link ? (
+    <Link href="/" aria-label={`${name} home`} className="inline-flex items-center">
+      {img}
+    </Link>
+  ) : img;
 }

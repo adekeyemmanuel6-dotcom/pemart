@@ -5,6 +5,8 @@ import { EXISTING_PAGES, type WebsiteContent } from '@/lib/website/schema';
 import { WebsitePreview } from './website-preview';
 import { Field, ImageField, Move, reorder } from './editor-fields';
 import { MegaMenuEditor } from './mega-menu-editor';
+import { HeroEditor } from './hero-editor';
+import { SectionStyleEditor } from './section-style-editor';
 import type { NavPanel } from '@/lib/navigation';
 import { inputCls } from './ui';
 
@@ -152,7 +154,7 @@ export function WebsiteEditor({
                   >
                     {(key === 'palette' ? ['classic', 'earth', 'forest'] : ['condensed', 'sans', 'serif']).map((v) => (
                       <option key={v} value={v}>
-                        {v}
+                        {({ classic: 'Black, white and gold', earth: 'Earth', forest: 'Forest', condensed: 'Condensed (Anton)', sans: 'Sans serif', serif: 'Serif' } as Record<string, string>)[v]}
                       </option>
                     ))}
                   </select>
@@ -160,7 +162,7 @@ export function WebsiteEditor({
               ))}
               {(
                 Object.keys(content.brand).filter(
-                  (key) => !['palette', 'headingStyle'].includes(key),
+                  (key) => !['palette', 'headingStyle', 'logoOnLight', 'logoOnDark'].includes(key),
                 ) as (keyof WebsiteContent['brand'])[]
               ).map((key) => (
                 <Field
@@ -177,12 +179,33 @@ export function WebsiteEditor({
                       maintenanceMessage: 'Maintenance message',
                       palette: 'Colour palette',
                       headingStyle: 'Heading style',
+                      logoOnLight: 'Logo (light backgrounds)',
+                      logoOnDark: 'Logo (dark backgrounds)',
                     }[key]
                   }
                   value={content.brand[key]}
                   multiline={['footer', 'seoDescription', 'maintenanceMessage'].includes(key)}
                   onChange={(value) => update('brand', { ...content.brand, [key]: value })}
                 />
+              ))}
+              {([
+                ['logoOnLight', 'Logo on light backgrounds (header)', '/brand/wear-the-word-logo-black.png', 'bg-white'],
+                ['logoOnDark', 'Logo on dark backgrounds (footer, admin)', '/brand/wear-the-word-logo-white.png', 'bg-[#111]'],
+              ] as const).map(([key, label, fallback, bg]) => (
+                <div key={key} className="rounded-lg border border-line p-4 sm:col-span-2">
+                  <p className="font-semibold">{label}</p>
+                  <p className="text-sm text-muted">Leave empty to use the Wear The Word logo shown here. A transparent PNG works best.</p>
+                  <div className={`mt-3 inline-grid place-items-center rounded p-3 ${bg}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={content.brand[key] || fallback} alt="" className="h-16 w-auto" />
+                  </div>
+                  <div className="mt-3">
+                    <ImageField value={content.brand[key]} onChange={(v) => update('brand', { ...content.brand, [key]: v })} />
+                  </div>
+                  {content.brand[key] && (
+                    <button type="button" className="mt-2 min-h-11 rounded border px-3 text-sm" onClick={() => update('brand', { ...content.brand, [key]: '' })}>Use the Wear The Word logo</button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -218,6 +241,17 @@ export function WebsiteEditor({
                         onMove={(to) => update('sections', reorder(content.sections, i, to))}
                       />
                     </div>
+                    {s.id === 'hero' && (
+                      <HeroEditor
+                        value={s.hero}
+                        onChange={(hero) => update('sections', content.sections.map((x, j) => (j === i ? { ...x, hero } : x)))}
+                      />
+                    )}
+                    <SectionStyleEditor
+                      value={s.style}
+                      only={s.id === 'hero' && s.hero && s.hero.layout !== 'split' ? ['headingFont', 'headingCase', 'headingSize', 'bodyFont'] : s.id === 'manifesto' ? ['bodyFont'] : undefined}
+                      onChange={(style) => update('sections', content.sections.map((x, j) => (j === i ? { ...x, style } : x)))}
+                    />
                     <div className="grid gap-4 sm:grid-cols-2">
                       {(
                         [
@@ -238,7 +272,7 @@ export function WebsiteEditor({
                                 ? 'Button or link label'
                                 : key === 'href'
                                   ? 'Button or link destination'
-                                  : key
+                                  : ({ title: 'Heading', body: 'Text', secondaryText: 'Second button label', secondaryHref: 'Second button destination' } as Record<string, string>)[key] ?? key
                           }
                           value={s[key as keyof typeof s] as string}
                           multiline={key === 'body' || (s.id === 'manifesto' && key === 'title')}
@@ -251,6 +285,8 @@ export function WebsiteEditor({
                         />
                       ))}
                     </div>
+                    {!(s.id === 'hero' && s.hero && s.hero.layout !== 'split') && (
+                    <>
                     <ImageField
                       value={s.image}
                       onChange={(image) =>
@@ -270,6 +306,8 @@ export function WebsiteEditor({
                         )
                       }
                     />
+                    </>
+                    )}
                     {s.id === 'featured' && (
                       <div>
                         <p className="mb-2 text-sm">
