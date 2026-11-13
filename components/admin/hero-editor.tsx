@@ -57,7 +57,7 @@ function DeviceImages({ value, onChange, prefix }: { value: { desktop: string; l
         </div>
       ))}
       <div className="lg:col-span-3">
-        <Field label="Image description (for screen readers)" value={value.alt} onChange={(alt) => onChange({ alt })} />
+        <Field label="Image description for screen readers (optional: the heading is used if empty)" value={value.alt} onChange={(alt) => onChange({ alt })} />
       </div>
     </div>
   );
@@ -121,8 +121,8 @@ export function HeroEditor({ value, onChange }: { value: HeroSettings | undefine
               </div>
               <DeviceImages prefix="" value={sl} onChange={(p) => setSlide(i, p)} />
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Small heading on the banner (optional)" value={sl.kicker} onChange={(kicker) => setSlide(i, { kicker })} />
-                <Field label="Heading on the banner (optional)" value={sl.title} onChange={(title) => setSlide(i, { title })} />
+                <Field label="Small heading on the banner (optional, up to 120 characters)" value={sl.kicker} onChange={(kicker) => setSlide(i, { kicker })} />
+                <Field label="Heading on the banner (optional, up to 200 characters)" value={sl.title} onChange={(title) => setSlide(i, { title })} />
                 <Field label="Button text (optional)" value={sl.ctaText} onChange={(ctaText) => setSlide(i, { ctaText })} />
                 <Field label="Destination" value={sl.ctaHref} onChange={(ctaHref) => setSlide(i, { ctaHref })} />
               </div>

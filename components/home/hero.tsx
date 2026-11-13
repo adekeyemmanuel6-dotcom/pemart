@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DEFAULT_HERO, type WebsiteContent, type WebsiteSection } from '@/lib/website/schema';
+import { DEFAULT_HERO, bannerAlt, type WebsiteContent, type WebsiteSection } from '@/lib/website/schema';
 import { ArtPicture } from './art-picture';
 import { HeroSlider } from './hero-slider';
 import { sectionLook } from './section-look';
@@ -23,12 +23,12 @@ export function Hero({ section: s, brand }: { section: WebsiteSection; brand: We
         <HeroSlider
           autoplay={hero.autoplay}
           interval={hero.interval}
-          labels={slides.map((sl) => sl.title || sl.alt)}
+          labels={slides.map((sl, i) => bannerAlt(sl, `${brand.name} banner ${i + 1}`))}
           slides={slides.map((sl, i) => {
             const hasText = Boolean(sl.kicker || sl.title || sl.ctaText);
             const picture = (
               <div className="relative aspect-[4/5] md:aspect-[2/1] xl:aspect-[12/5]">
-                <ArtPicture desktop={sl.desktop} laptop={sl.laptop} phone={sl.phone} alt={sl.alt} priority={i === 0} />
+                <ArtPicture desktop={sl.desktop} laptop={sl.laptop} phone={sl.phone} alt={bannerAlt(sl, `${brand.name} banner ${i + 1}`)} priority={i === 0} />
                 {hasText && <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" aria-hidden />}
                 {hasText && (
                   <div className="absolute inset-x-0 bottom-16 px-6 text-white sm:px-12 xl:px-20">
@@ -45,7 +45,7 @@ export function Hero({ section: s, brand }: { section: WebsiteSection; brand: We
             );
             // A banner without its own button is still clickable when it has a destination.
             return !hasText && sl.ctaHref ? (
-              <Link href={sl.ctaHref} aria-label={sl.alt} className="block">{picture}</Link>
+              <Link href={sl.ctaHref} aria-label={bannerAlt(sl, `${brand.name} banner ${i + 1}`)} className="block">{picture}</Link>
             ) : picture;
           })}
         />
@@ -62,7 +62,7 @@ export function Hero({ section: s, brand }: { section: WebsiteSection; brand: We
         style={look.style}
         aria-labelledby="hero-title"
       >
-        {hasImage && <ArtPicture desktop={b.desktop} laptop={b.laptop} phone={b.phone} alt={b.alt} priority className="absolute inset-0 -z-10 size-full object-cover" />}
+        {hasImage && <ArtPicture desktop={b.desktop} laptop={b.laptop} phone={b.phone} alt={bannerAlt({ alt: b.alt, title: s.title, kicker: s.kicker }, brand.name)} priority className="absolute inset-0 -z-10 size-full object-cover" />}
         {hasImage && <div className="absolute inset-0 -z-10 bg-black" style={{ opacity: b.overlay / 100 }} aria-hidden />}
         <div className="mx-auto max-w-4xl text-center">
           {s.kicker && <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gold sm:text-sm">{s.kicker}</p>}

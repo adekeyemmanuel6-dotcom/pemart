@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { websiteSchema } from '@/lib/website/schema';
+import { describeIssue } from '@/lib/website/issues';
 import { adm, isMissingFunction, requirePerm } from './db';
 
 export async function publishWebsite(
@@ -12,10 +13,10 @@ export async function publishWebsite(
   if (!parsed.success)
     return {
       ok: false,
-      message: parsed.error.issues
-        .map((e) => `${e.path.join('.')}: ${e.message}`)
-        .slice(0, 3)
-        .join(' • '),
+      message: `Not published yet. Please fix: ${parsed.error.issues
+        .slice(0, 4)
+        .map((e) => describeIssue(e.path, e.message, content))
+        .join(' • ')}${parsed.error.issues.length > 4 ? ` (and ${parsed.error.issues.length - 4} more)` : ''}`,
     };
   if (!Number.isSafeInteger(revision) || revision < 0)
     return { ok: false, message: 'Reload the editor before publishing.' };
