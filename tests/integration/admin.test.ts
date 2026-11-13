@@ -7,7 +7,8 @@ process.env.PAYSTACK_SECRET_KEY = 'sk_test_admin';
 delete process.env.RESEND_API_KEY;
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-const details = (email = 'ada@example.com', name = 'Ada Obi') => ({ email, phone: '+2348031234567', isGift: false, address: { recipient: name, phone: '+2348031234567', line1: '12 Allen Avenue', city: 'Ikeja', state: 'Lagos' } });
+// Since 0014, delivery is priced from the delivery address (state + city), as in a real checkout.
+const details = (email = 'ada@example.com', name = 'Ada Obi', state = 'Lagos', city = 'Ikeja') => ({ email, phone: '+2348031234567', isGift: false, address: { recipient: name, phone: '+2348031234567', line1: '12 Allen Avenue', city, state } });
 
 describe.skipIf(!TEST_DB)('admin functions against real Postgres', () => {
   let svc: typeof import('@/lib/checkout/service');
@@ -106,7 +107,7 @@ describe.skipIf(!TEST_DB)('admin functions against real Postgres', () => {
   describe('orders', () => {
     it('search by number, name, email and phone; filters by status, zone, custom, promise dates; pagination; unpaid hidden by default', async () => {
       const a = await place([await tee()], details('ada@example.com', 'Ada Obi'));
-      const b = await place([await tee('SEEK-FIRST-TEE-BLACK-L')], details('tunde@example.com', 'Tunde Bello'), { state: 'Ogun' });
+      const b = await place([await tee('SEEK-FIRST-TEE-BLACK-L')], details('tunde@example.com', 'Tunde Bello', 'Ogun', 'Abeokuta'), { state: 'Ogun' });
       await place([await tee('SEEK-FIRST-TEE-BLACK-XL')], details('pending@example.com', 'Pending Person'), {}, false);
       const list = async (f: Json = {}) => (await ok('admin_orders_list', staff, f)) as { total: number; rows: Json[] };
       expect((await list()).total).toBe(2);
@@ -175,7 +176,7 @@ describe.skipIf(!TEST_DB)('admin functions against real Postgres', () => {
   describe('reports (admin)', () => {
     it('totals, by-day with zero days, bestsellers, bundles, zones, ambassadors and the date range', async () => {
       await place([await tee()], details(), { code: 'GRACE10' });
-      await place([await tee('SEEK-FIRST-TEE-BLACK-L')], details('b@example.com', 'Bola'), { state: 'Ogun' });
+      await place([await tee('SEEK-FIRST-TEE-BLACK-L')], details('b@example.com', 'Bola', 'Ogun', 'Abeokuta'), { state: 'Ogun' });
       const old = await place([await tee('SEEK-FIRST-TEE-BLACK-XL')], details('old@example.com', 'Old'));
       await q(`update public.orders set paid_at = now() - interval '20 days' where number=$1`, [old.number]);
       const today = new Date().toISOString().slice(0, 10), from = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
@@ -343,10 +344,12 @@ describe.skipIf(!TEST_DB)('admin functions against real Postgres', () => {
     });
     it('delivery zone fees and cutoffs are editable and used by pricing', async () => {
       const lagos = await one<{ id: string }>(`select id from public.delivery_zones where name='Lagos'`);
-      await ok('admin_save', admin, { table: 'delivery_zones', row: { id: lagos.id, fee_kobo: 400000, free_over_kobo: 5000000, christmas_cutoff_date: '2026-12-16' } });
-      const r = await svc.quoteCart({ lines: [await tee()], state: 'Lagos' } as never);
+      await ok('admin_save', admin, { table: 'delivery_zones', row: { id: lagos.id, fee_kobo: 400000, christmas_cutoff_date: '2026-12-16' } });
+      const r = await svc.quoteCart({ lines: [await tee()], state: 'Lagos', city: 'Ikeja' } as never);
       expect(r.deliveryFeeKobo).toBe(400000);
-      expect(r.freeDeliveryThresholdKobo).toBe(5000000);
+      // Since 0014 there is one store-wide free-delivery threshold (settings), not one per zone.
+      const { t } = await one<{ t: string }>(`select free_shipping_threshold_kobo t from public.settings where id`);
+      expect(r.freeDeliveryThresholdKobo).toBe(Number(t));
     });
   });
 });

@@ -1,10 +1,34 @@
 import type { Catalogue } from '@/lib/catalogue/types';
 import { isBundleAvailable } from '@/lib/catalogue/helpers';
-import type { WebsiteContent, WebsiteLink } from '@/lib/website/schema';
+import type { MegaMenu, WebsiteContent } from '@/lib/website/schema';
 
-export type NavColumn = { heading: string; links: WebsiteLink[] };
+export type Show = 'all' | 'desktop' | 'mobile';
+export type NavLink = { name: string; href: string; show?: Show };
+export type NavColumn = { heading: string; links: NavLink[] };
 export type NavFeature = { eyebrow: string; title: string; href: string; cta: string; image: string | null; imageAlt: string };
-export type NavPanel = { id: string; label: string; href: string; columns: NavColumn[]; feature?: NavFeature };
+export type NavPanel = { id: string; label: string; href: string; show?: Show; columns: NavColumn[]; feature?: NavFeature };
+
+/** Panels and links for one device; columns left empty by hidden links are dropped. */
+export function forDevice(panels: NavPanel[], device: 'desktop' | 'mobile'): NavPanel[] {
+  const visible = (s?: Show) => !s || s === 'all' || s === device;
+  return panels
+    .filter((p) => visible(p.show))
+    .map((p) => ({ ...p, columns: p.columns.map((c) => ({ ...c, links: c.links.filter((l) => visible(l.show)) })).filter((c) => c.links.length) }));
+}
+
+/** A menu published from the admin's mega menu builder. */
+export function fromMegaMenu(menu: MegaMenu): NavPanel[] {
+  return menu.panels.map((p) => ({
+    id: p.id,
+    label: p.label,
+    href: p.href,
+    show: p.show,
+    columns: p.columns,
+    feature: p.feature.enabled
+      ? { eyebrow: p.feature.eyebrow, title: p.feature.title, href: p.feature.href, cta: p.feature.cta, image: p.feature.image || null, imageAlt: p.feature.alt }
+      : undefined,
+  }));
+}
 
 const TYPE_LINKS: { type: string; href: string; name: string; group: 'clothing' | 'lifestyle' }[] = [
   { type: 'tee', href: '/collections/all?type=tee', name: 'Oversized Tees', group: 'clothing' },
@@ -19,6 +43,12 @@ const ACCESSORY_TYPES = new Set(['perfume', 'jewellery', 'bracelet', 'glasses', 
  * so no link lands on an empty page.
  */
 export function buildNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }): NavPanel[] {
+  if (content.megaMenu?.mode === 'custom' && content.megaMenu.panels.length) return fromMegaMenu(content.megaMenu);
+  return automaticNavigation(content, cat, hero);
+}
+
+/** The menu built from live catalogue data (the default, and the starting point offered in the builder). */
+export function automaticNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }): NavPanel[] {
   const products = cat?.products.filter((p) => p.is_active) ?? [];
   const has = (type: string) => products.some((p) => p.type === type);
   const bundles = (cat?.bundles ?? []).filter((b) => isBundleAvailable(b));
@@ -26,7 +56,7 @@ export function buildNavigation(content: WebsiteContent, cat: Catalogue | null, 
   const couples = bundles.filter((b) => b.kind === 'couple');
 
   const clothing = TYPE_LINKS.filter((t) => t.group === 'clothing' && has(t.type)).map(({ href, name }) => ({ href, name }));
-  const lifestyle: WebsiteLink[] = [
+  const lifestyle: NavLink[] = [
     ...(giftBoxes.length ? [{ href: '/gift-boxes', name: 'Gift Boxes' }] : []),
     ...TYPE_LINKS.filter((t) => t.group === 'lifestyle' && has(t.type)).map(({ href, name }) => ({ href, name })),
     ...(products.some((p) => ACCESSORY_TYPES.has(p.type)) ? [{ href: '/collections/accessories', name: 'Accessories' }] : []),

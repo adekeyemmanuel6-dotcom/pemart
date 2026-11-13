@@ -129,11 +129,11 @@ describe.skipIf(!TEST_DB)('checkout against real Postgres', () => {
     const live = await getCatalogue();
     const sel = bundleSelection('couples-christmas-box', { giftMessage: 'Merry Christmas!', giftWrap: true }, live);
     const s = await start([{ id: 'b', kind: 'bundle', refId: 'couples-christmas-box', quantity: 1, selection: sel }]);
-    expect(s.mode === 'pay' && s.totalKobo).toBe(8900000 + 200000);               // box + gift wrap; delivery is free over ₦75,000
+    expect(s.mode === 'pay' && s.totalKobo).toBe(8900000 + 200000 + 350000);      // box + gift wrap + Lagos delivery (free only from ₦200,000 since 0014)
     const o = await order(s.number);
     expect(o.has_bundle).toBe(true);
     expect((o.reservations as unknown[]).length).toBe(4);                          // 2 perfumes, couple bracelets, orb (tees are made to order)
-    await pay(s.mode === 'pay' ? s.reference : '', 9100000);
+    await pay(s.mode === 'pay' ? s.reference : '', 8900000 + 200000 + 350000);
     const item = await one<{ selections: { label: string }[]; kind: string; gift_message: string }>('select * from public.order_items where order_id = $1', [o.id]);
     expect(item.kind).toBe('bundle');
     expect(item.selections.length).toBe(6);

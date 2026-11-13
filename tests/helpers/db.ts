@@ -12,6 +12,7 @@ export async function reset() {
     update public.product_variants set stock_qty = 40 where sku like 'FAITH-BRACELET-%';
     alter sequence public.order_number_seq restart with 10001;
     truncate public.ambassadors, public.discount_codes, public.commissions, public.bulk_quotes, public.inventory_adjustments cascade;
+    do $$ begin if to_regclass('public.audit_log') is not null then truncate public.audit_log, public.website_revisions; end if; end $$;
     insert into public.ambassadors (name, email, code, commission_rate, payout_note) values ('Demo Ambassador', 'ambassador@example.com', 'GRACE10', 0.10, 'Demo only');
     insert into public.discount_codes (code, type, value) values ('PEMART10', 'percentage', 10);
     insert into public.discount_codes (code, type, value, ambassador_id) values ('GRACE10', 'percentage', 10, (select id from public.ambassadors where code = 'GRACE10'));

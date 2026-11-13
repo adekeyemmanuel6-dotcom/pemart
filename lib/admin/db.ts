@@ -33,3 +33,7 @@ export const friendlyError = (e: unknown) => {
   if (m === 'no_database') return 'The database is not connected.';
   return m.length < 120 ? m : 'Something went wrong.';
 };
+
+/** True when a database function this screen needs has not been created yet (its migration is not applied). */
+export const isMissingFunction = (e: unknown) =>
+  /could not find the function|function .* does not exist|schema cache/i.test(e instanceof AdminError ? e.code : String((e as Error)?.message ?? e));

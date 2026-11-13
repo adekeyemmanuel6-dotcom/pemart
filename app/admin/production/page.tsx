@@ -25,7 +25,7 @@ export default async function ProductionBoard() {
     <>
       <PageTitle title="Production" sub="Sorted by promised date. Red means due within 24 hours." />
       <ActionForm action={bulkStatusAction} hideSubmit>
-        <div className="sticky top-0 z-10 mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-line bg-paper p-3">
+        <div className="sticky top-14 z-10 mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-line bg-paper p-3">
           <div className="min-w-48 flex-1"><label htmlFor="to" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Move ticked orders to</label>
             <select id="to" name="to" className={inputCls} defaultValue="in_production">{['in_production', 'quality_check', 'packed', 'out_for_delivery', 'delivered', 'reprint'].map((s) => (<option key={s} value={s}>{STATUS_LABEL[s]}</option>))}</select></div>
           <button className="min-h-11 rounded-btn bg-ink px-5 text-sm font-semibold text-paper">Move selected</button>
