@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WEBSITE, heroSettingsSchema, websiteSchema } from '@/lib/website/schema';
+import { DEFAULT_WEBSITE, bannerAlt, heroSettingsSchema, websiteSchema } from '@/lib/website/schema';
 import { sectionLook } from '@/components/home/section-look';
 
 const hero = DEFAULT_WEBSITE.sections.find((s) => s.id === 'hero')!;
@@ -19,13 +19,13 @@ describe('hero styles', () => {
     expect(heroSettingsSchema.parse({ layout: 'banner' })).toMatchObject({ layout: 'banner', slides: [], autoplay: true, interval: 6, banner: { overlay: 45 } });
   });
 
-  it('slider needs 1–3 banners, each with a desktop image and a description', () => {
+  it('slider needs 1–3 banners, each with a desktop image (the description is optional)', () => {
     const ok = (h: unknown) => heroSettingsSchema.safeParse(h).success;
     expect(ok({ layout: 'slider', slides: [] })).toBe(false);
     expect(ok({ layout: 'slider', slides: [slide] })).toBe(true);
     expect(ok({ layout: 'slider', slides: [slide, slide, slide, slide] })).toBe(false);
     expect(ok({ layout: 'slider', slides: [{ ...slide, desktop: '' }] })).toBe(false);
-    expect(ok({ layout: 'slider', slides: [{ ...slide, alt: ' ' }] })).toBe(false);
+    expect(ok({ layout: 'slider', slides: [{ ...slide, alt: ' ' }] })).toBe(true);
     // Unfinished banners do not block publishing while another hero style is selected.
     expect(ok({ layout: 'split', slides: [{ ...slide, desktop: '', alt: '' }] })).toBe(true);
   });
@@ -37,8 +37,10 @@ describe('hero styles', () => {
     expect(ok({ phone: 'https://abc.supabase.co/storage/v1/object/public/catalogue/p.jpg' })).toBe(true);
   });
 
-  it('banner image needs a description', () => {
-    expect(heroSettingsSchema.safeParse({ layout: 'banner', banner: { desktop: img, laptop: '', phone: '', alt: '', overlay: 40 } }).success).toBe(false);
+  it('banner image description is optional (the heading is used for screen readers)', () => {
+    expect(heroSettingsSchema.safeParse({ layout: 'banner', banner: { desktop: img, laptop: '', phone: '', alt: '', overlay: 40 } }).success).toBe(true);
+    expect(bannerAlt({ alt: '', title: 'New season', kicker: 'Wear it' }, 'Wear The Word')).toBe('Wear it: New season');
+    expect(bannerAlt({ alt: '' }, 'Wear The Word banner 2')).toBe('Wear The Word banner 2');
   });
 });
 
