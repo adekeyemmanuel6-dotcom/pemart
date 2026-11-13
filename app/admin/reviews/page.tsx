@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Star } from 'lucide-react';
 import { ActionForm } from '@/components/admin/action-form';
 import { Card, Empty, PageTitle, fmtDate } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { Flash } from '@/components/admin/flash';
 import { moderateReviewAction } from '@/lib/admin/actions-ops';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Reviews' };
 type R = { id: string; status: string; rating: number; text: string | null; display_name: string | null; photo_urls: string[]; created_at: string; credit_issued: boolean; credit_pending: boolean; product: string; order_number: string | null };
 
 export default async function ReviewsPage({ searchParams }: { searchParams: Promise<{ status?: string; flash?: string; flashLink?: string; flashLabel?: string }> }) {
-  const me = await requireStaff('/admin/reviews');
+  const me = await requirePerm('reviews', '/admin/reviews');
   const sp = await searchParams; const { status = 'pending' } = sp;
   const reviews = await adm<R[]>('admin_reviews_list', me, { status: status === 'all' ? null : status });
   return (

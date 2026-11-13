@@ -7,6 +7,8 @@ import { Field, ImageField, Move, reorder } from './editor-fields';
 import { MegaMenuEditor } from './mega-menu-editor';
 import { HeroEditor } from './hero-editor';
 import { SectionStyleEditor } from './section-style-editor';
+import { AddSection, TemplateFields } from './template-section-fields';
+import { TEMPLATE_INFO } from '@/lib/website/templates';
 import type { NavPanel } from '@/lib/navigation';
 import { inputCls } from './ui';
 
@@ -15,11 +17,14 @@ export function WebsiteEditor({
   initial,
   revision: initialRevision,
   products,
+  collections = [],
   automaticMenu = [],
 }: {
   initial: WebsiteContent;
   revision: number;
   products: { id: string; name: string }[];
+  /** Catalogue collections, for product-grid sections. */
+  collections?: { slug: string; name: string }[];
   /** The menu the storefront builds from the live catalogue; offered as the starting point for a custom menu. */
   automaticMenu?: NavPanel[];
 }) {
@@ -217,7 +222,7 @@ export function WebsiteEditor({
               {content.sections.map((s, i) => (
                 <details key={s.id} className="rounded-lg border border-line p-4">
                   <summary className="cursor-pointer py-2 font-semibold">
-                    {String(i + 1).padStart(2, '0')} / {s.id} — {s.enabled ? s.title || 'Visible' : 'Hidden'}
+                    {String(i + 1).padStart(2, '0')} / {s.template ? `${TEMPLATE_INFO[s.template].label} (added)` : s.id} — {s.enabled ? s.title || 'Visible' : 'Hidden'}
                   </summary>
                   <div className="mt-4 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -246,6 +251,15 @@ export function WebsiteEditor({
                         value={s.hero}
                         onChange={(hero) => update('sections', content.sections.map((x, j) => (j === i ? { ...x, hero } : x)))}
                       />
+                    )}
+                    {s.template && (
+                      <div className="space-y-3 rounded-md border border-line p-3">
+                        <TemplateFields s={s} collections={collections} onChange={(patch) => update('sections', content.sections.map((x, j) => (j === i ? { ...x, ...patch } : x)))} />
+                        <button type="button" className="min-h-11 rounded border px-3 text-sm text-ember"
+                          onClick={() => { if (window.confirm('Delete this section? You can undo by discarding changes before publishing.')) update('sections', content.sections.filter((_, j) => j !== i)); }}>
+                          Delete this section
+                        </button>
+                      </div>
                     )}
                     <SectionStyleEditor
                       value={s.style}
@@ -285,7 +299,7 @@ export function WebsiteEditor({
                         />
                       ))}
                     </div>
-                    {!(s.id === 'hero' && s.hero && s.hero.layout !== 'split') && (
+                    {!(s.id === 'hero' && s.hero && s.hero.layout !== 'split') && !(s.template && !['image_text', 'banner'].includes(s.template)) && (
                     <>
                     <ImageField
                       value={s.image}
@@ -360,6 +374,7 @@ export function WebsiteEditor({
                   </div>
                 </details>
               ))}
+              <AddSection count={content.sections.filter((x) => x.template).length} onAdd={(sec) => update('sections', [...content.sections, sec])} />
             </>
           )}
           {tab === 'Mega menu' && (

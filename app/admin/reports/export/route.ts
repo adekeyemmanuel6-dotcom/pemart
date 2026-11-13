@@ -1,4 +1,4 @@
-import { adm, requireAdmin } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { csvResponse, toCsv } from '@/lib/admin/csv';
 
 export const dynamic = 'force-dynamic';
@@ -6,7 +6,7 @@ const naira = (k: number) => (k / 100).toFixed(2);
 
 /** CSV downloads for each report. Admin only (checked here, and in the database function). */
 export async function GET(request: Request) {
-  const me = await requireAdmin('/admin/reports');
+  const me = await requirePerm('reports', '/admin/reports');
   const sp = new URL(request.url).searchParams;
   const ok = (s: string | null) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
   const from = ok(sp.get('from')), to = ok(sp.get('to'));

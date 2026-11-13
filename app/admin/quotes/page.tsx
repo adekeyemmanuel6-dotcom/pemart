@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ActionForm } from '@/components/admin/action-form';
 import { Card, Empty, PageTitle, fmtDate, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { Flash } from '@/components/admin/flash';
 import { quoteToOrderAction, updateQuoteAction } from '@/lib/admin/actions-ops';
 import { getCatalogue } from '@/lib/catalogue/load';
@@ -13,7 +13,7 @@ const COLS: { s: Quote['status']; t: string }[] = [{ s: 'new', t: 'New' }, { s: 
 
 export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ flash?: string; flashLink?: string; flashLabel?: string }> }) {
   const sp = await searchParams;
-  const me = await requireStaff('/admin/quotes');
+  const me = await requirePerm('orders', '/admin/quotes');
   const [quotes, cat] = await Promise.all([adm<Quote[]>('admin_quotes_list', me), getCatalogue()]);
   const states = cat.zones.flatMap((z) => z.states).sort((a, b) => a.localeCompare(b));
   return (

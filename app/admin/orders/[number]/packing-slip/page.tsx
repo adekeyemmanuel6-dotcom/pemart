@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { PrintButton } from '@/components/admin/print-button';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { fmtDate } from '@/components/admin/ui';
 
 export const metadata = { title: 'Packing slip', robots: { index: false } };
@@ -9,7 +9,7 @@ type Sel = { label: string; productName: string; colour?: string; size?: string;
 /** A clean, light page meant for printing. No prices: it goes in the box. */
 export default async function PackingSlip({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
-  const me = await requireStaff(`/admin/orders/${number}`);
+  const me = await requirePerm(['orders', 'fulfilment'], `/admin/orders/${number}`);
   const o = await adm<{ number: string; created_at: string; promised_by: string | null; is_gift: boolean; gift_message: string | null; address: { recipient: string; phone: string; line1: string; area?: string; city: string; state: string }; items: { id: string; name: string; quantity: number; options: Record<string, string>; selections: Sel[] | null; gift_message: string | null; kind: string }[]; gift_wrap_kobo: number } | null>('admin_order_get', me, { number });
   if (!o) notFound();
   return (

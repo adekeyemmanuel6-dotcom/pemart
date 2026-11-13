@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Bars, LineChart } from '@/components/admin/line-chart';
 import { Card, DataTable, PageTitle, Stat, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireAdmin } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { lagosDay } from '@/lib/admin/dates';
 import { formatNaira } from '@/lib/money';
 
@@ -12,7 +12,7 @@ type Rep = { totals: { orders: number; revenue: number; aov: number }; by_day: {
 const valid = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined);
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
-  const me = await requireAdmin('/admin/reports');
+  const me = await requirePerm('reports', '/admin/reports');
   const sp = await searchParams;
   let from = valid(sp.from) ?? lagosDay(-29), to = valid(sp.to) ?? lagosDay(0);
   if (from > to) [from, to] = [to, from];

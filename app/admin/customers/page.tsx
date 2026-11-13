@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { DataTable, Empty, PageTitle, fmtDate, inputCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { formatNaira } from '@/lib/money';
 
 export const metadata: Metadata = { title: 'Customers' };
 type C = { email: string; name: string | null; phone: string | null; orders: number; spend: number; last_order: string | null; store_credit_kobo: number; has_account: boolean };
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
-  const me = await requireStaff('/admin/customers');
+  const me = await requirePerm('customers', '/admin/customers');
   const { q, page: pg } = await searchParams; const page = Math.max(1, Number(pg) || 1);
   const r = await adm<{ total: number; per_page: number; rows: C[] }>('admin_customers_list', me, { q, page, per_page: 25 });
   const pages = Math.max(1, Math.ceil(r.total / r.per_page));

@@ -13,6 +13,9 @@ export async function reset() {
     alter sequence public.order_number_seq restart with 10001;
     truncate public.ambassadors, public.discount_codes, public.commissions, public.bulk_quotes, public.inventory_adjustments cascade;
     do $$ begin if to_regclass('public.audit_log') is not null then truncate public.audit_log, public.website_revisions; end if; end $$;
+    do $$ begin if to_regclass('public.payment_events') is not null then truncate public.payment_events; end if; end $$;
+    do $$ begin if to_regclass('public.media_assets') is not null then delete from public.media_assets where url like '/uploads/test-%'; end if; end $$;
+    delete from public.products where slug like 'csv-%';
     do $$ begin if exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'crypto_wallets') then
       update public.settings set crypto_enabled = false, crypto_wallets = '[]'::jsonb, crypto_instructions = null, crypto_window_hours = 48; end if; end $$;
     insert into public.ambassadors (name, email, code, commission_rate, payout_note) values ('Demo Ambassador', 'ambassador@example.com', 'GRACE10', 0.10, 'Demo only');

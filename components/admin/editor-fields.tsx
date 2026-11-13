@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useRef } from 'react';
 import { AdminUploader } from './admin-uploader';
+import { MediaPickerButton } from './media-library';
 import { inputCls } from './ui';
 
 export function Field({
@@ -61,7 +62,8 @@ export function ImageField({ value, onChange }: { value: string; onChange: (s: s
         initial={value}
         onDone={(v) => latestChange.current(v.url)}
       />
-      <Field label="Image URL (or upload above)" value={value} onChange={onChange} />
+      <MediaPickerButton onPick={(url) => latestChange.current(url)} />
+      <Field label="Image URL (or upload / choose above)" value={value} onChange={onChange} />
       {value && (
         <button type="button" onClick={() => onChange('')} className="min-h-11 text-sm underline">
           Remove image

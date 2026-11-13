@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_WEBSITE, imageHref, resolveWebsite, safeHref, websiteSchema } from '@/lib/website/schema';
 const auth = vi.hoisted(() => ({
-  requireAdmin: vi.fn(),
+  requirePerm: vi.fn(),
   adm: vi.fn(),
   isMissingFunction: (e: unknown) => /function .* does not exist|could not find the function/i.test(String((e as { message?: string })?.message ?? e)),
 }));
@@ -94,7 +94,7 @@ describe('website content contract', () => {
 describe('website publishing action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    auth.requireAdmin.mockResolvedValue({ id: 'verified-actor', role: 'admin' });
+    auth.requirePerm.mockResolvedValue({ id: 'verified-actor', role: 'admin' });
     auth.adm.mockResolvedValue({ revision: 3 });
   });
   it('uses the verified actor, preserves other settings and invalidates the storefront after saving', async () => {
@@ -116,7 +116,7 @@ describe('website publishing action', () => {
     expect(auth.adm).not.toHaveBeenCalled();
   });
   it('never reaches the database for a rejected admin session', async () => {
-    auth.requireAdmin.mockRejectedValue(new Error('forbidden'));
+    auth.requirePerm.mockRejectedValue(new Error('forbidden'));
     await expect(publishWebsite(fresh(), 0)).rejects.toThrow('forbidden');
     expect(auth.adm).not.toHaveBeenCalled();
   });

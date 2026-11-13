@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ActionForm } from '@/components/admin/action-form';
 import { Card, DataTable, PageTitle, fmtDate, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireAdmin } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { createAmbassadorAction, payCommissionAction, saveDiscountAction, toggleAmbassadorAction } from '@/lib/admin/actions-admin';
 import { formatNaira } from '@/lib/money';
 
@@ -10,7 +10,7 @@ type Code = { id: string; code: string; type: 'percentage' | 'fixed'; value: num
 type Amb = { id: string; name: string; code: string; phone: string | null; email: string | null; commission_rate: number; is_active: boolean; payout_note: string | null; orders: number; sales_kobo: number; owed_kobo: number; paid_kobo: number };
 
 export default async function DiscountsPage() {
-  const me = await requireAdmin('/admin/discounts');
+  const me = await requirePerm('marketing', '/admin/discounts');
   const { codes, ambassadors } = await adm<{ codes: Code[]; ambassadors: Amb[] }>('admin_discounts_list', me);
   const plain = codes.filter((c) => !c.ambassador_id);
   return (

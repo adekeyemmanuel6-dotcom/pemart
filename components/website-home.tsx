@@ -11,7 +11,8 @@ import { PageBody } from '@/components/website-page';
 import { WORD_THEMES, brandProducts } from '@/lib/brand';
 import { bundleSeparateTotal, isBundleAvailable, sortCards, toCard } from '@/lib/catalogue/helpers';
 import type { Catalogue } from '@/lib/catalogue/types';
-import type { WebsiteContent, WebsiteSection } from '@/lib/website/schema';
+import { isCustomSection, type WebsiteContent, type WebsiteSection } from '@/lib/website/schema';
+import { CustomSection } from '@/components/home/custom-section';
 
 function Photo({ section: s }: { section: WebsiteSection }) {
   return s.image ? (
@@ -53,6 +54,7 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
         .filter((s) => s.enabled)
         .map((s) => {
           if (s.id === 'hero') return <Hero key={s.id} section={s} brand={content.brand} />;
+          if (isCustomSection(s.id)) return <CustomSection key={s.id} section={s} cat={cat} />;
           if (s.id === 'manifesto')
             return (
               <div key={s.id} className="wtw-manifesto-strip">

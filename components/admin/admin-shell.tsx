@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Activity, BarChart3, BookOpen, ChevronRight, ClipboardList, Factory, Gift, Globe, HelpCircle, LayoutDashboard,
   Menu, MessageSquareQuote, PanelLeftClose, PanelLeftOpen, Percent, Search, Settings, ShieldCheck, Star, Users, UsersRound,
+  Images, CreditCard,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { breadcrumbs, type NavGroup, type NavIcon } from '@/lib/admin/nav';
@@ -14,7 +15,7 @@ import { breadcrumbs, type NavGroup, type NavIcon } from '@/lib/admin/nav';
 const ICONS: Record<NavIcon, typeof Activity> = {
   overview: LayoutDashboard, orders: ClipboardList, production: Factory, proofs: MessageSquareQuote, quotes: BookOpen,
   customers: Users, catalogue: Gift, website: Globe, discounts: Percent, reviews: Star, reports: BarChart3,
-  activity: Activity, settings: Settings, team: UsersRound, help: HelpCircle,
+  activity: Activity, settings: Settings, team: UsersRound, help: HelpCircle, media: Images, payments: CreditCard,
 };
 const STORE_KEY = 'pemart-admin-sidebar';
 
@@ -54,7 +55,7 @@ function NavList({ groups, collapsed, onNavigate }: { groups: NavGroup[]; collap
   );
 }
 
-function AccountMenu({ email, role }: { email: string | null; role: string }) {
+function AccountMenu({ email, roleLabel }: { email: string | null; roleLabel: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -78,7 +79,7 @@ function AccountMenu({ email, role }: { email: string | null; role: string }) {
         <div role="menu" className="absolute right-0 top-full z-40 mt-1 w-64 rounded-md border border-line bg-paper p-2 shadow-xl">
           <div className="border-b border-line px-3 pb-3 pt-2">
             <p className="truncate text-sm font-semibold">{email}</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted"><ShieldCheck className="size-3.5" aria-hidden />{role === 'admin' ? 'Admin' : 'Staff'} · two-factor on</p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted"><ShieldCheck className="size-3.5" aria-hidden />{roleLabel} · two-factor on</p>
           </div>
           <Link role="menuitem" href="/" className="flex min-h-11 items-center rounded px-3 text-sm hover:bg-sand">View store</Link>
           <Link role="menuitem" href="/account" className="flex min-h-11 items-center rounded px-3 text-sm hover:bg-sand">My account</Link>
@@ -95,7 +96,7 @@ function AccountMenu({ email, role }: { email: string | null; role: string }) {
  * Admin chrome: grouped sidebar (collapsible on desktop, a drawer on phones and tablets), a top bar with
  * breadcrumbs, global search and the account menu.
  */
-export function AdminShell({ groups, email, role, children }: { groups: NavGroup[]; email: string | null; role: string; children: ReactNode }) {
+export function AdminShell({ groups, email, roleLabel, children }: { groups: NavGroup[]; email: string | null; role: string; roleLabel: string; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const path = usePathname() ?? '/admin';
@@ -147,7 +148,7 @@ export function AdminShell({ groups, email, role, children }: { groups: NavGroup
                 className="min-h-10 w-full rounded-md border border-line bg-sand/60 pl-9 pr-3 text-sm placeholder:text-muted" />
             </div>
           </form>
-          <AccountMenu email={email} role={role} />
+          <AccountMenu email={email} roleLabel={roleLabel} />
         </header>
         <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-16 sm:px-6">{children}</main>
       </div>

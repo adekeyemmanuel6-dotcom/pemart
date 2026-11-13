@@ -3,12 +3,17 @@ import path from 'node:path';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPrivilegedProfile } from '@/lib/auth';
+import { getAccess } from '@/lib/admin/db';
+import { can, type Permission } from '@/lib/admin/permissions';
 import { dbMode } from '@/lib/db';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 import { rateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-const BUCKETS = { proofs: { name: 'proofs', roles: ['staff', 'admin'], ext: ['png', 'jpg', 'jpeg', 'pdf', 'webp'] }, catalogue: { name: 'product-images', roles: ['admin'], ext: ['png', 'jpg', 'jpeg', 'webp', 'svg'] } } as const;
+const BUCKETS = {
+  proofs: { name: 'proofs', perms: ['fulfilment', 'orders'] as Permission[], ext: ['png', 'jpg', 'jpeg', 'pdf', 'webp'] },
+  catalogue: { name: 'product-images', perms: ['catalogue', 'content'] as Permission[], ext: ['png', 'jpg', 'jpeg', 'webp', 'svg'] },
+} as const;
 const schema = z.object({ bucket: z.enum(['proofs', 'catalogue']), filename: z.string().min(1).max(120), size: z.number().int().positive().max(20 * 1024 * 1024) });
 
 /**
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 });
   const b = BUCKETS[parsed.data.bucket];
-  if (!(b.roles as readonly string[]).includes(me.role)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!can(await getAccess(me), b.perms)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const ext = parsed.data.filename.split('.').pop()?.toLowerCase() ?? '';
   if (!(b.ext as readonly string[]).includes(ext)) return NextResponse.json({ error: 'type', message: `Allowed: ${b.ext.join(', ')}` }, { status: 415 });
   const safe = parsed.data.filename.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80);

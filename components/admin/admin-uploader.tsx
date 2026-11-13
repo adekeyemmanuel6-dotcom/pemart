@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { registerMedia } from '@/lib/admin/actions-media';
 
 /** Upload one file for staff/admin. Puts the resulting path (proofs) or public URL (catalogue/logo) into a hidden input named `name`. */
 export function AdminUploader({
@@ -56,6 +57,10 @@ export function AdminUploader({
       const v = bucket === 'proofs' ? j.path : j.publicUrl;
       setValue(v);
       setStatus(`Uploaded: ${file.name}`);
+      if (bucket === 'catalogue' && j.publicUrl) {
+        // Add it to the media library so it can be reused (never blocks the upload).
+        registerMedia({ url: j.publicUrl, path: j.path, filename: file.name.slice(0, 200), size: file.size, mime: file.type.slice(0, 80) }).catch(() => {});
+      }
       onDone?.({ url: j.publicUrl ?? j.path, path: j.path });
     } catch {
       setStatus('Network problem. Please try again.');

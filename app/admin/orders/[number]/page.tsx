@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/admin/action-form';
 import { Card, StatusBadge, fmtDate, inputCls, labelCls } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { confirmCryptoAction } from '@/lib/admin/actions-crypto';
 import type { CryptoOrderView } from '@/lib/crypto-pay';
 import { changeStatusAction, recordRefundAction, saveNoteAction } from '@/lib/admin/actions-ops';
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 
 export default async function OrderDetail({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
-  const me = await requireStaff(`/admin/orders/${number}`);
+  const me = await requirePerm(['orders', 'fulfilment'], `/admin/orders/${number}`);
   const o = await adm<Order | null>('admin_order_get', me, { number });
   // Crypto details exist only after migration 0018; before that (or for Paystack orders) this is null.
   const crypto = o ? await adm<CryptoOrderView | null>('admin_crypto_get', me, { order_id: o.id }).catch(() => null) : null;

@@ -1,13 +1,13 @@
 'use server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { websiteSchema } from '@/lib/website/schema';
-import { adm, isMissingFunction, requireAdmin } from './db';
+import { adm, isMissingFunction, requirePerm } from './db';
 
 export async function publishWebsite(
   content: unknown,
   revision: number,
 ): Promise<{ ok: boolean; message: string; revision?: number }> {
-  const me = await requireAdmin('/admin/website');
+  const me = await requirePerm('content', '/admin/website');
   const parsed = websiteSchema.safeParse(content);
   if (!parsed.success)
     return {

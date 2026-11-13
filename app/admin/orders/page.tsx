@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { OrderFilters } from '@/components/admin/order-filters';
 import { DataTable, Empty, PageTitle, StatusBadge, fmtDate } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, requirePerm } from '@/lib/admin/db';
 import { getCatalogue } from '@/lib/catalogue/load';
 import { formatNaira } from '@/lib/money';
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Orders' };
 type Row = { id: string; number: string; status: string; created_at: string; paid_at: string | null; promised_by: string | null; total_kobo: number; email: string; phone: string; recipient: string; zone: string | null; has_custom: boolean; has_bundle: boolean; express: boolean; at_risk: boolean; items: string[] };
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const me = await requireStaff('/admin/orders');
+  const me = await requirePerm(['orders', 'fulfilment'], '/admin/orders');
   const sp = await searchParams;
   const s = (k: string) => (typeof sp[k] === 'string' && sp[k] !== '' ? (sp[k] as string) : undefined);
   const page = Math.max(1, Number(s('page')) || 1);

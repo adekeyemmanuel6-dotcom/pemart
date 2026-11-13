@@ -88,8 +88,16 @@ export type HeroSettings = z.infer<typeof heroSettingsSchema>;
 export type HeroSlide = HeroSettings['slides'][number];
 export const DEFAULT_HERO: HeroSettings = heroSettingsSchema.parse({});
 
+// ---- Sections added from templates (Website editor → Homepage → Add a section).
+export const SECTION_TEMPLATES = ['text', 'image_text', 'banner', 'cta', 'products', 'faq', 'quote'] as const;
+export type SectionTemplate = (typeof SECTION_TEMPLATES)[number];
+export const CUSTOM_ID = /^custom-[a-z0-9]{3,16}$/;
+export const MAX_CUSTOM_SECTIONS = 12;
+const sectionId = z.union([z.enum(SECTION_IDS), z.string().regex(CUSTOM_ID)]);
+export const isCustomSection = (id: string) => CUSTOM_ID.test(id);
+
 const section = z.object({
-  id: z.enum(SECTION_IDS),
+  id: sectionId,
   enabled: z.boolean(),
   title: text,
   kicker: text,
@@ -102,6 +110,12 @@ const section = z.object({
   alt: text,
   style: sectionStyleSchema.optional(),
   hero: heroSettingsSchema.optional(),
+  // Only for sections added from a template.
+  template: z.enum(SECTION_TEMPLATES).optional(),
+  imageSide: z.enum(['left', 'right']).optional(),
+  items: z.array(z.object({ title: text.min(1).max(200), body: z.string().trim().max(2000) })).max(12).optional(),
+  collection: z.string().trim().max(80).regex(/^[a-z0-9-]*$/).optional(),
+  limit: z.number().int().min(2).max(12).optional(),
 });
 const page = z.object({
   slug: z
@@ -189,8 +203,10 @@ export const websiteSchema = z
     }),
     sections: z
       .array(section)
-      .length(SECTION_IDS.length)
-      .refine((a) => new Set(a.map((s) => s.id)).size === SECTION_IDS.length, 'Each homepage section must appear once.')
+      .max(SECTION_IDS.length + MAX_CUSTOM_SECTIONS, `Up to ${MAX_CUSTOM_SECTIONS} added sections.`)
+      .refine((a) => SECTION_IDS.every((id) => a.filter((s) => s.id === id).length === 1), 'Each built-in homepage section must appear once.')
+      .refine((a) => new Set(a.map((s) => s.id)).size === a.length, 'Each section needs a different ID.')
+      .refine((a) => a.every((s) => !isCustomSection(s.id) || s.template), 'Added sections need a template.')
       .refine((a) => a.some((s) => s.id === 'hero' && s.enabled), 'Keep the homepage hero enabled.'),
     collections: z
       .array(

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Card, Empty, Stat, StatusBadge, fmtDate } from '@/components/admin/ui';
-import { adm, requireStaff } from '@/lib/admin/db';
+import { adm, getAccess, requireStaff } from '@/lib/admin/db';
+import { can, presetLabel } from '@/lib/admin/permissions';
+import { navFor } from '@/lib/admin/nav';
 import { formatNaira } from '@/lib/money';
 
 type Overview = {
@@ -35,6 +37,8 @@ type Overview = {
 
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const me = await requireStaff('/admin');
+  const access = (await getAccess(me))!;
+  const ops = can(access, ['orders', 'fulfilment']);
   const sp = await searchParams;
   const o = await adm<Overview>('admin_overview', me);
   const r = o.revenue;
@@ -43,10 +47,10 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       <div className="mb-5 mt-6">
         <h1 className="display text-4xl sm:text-5xl">Overview</h1>
         <p className="mt-1 text-sm text-muted">
-          Signed in as <strong className="text-ink">{me.role}</strong>.
+          Signed in as <strong className="text-ink">{presetLabel(access)}</strong>.
         </p>
       </div>
-      {me.role === 'admin' && (
+      {can(access, 'content') && (
         <Link href="/admin/website" className="mb-5 block rounded-lg border border-line bg-sand/40 p-5">
           <h2 className="display text-2xl">Edit your website →</h2>
           <p className="mt-2 text-sm text-muted">
@@ -56,7 +60,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       )}
       {sp.denied && (
         <p role="alert" className="mb-4 rounded-lg border border-ember bg-ember/15 p-3 text-sm font-semibold">
-          That area is for admins only.
+          You do not have access to that area. Ask the store owner if you need it.
         </p>
       )}
 
@@ -71,12 +75,13 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
           <Stat label="Checkout to paid (7 days)" value={`${r.conversion}%`} />
           <Stat label="Started / paid" value={`${r.checkouts_started} / ${r.checkouts_paid}`} />
         </section>
-      ) : (
+      ) : ops ? (
         <p className="mb-6 rounded-lg border border-line bg-sand/40 p-3 text-sm text-muted">
           Sales figures are visible to admins. Your dashboard shows what needs doing.
         </p>
-      )}
+      ) : null}
 
+      {ops && (<>
       <section aria-label="Needs attention" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat
           label="Due in 48 hours"
@@ -151,7 +156,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
               ))}
             </ul>
           )}
-          {me.role === 'admin' && (
+          {can(access, 'catalogue') && (
             <Link
               href="/admin/catalogue"
               className="mt-3 inline-block text-sm font-semibold underline underline-offset-4"
@@ -161,6 +166,14 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
           )}
         </Card>
       </div>
+      </>)}
+      {!ops && (
+        <section aria-label="Your areas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {navFor(access).flatMap((g) => g.items).filter((i) => i.href !== '/admin' && i.href !== '/admin/help').map((i) => (
+            <Link key={i.href} href={i.href} className="rounded-lg border border-line p-5 font-semibold hover:border-gold">{i.label} →</Link>
+          ))}
+        </section>
+      )}
     </>
   );
 }
