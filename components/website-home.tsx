@@ -5,7 +5,8 @@ import { ProductCard } from '@/components/product/product-card';
 import { BundleCard } from '@/components/product/bundle-card';
 import { CollectionEditorial } from '@/components/collection-editorial';
 import { NewsletterForm } from '@/components/layout/newsletter-form';
-import { Button } from '@/components/ui/button';
+import { Hero } from '@/components/home/hero';
+import { sectionLook } from '@/components/home/section-look';
 import { PageBody } from '@/components/website-page';
 import { WORD_THEMES, brandProducts } from '@/lib/brand';
 import { bundleSeparateTotal, isBundleAvailable, sortCards, toCard } from '@/lib/catalogue/helpers';
@@ -51,62 +52,7 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
       {content.sections
         .filter((s) => s.enabled)
         .map((s) => {
-          if (s.id === 'hero')
-            return (
-              <section key={s.id} className="wtw-hero" aria-labelledby="hero-title">
-                <div className="wtw-hero-copy">
-                  <p className="wtw-eyebrow">
-                    <span className="wtw-dot" />
-                    {s.kicker}
-                  </p>
-                  <h1 id="hero-title" className="display whitespace-pre-line">
-                    {s.title}
-                  </h1>
-                  <p className="max-w-md whitespace-pre-line text-base leading-relaxed text-muted sm:text-lg">
-                    {s.body}
-                  </p>
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    {s.linkText && (
-                      <Button asChild>
-                        <Link href={s.href}>
-                          {s.linkText}
-                          <ArrowUpRight size={18} aria-hidden />
-                        </Link>
-                      </Button>
-                    )}
-                    {s.secondaryText && (
-                      <Button asChild variant="secondary">
-                        <Link href={s.secondaryHref}>{s.secondaryText}</Link>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="wtw-hero-image">
-                  {s.image ? (
-                    <Image
-                      src={s.image}
-                      alt={s.alt || content.brand.name}
-                      fill
-                      sizes="(min-width:1024px) 55vw, 100vw"
-                      priority
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="wtw-campaign-placeholder">
-                      <span className="wtw-eyebrow">{content.brand.name}</span>
-                      <span className="wtw-campaign-type" aria-hidden>
-                        THE
-                        <br />
-                        WORD.
-                        <br />
-                        <span>WORN.</span>
-                      </span>
-                      <span className="wtw-placeholder-note">Campaign photograph to be supplied</span>
-                    </div>
-                  )}
-                </div>
-              </section>
-            );
+          if (s.id === 'hero') return <Hero key={s.id} section={s} brand={content.brand} />;
           if (s.id === 'manifesto')
             return (
               <div key={s.id} className="wtw-manifesto-strip">
@@ -116,16 +62,19 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
               </div>
             );
           if (s.id === 'story' && (!story || !storyProduct)) return null;
-          const dark = s.id === 'philosophy' || s.id === 'bulk';
+          const look = sectionLook(s);
+          const dark = look.dark;
+          const bgChosen = Boolean(s.style && s.style.background !== 'default');
           return (
             <section
               key={s.id}
-              className={
-                dark ? 'wtw-philosophy' : s.id === 'together' ? 'wtw-together' : s.id === 'gifts' ? 'bg-sand' : ''
-              }
+              className={`${look.className} ${
+                dark && !bgChosen ? 'wtw-philosophy' : s.id === 'together' ? 'wtw-together' : s.id === 'gifts' && !bgChosen ? 'bg-sand' : ''
+              }`}
+              style={look.style}
               aria-labelledby={`${s.id}-title`}
             >
-              <div className={`wtw-section ${s.id === 'newsletter' ? 'text-center' : ''}`}>
+              <div className="wtw-section">
                 <Photo section={s} />
                 <div className="wtw-section-heading">
                   <div>
@@ -187,14 +136,14 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
                       ))}
                     </ul>
                   ) : (
-                    <p className="max-w-xl text-lg">{s.body}</p>
+                    <p className="ws-body max-w-xl text-lg">{s.body}</p>
                   )
                 ) : (
                   <div
                     className={
                       dark
-                        ? 'max-w-3xl whitespace-pre-line text-lg text-white/80'
-                        : 'max-w-3xl whitespace-pre-line text-lg text-muted'
+                        ? 'ws-body max-w-3xl whitespace-pre-line text-lg text-white/80'
+                        : 'ws-body max-w-3xl whitespace-pre-line text-lg text-muted'
                     }
                   >
                     {s.body}
@@ -215,7 +164,7 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
                   </div>
                 )}
                 {s.id === 'story' && story && (
-                  <div className="mt-6 max-w-2xl">
+                  <div className="ws-body mt-6 max-w-2xl">
                     <h3 className="display mb-4 text-3xl">{story.name}</h3>
                     <PageBody body={story.story_or_verse || ''} />
                   </div>
@@ -249,7 +198,7 @@ export function WebsiteHome({ content, cat }: { content: WebsiteContent; cat: Ca
                   />
                 )}
                 {s.id === 'newsletter' && (
-                  <div className="mt-8 flex justify-center">
+                  <div className={`mt-8 flex ${look.align === 'center' ? 'justify-center' : ''}`}>
                     <NewsletterForm tone="light" />
                   </div>
                 )}

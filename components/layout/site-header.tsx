@@ -27,7 +27,7 @@ export async function SiteHeader({ settings }: { settings: StoreSettings }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-      <div className="mx-auto grid h-16 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 xl:px-16">
+      <div className="mx-auto grid h-[72px] max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 xl:px-16">
         <div className="flex items-center">
           <MobileNav panels={forDevice(panels, 'mobile')} />
           <nav className="hidden lg:block" aria-label="Main">
@@ -35,7 +35,7 @@ export async function SiteHeader({ settings }: { settings: StoreSettings }) {
           </nav>
         </div>
         <div className="justify-self-center">
-          <Logo logoUrl={settings.logo_url} name={content.brand.name} byline={content.brand.byline} />
+          <Logo on="light" src={content.brand.logoOnLight} name={content.brand.name} priority className="h-12 w-auto lg:h-14" />
         </div>
         <div className="flex items-center justify-self-end">
           <Link href="/search" className={iconBtn} aria-label="Search">

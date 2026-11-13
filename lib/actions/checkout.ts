@@ -49,7 +49,8 @@ const detailsSchema = z.object({
 export type StartCheckoutResult = Extract<StartResult, { ok: true }> | { ok: false; message: string; fieldErrors: Record<string, string>; issues?: string[] };
 
 /** The real checkout. Re-validates and re-prices everything on the server, creates the order, starts payment. */
-export async function startCheckout(rawPricing: unknown, rawDetails: unknown): Promise<StartCheckoutResult> {
+export async function startCheckout(rawPricing: unknown, rawDetails: unknown, rawMethod: unknown = 'paystack'): Promise<StartCheckoutResult> {
+  const method = rawMethod === 'crypto' ? 'crypto' : 'paystack';
   if (!(await rateLimit(`checkout:${await ip()}`, 15, 10 * 60_000)).ok) return { ok: false, message: 'Too many attempts. Please wait a few minutes.', fieldErrors: {} };
   if ((await getSettings()).maintenance_mode) return { ok: false, message: 'We are making a few updates and are not taking orders right now. Please try again shortly.', fieldErrors: {} };
   const pricing = pricingSchema.safeParse(rawPricing);
@@ -63,7 +64,7 @@ export async function startCheckout(rawPricing: unknown, rawDetails: unknown): P
 
   const d = details.data!;
   const profile = await getProfile();
-  const result = await createOrderAndInitPayment({ ...(pricing.data as PricingInput), state, city: d.address.city }, { email: d.email, phone: d.phone, isGift: d.isGift, giftMessage: d.giftMessage || pricing.data.giftMessage, address: { ...d.address, state } }, { profileId: profile?.id, email: d.email });
+  const result = await createOrderAndInitPayment({ ...(pricing.data as PricingInput), state, city: d.address.city }, { email: d.email, phone: d.phone, isGift: d.isGift, giftMessage: d.giftMessage || pricing.data.giftMessage, address: { ...d.address, state } }, { profileId: profile?.id, email: d.email }, new Date(), method);
   // Optional account: email a magic link so the buyer can follow the order from an account. Never blocks the order.
   if (result.ok && d.createAccount && !profile && isSupabaseConfigured) {
     try { await (await createClient()).auth.signInWithOtp({ email: d.email, options: { emailRedirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent('/account')}`, shouldCreateUser: true } }); }

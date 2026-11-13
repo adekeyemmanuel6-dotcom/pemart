@@ -4,16 +4,19 @@
 :root {
   --font-inter: Arial, Helvetica, sans-serif;
   --font-caveat: Georgia, serif;
+  /* Black, white and gold. --gold is decorative (lines, fills, hover on dark); --gold-deep is gold that
+     must be read as text on white (4.9:1 contrast). */
   --ink: #111111;
   --gold: #C5A15D;
+  --gold-deep: #8C6B1F;
   --charcoal: #292929;
   --paper: #FFFFFF;
-  --sand: #F4F0E8;
-  --denim: #735B30;
-  --mocha: #735B30;
+  --sand: #F7F5F0;
+  --denim: #8C6B1F;
+  --mocha: #8C6B1F;
   --ember: #A43B24;
-  --muted: #605B54;
-  --line: #DCD8D0;
+  --muted: #5C5C5C;
+  --line: #E4E1DB;
 }
 
 /* Admin only: dark mode. The storefront stays light and warm. */
@@ -40,6 +43,7 @@
   --color-line: var(--line);
   --color-charcoal: var(--charcoal);
   --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
 
   --font-display: 'Naira', var(--font-anton), 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
   --font-sans: 'Naira', var(--font-inter), system-ui, sans-serif;
@@ -109,7 +113,7 @@ body {
 .wtw-section-tight { padding-top: 0; }
 .wtw-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; line-height: 1.7; }
 .wtw-dot { display: inline-block; width: 6px; height: 6px; margin-right: 8px; background: var(--gold); border-radius: 50%; }
-.wtw-hero { display: grid; grid-template-columns: .95fr 1.05fr; min-height: 670px; background: var(--sand); }
+.wtw-hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 670px; background: var(--sand); }
 .wtw-hero-copy { padding: 64px max(30px, calc((100vw - 1320px)/2)); padding-right: 36px; display: flex; flex-direction: column; justify-content: center; }
 .wtw-hero h1 { font-size: clamp(4rem, 6.4vw, 7.2rem); max-width: 620px; margin: 32px 0 28px; line-height: .98; letter-spacing: -.025em; }
 .wtw-hero-image { position: relative; min-width: 0; min-height: 610px; overflow: hidden; background: #292929; }
@@ -134,7 +138,7 @@ body {
 .wtw-collection-4 .wtw-collection-art { background: #623d2e; color: #fff; }
 .wtw-philosophy { background: #111; color: #fff; }
 .wtw-philosophy h2 { font-size: clamp(2.8rem, 6vw, 6.5rem); margin-top: 32px; max-width: 1100px; }
-.wtw-philosophy .wtw-eyebrow { color: #d8bb86; }
+.wtw-philosophy .wtw-eyebrow { color: var(--gold); }
 .wtw-themes { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; }
 .wtw-themes a { min-width: 0; display: grid; grid-template-columns: 32px 1fr 20px; gap: 16px; align-items: center; border-top: 1px solid var(--line); min-height: 82px; font-size: 24px; }
 .wtw-themes a:hover { color: var(--mocha); }
@@ -152,3 +156,26 @@ body {
 @keyframes mega-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .mega-panel:not([hidden]) { animation: mega-in 180ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .mega-panel:not([hidden]) { animation: none; } }
+
+/* ---------- Per-section look (Website editor → Homepage → section → Style) ---------- */
+.ws-bg-white { background: #fff; color: #111; }
+.ws-bg-ivory { background: #F7F5F0; color: #111; }
+.ws-bg-black { background: #111; color: #fff; --ink: #fff; --paper: #111; --sand: #1c1c1c; --muted: rgba(255,255,255,.74); --line: rgba(255,255,255,.2); --gold-deep: var(--gold); }
+.ws-bg-black .wtw-eyebrow { color: var(--gold); }
+.ws-bg-gold { background: var(--gold); color: #111; --ink: #111; --paper: #fff; --sand: #d8bb86; --muted: #2b2416; --line: rgba(17,17,17,.22); --gold-deep: #111; }
+.ws-bg-gold .wtw-dot { background: #111; }
+.ws-align-center .wtw-section { text-align: center; }
+.ws-align-center .wtw-section-heading { flex-direction: column; align-items: center; text-align: center; }
+.ws-align-center .wtw-section-heading h2, .ws-align-center .ws-body { margin-inline: auto; }
+.ws-align-center .wtw-section .wtw-themes, .ws-align-center .wtw-section ul { text-align: left; }
+.ws-align-center .wtw-section form { text-align: left; }
+.ws-align-left .wtw-section { text-align: left; }
+.ws-space-compact .wtw-section { padding-block: 48px; }
+.ws-space-roomy .wtw-section { padding-block: 136px; }
+.ws-case-none .display { text-transform: none; letter-spacing: -.01em; line-height: 1.05; }
+.ws-case-upper .display { text-transform: uppercase; }
+.ws.ws-size-s .display:is(h1, h2) { font-size: clamp(1.9rem, 3vw, 2.8rem); }
+.ws.ws-size-m .display:is(h1, h2) { font-size: clamp(2.4rem, 4.2vw, 4.2rem); }
+.ws.ws-size-l .display:is(h1, h2) { font-size: clamp(3rem, 6vw, 6.2rem); }
+.ws.ws-size-xl .display:is(h1, h2) { font-size: clamp(3.6rem, 8.5vw, 9rem); }
+@media (max-width: 767px) { .ws-space-roomy .wtw-section { padding-block: 80px; } .ws-space-compact .wtw-section { padding-block: 36px; } }

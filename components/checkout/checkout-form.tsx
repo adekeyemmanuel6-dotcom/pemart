@@ -18,7 +18,7 @@ import { MockPaystack } from './mock-paystack';
 
 type Session = { reference: string; accessCode: string; mock: boolean; number: string; token: string; totalKobo: number };
 
-export function CheckoutForm({ defaultEmail, signedIn, addOns }: { zones: { name: string; states: string[] }[]; defaultEmail: string; signedIn: boolean; addOns: { giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; expressEnabled: boolean } }) {
+export function CheckoutForm({ defaultEmail, signedIn, addOns, crypto = [] }: { zones: { name: string; states: string[] }[]; defaultEmail: string; signedIn: boolean; addOns: { giftWrapKobo: number; surpriseNoteKobo: number; expressKobo: number; expressEnabled: boolean }; crypto?: { asset: string; network: string }[] }) {
   const router = useRouter();
   const lines = useBag((s) => s.lines), code = useBag((s) => s.code), giftCode = useBag((s) => s.giftCode), clear = useBag((s) => s.clear);
   const [deliveryState, setDeliveryState] = useDeliveryState();
@@ -38,6 +38,7 @@ export function CheckoutForm({ defaultEmail, signedIn, addOns }: { zones: { name
   const [session, setSession] = useState<Session | null>(null);
   const [mockOpen, setMockOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [method, setMethod] = useState<'paystack' | 'crypto'>('paystack');
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -86,9 +87,9 @@ export function CheckoutForm({ defaultEmail, signedIn, addOns }: { zones: { name
         : { recipient, phone: isGift ? rPhone : rPhone || phone, line1, area: area || undefined, city, state: deliveryState, instructions },
     };
     try {
-      const res = await startCheckout(pricing, details);
+      const res = await startCheckout(pricing, details, crypto.length ? method : 'paystack');
       if (!res.ok) { setErrors(res.fieldErrors ?? {}); setMessage(res.message); if (Object.keys(res.fieldErrors ?? {}).length) document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ block: 'center' }); return; }
-      if (res.mode === 'paid') return succeed(res.number, res.token);
+      if (res.mode === 'paid' || res.mode === 'crypto') return succeed(res.number, res.token);
       const s: Session = { reference: res.reference, accessCode: res.accessCode, mock: res.mock, number: res.number, token: res.token, totalKobo: res.totalKobo };
       setSession(s); openPayment(s);
     } catch { setMessage('Something went wrong. Please try again.'); }
@@ -176,13 +177,22 @@ export function CheckoutForm({ defaultEmail, signedIn, addOns }: { zones: { name
           {q.issues.filter((i) => !i.includes('final sale')).slice(0, 4).map((i) => (<p key={i} role="alert" className="text-sm font-semibold text-ember">{i}</p>))}
           {message && <p role="alert" className="rounded-md bg-ember/10 p-3 text-sm">{message}</p>}
 
+          {crypto.length > 0 && q.totalKobo > 0 && !session && (
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-semibold">How would you like to pay?</legend>
+              <label className={check}><input type="radio" name="pay-method" className="size-5 accent-ink" checked={method === 'paystack'} onChange={() => setMethod('paystack')} /><span className="text-sm"><strong>Card, bank transfer or USSD</strong> <span className="text-muted">(Paystack)</span></span></label>
+              <label className={check}><input type="radio" name="pay-method" className="size-5 accent-ink" checked={method === 'crypto'} onChange={() => setMethod('crypto')} /><span className="text-sm"><strong>Crypto</strong> <span className="text-muted">({Array.from(new Set(crypto.map((c) => c.asset))).join(', ')})</span></span></label>
+              {method === 'crypto' && <p className="rounded-md bg-sand/60 p-3 text-xs">After you place the order you&apos;ll see the wallet address and the amount. Your order is confirmed once our team sees the payment arrive.</p>}
+            </fieldset>
+          )}
+
           {session && !confirming && !mockOpen && message?.includes('try again') ? (
             <Button className="w-full" onClick={() => openPayment(session)}>Try payment again · {formatNaira(session.totalKobo)}</Button>
           ) : (
-            <Button className="w-full" disabled={!canPay} onClick={pay}>{confirming ? 'Confirming your payment…' : busy ? 'Preparing…' : q.totalKobo === 0 ? 'Place order' : `Pay ${formatNaira(q.totalKobo)} with Paystack`}</Button>
+            <Button className="w-full" disabled={!canPay} onClick={pay}>{confirming ? 'Confirming your payment…' : busy ? 'Preparing…' : q.totalKobo === 0 ? 'Place order' : method === 'crypto' && crypto.length ? `Place order · pay ${formatNaira(q.totalKobo)} in crypto` : `Pay ${formatNaira(q.totalKobo)} with Paystack`}</Button>
           )}
           {hasConsent && !consent && <p className="text-center text-xs text-muted">Please confirm the final-sale note above to continue.</p>}
-          <p className="text-center text-xs text-muted">Card, bank transfer or USSD. We never see your card details.</p>
+          <p className="text-center text-xs text-muted">{method === 'crypto' && crypto.length ? 'You will send the payment from your own wallet.' : 'Card, bank transfer or USSD. We never see your card details.'}</p>
           <Link href="/bag" className="block text-center text-sm font-semibold underline underline-offset-4">Back to bag</Link>
         </>)}
       </aside>

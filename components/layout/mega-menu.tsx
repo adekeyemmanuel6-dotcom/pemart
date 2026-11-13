@@ -63,11 +63,10 @@ export function MegaMenu({ panels }: { panels: NavPanel[] }) {
                 aria-controls={`menu-${p.id}`}
                 onClick={() => { clear(); setOpenId(isOpen ? null : p.id); }}
                 onMouseEnter={() => schedule(p.id, openId ? 0 : OPEN_DELAY)}
-                className={`relative inline-flex h-16 items-center gap-1 px-2 text-[12px] font-semibold uppercase tracking-[0.08em] xl:px-3 xl:text-[13px] xl:tracking-[0.12em] transition-colors duration-150 hover:text-ink ${isOpen || current ? 'text-ink' : 'text-charcoal'}`}
+                className={`relative inline-flex h-[72px] items-center gap-1 px-2 text-[12px] font-semibold uppercase tracking-[0.08em] xl:px-3 xl:text-[13px] xl:tracking-[0.12em] transition-colors duration-150 hover:text-gold-deep ${isOpen || current ? 'text-gold-deep' : 'text-ink'}`}
               >
                 {p.label}
                 <ChevronDown className={`size-3.5 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} aria-hidden />
-                <span className={`absolute inset-x-2 bottom-4 xl:inset-x-3 h-px bg-ink transition-transform duration-200 motion-reduce:transition-none ${isOpen || current ? 'scale-x-100' : 'scale-x-0'}`} aria-hidden />
               </button>
             </li>
           );
@@ -90,7 +89,7 @@ export function MegaMenu({ panels }: { panels: NavPanel[] }) {
                   <ul className="space-y-1">
                     {col.links.map((l) => (
                       <li key={l.href + l.name}>
-                        <Link href={l.href} onClick={() => close()} className="inline-block py-1.5 text-[15px] text-ink underline-offset-4 hover:underline">
+                        <Link href={l.href} onClick={() => close()} className="inline-block py-1.5 text-[15px] text-ink transition-colors duration-150 hover:text-gold-deep">
                           {l.name}
                         </Link>
                       </li>
@@ -112,7 +111,7 @@ export function MegaMenu({ panels }: { panels: NavPanel[] }) {
                 </div>
                 <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{p.feature.eyebrow}</p>
                 {p.feature.image && <p className="display mt-1 text-2xl">{p.feature.title}</p>}
-                <p className="mt-2 text-sm font-semibold uppercase tracking-[0.12em] underline underline-offset-4">{p.feature.cta}</p>
+                <p className="mt-2 text-sm font-semibold uppercase tracking-[0.12em] text-gold-deep transition-colors group-hover:text-ink">{p.feature.cta}</p>
               </Link>
             )}
           </div>

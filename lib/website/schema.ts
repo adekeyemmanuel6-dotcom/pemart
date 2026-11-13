@@ -43,6 +43,51 @@ export const SECTION_IDS = [
   'bulk',
   'newsletter',
 ] as const;
+// ---- Per-section look. Every field has a "default" that keeps the built-in design, so older content is unchanged.
+export const sectionStyleSchema = z.object({
+  headingFont: z.enum(['default', 'display', 'sans', 'serif']).default('default'),
+  bodyFont: z.enum(['default', 'sans', 'serif']).default('default'),
+  headingCase: z.enum(['default', 'upper', 'none']).default('default'),
+  headingSize: z.enum(['default', 's', 'm', 'l', 'xl']).default('default'),
+  background: z.enum(['default', 'white', 'ivory', 'black', 'gold']).default('default'),
+  align: z.enum(['default', 'left', 'center']).default('default'),
+  spacing: z.enum(['default', 'compact', 'roomy']).default('default'),
+});
+export type SectionStyle = z.infer<typeof sectionStyleSchema>;
+export const DEFAULT_SECTION_STYLE: SectionStyle = sectionStyleSchema.parse({});
+
+// ---- Homepage hero layouts. Images per device: desktop (≥1280px), laptop (768–1279px), phone (<768px).
+const heroImages = z.object({ desktop: image, laptop: image, phone: image, alt: text.max(200) });
+const heroSlide = heroImages.extend({
+  kicker: text.max(60).default(''),
+  title: text.max(120).default(''),
+  ctaText: text.max(40).default(''),
+  ctaHref: safeHref.default('/collections/all'),
+});
+export const heroSettingsSchema = z
+  .object({
+    layout: z.enum(['split', 'slider', 'banner']).default('split'),
+    slides: z.array(heroSlide).max(3).default([]),
+    banner: heroImages.extend({ overlay: z.number().int().min(0).max(80).default(45) }).default({ desktop: '', laptop: '', phone: '', alt: '', overlay: 45 }),
+    autoplay: z.boolean().default(true),
+    interval: z.number().int().min(3).max(15).default(6),
+  })
+  .superRefine((h, ctx) => {
+    if (h.layout === 'slider' && h.slides.length === 0)
+      ctx.addIssue({ code: 'custom', path: ['slides'], message: 'Add at least one banner to the slider, or choose another hero style.' });
+    h.slides.forEach((sl, i) => {
+      if (h.layout === 'slider' && !sl.desktop) ctx.addIssue({ code: 'custom', path: ['slides', i, 'desktop'], message: `Banner ${i + 1} needs a desktop image.` });
+      if ((sl.desktop || sl.laptop || sl.phone) && !sl.alt.trim())
+        ctx.addIssue({ code: 'custom', path: ['slides', i, 'alt'], message: `Describe banner ${i + 1} for screen readers.` });
+    });
+    const b = h.banner;
+    if ((b.desktop || b.laptop || b.phone) && !b.alt.trim())
+      ctx.addIssue({ code: 'custom', path: ['banner', 'alt'], message: 'Describe the banner image for screen readers.' });
+  });
+export type HeroSettings = z.infer<typeof heroSettingsSchema>;
+export type HeroSlide = HeroSettings['slides'][number];
+export const DEFAULT_HERO: HeroSettings = heroSettingsSchema.parse({});
+
 const section = z.object({
   id: z.enum(SECTION_IDS),
   enabled: z.boolean(),
@@ -55,6 +100,8 @@ const section = z.object({
   secondaryHref: safeHref,
   image: image,
   alt: text,
+  style: sectionStyleSchema.optional(),
+  hero: heroSettingsSchema.optional(),
 });
 const page = z.object({
   slug: z
@@ -129,6 +176,9 @@ export const websiteSchema = z
       seoTitle: text.min(1),
       seoDescription: z.string().max(300),
       ogImage: image,
+      // Empty = the built-in Wear The Word logo (black on light backgrounds, white on dark).
+      logoOnLight: image.default(''),
+      logoOnDark: image.default(''),
       maintenanceMessage: z.string().min(1).max(1000),
     }),
     navigation: z.object({
@@ -221,6 +271,8 @@ export const DEFAULT_WEBSITE: WebsiteContent = {
     seoTitle: `${SITE.name} | ${SITE.tagline}`,
     seoDescription: SITE.description,
     ogImage: '',
+    logoOnLight: '',
+    logoOnDark: '',
     maintenanceMessage: 'We’re making a few updates and will be back shortly. Thank you for your patience.',
   },
   navigation: {
