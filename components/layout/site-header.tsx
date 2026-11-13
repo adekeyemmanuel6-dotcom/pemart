@@ -3,7 +3,7 @@ import { Search, User } from 'lucide-react';
 import type { StoreSettings } from '@/lib/settings';
 import { resolveWebsite } from '@/lib/website/schema';
 import { getCatalogue } from '@/lib/catalogue/load';
-import { buildNavigation } from '@/lib/navigation';
+import { buildNavigation, forDevice } from '@/lib/navigation';
 import type { Catalogue } from '@/lib/catalogue/types';
 import { Logo } from './logo';
 import { MegaMenu } from './mega-menu';
@@ -29,9 +29,9 @@ export async function SiteHeader({ settings }: { settings: StoreSettings }) {
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
       <div className="mx-auto grid h-16 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 xl:px-16">
         <div className="flex items-center">
-          <MobileNav panels={panels} />
+          <MobileNav panels={forDevice(panels, 'mobile')} />
           <nav className="hidden lg:block" aria-label="Main">
-            <MegaMenu panels={panels} />
+            <MegaMenu panels={forDevice(panels, 'desktop')} />
           </nav>
         </div>
         <div className="justify-self-center">

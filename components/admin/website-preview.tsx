@@ -42,6 +42,34 @@ export function WebsitePreview({ content, tab }: { content: WebsiteContent; tab:
           </div>
           <Photo src={content.brand.ogImage} alt="Social sharing preview" />
         </>
+      ) : tab === 'Mega menu' ? (
+        content.megaMenu?.mode === 'custom' ? (
+          <div className="space-y-6">
+            {content.megaMenu.panels.map((p) => (
+              <section key={p.id} className="border-t pt-4">
+                <h3 className="text-sm font-semibold uppercase tracking-widest">{p.label}<span className="ml-2 text-xs font-normal normal-case text-muted">{p.show === 'all' ? '' : p.show === 'desktop' ? 'desktop only' : 'phone only'}</span></h3>
+                <div className="mt-3 grid gap-6 sm:grid-cols-4">
+                  {p.columns.map((c, i) => (
+                    <div key={i}>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">{c.heading}</p>
+                      <ul className="space-y-1 text-sm">{c.links.map((l, j) => (<li key={j}>{l.name}{l.show !== 'all' && <span className="text-xs text-muted"> ({l.show})</span>}</li>))}</ul>
+                    </div>
+                  ))}
+                  {p.feature.enabled && (
+                    <div className="bg-[#111] p-4 text-white">
+                      <Photo src={p.feature.image} alt={p.feature.alt} />
+                      <p className="text-xs uppercase tracking-widest">{p.feature.eyebrow}</p>
+                      <p className="display text-2xl">{p.feature.title}</p>
+                      <p className="mt-1 text-xs underline">{p.feature.cta}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <p>The header menu is built automatically from your live products, gift boxes and collections.</p>
+        )
       ) : tab === 'Navigation' ? (
         <div className="grid gap-6 sm:grid-cols-2">
           {Object.entries(content.navigation).map(([key, links]) => (

@@ -70,6 +70,43 @@ const page = z.object({
   alt: text,
   seoDescription: z.string().max(300),
 });
+// ---- Mega menu (header navigation). Fixed depth: panel → column → link, so no circular nesting is possible.
+const visibility = z.enum(['all', 'desktop', 'mobile']);
+const menuLink = z.object({ name: text.min(1).max(40), href: safeHref, show: visibility });
+const menuColumn = z.object({ heading: text.min(1).max(30), links: z.array(menuLink).min(1).max(10) });
+const menuPanel = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers and dashes').max(30),
+  label: text.min(1).max(24),
+  href: safeHref,
+  show: visibility,
+  columns: z.array(menuColumn).min(1).max(4),
+  feature: z.object({
+    enabled: z.boolean(),
+    eyebrow: text.max(40),
+    title: text.max(60),
+    cta: text.max(40),
+    href: safeHref,
+    image: image,
+    alt: text.max(200),
+  }),
+});
+export const megaMenuSchema = z
+  .object({ mode: z.enum(['automatic', 'custom']), panels: z.array(menuPanel).max(6) })
+  .superRefine((m, ctx) => {
+    if (m.mode === 'custom' && m.panels.length === 0)
+      ctx.addIssue({ code: 'custom', path: ['panels'], message: 'Add at least one menu item, or switch back to Automatic.' });
+    const ids = m.panels.map((p) => p.id);
+    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', path: ['panels'], message: 'Each menu item needs a different ID.' });
+    m.panels.forEach((p, i) => {
+      if (p.feature.enabled && p.feature.image && !p.feature.alt.trim())
+        ctx.addIssue({ code: 'custom', path: ['panels', i, 'feature', 'alt'], message: 'Describe the menu image for screen readers.' });
+      if (p.feature.enabled && !p.feature.title.trim())
+        ctx.addIssue({ code: 'custom', path: ['panels', i, 'feature', 'title'], message: 'Give the featured card a title.' });
+    });
+  });
+export type MegaMenu = z.infer<typeof megaMenuSchema>;
+export type MegaMenuPanel = MegaMenu['panels'][number];
+
 export const EXISTING_PAGES = [
   'about',
   'faq',
@@ -118,6 +155,8 @@ export const websiteSchema = z
       .length(5)
       .refine((a) => new Set(a.map((c) => c.slug)).size === 5),
     featuredProductIds: z.array(z.uuid()).max(12),
+    // Optional so content published before the menu builder still validates; absent = automatic menu.
+    megaMenu: megaMenuSchema.optional(),
     community: z
       .array(z.object({ image: imageHref, alt: text.min(1), caption: text, permission: z.literal(true) }))
       .max(12),

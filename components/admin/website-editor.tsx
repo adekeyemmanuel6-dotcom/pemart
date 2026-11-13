@@ -1,118 +1,25 @@
 'use client';
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { publishWebsite } from '@/lib/admin/actions-website';
 import { EXISTING_PAGES, type WebsiteContent } from '@/lib/website/schema';
 import { WebsitePreview } from './website-preview';
-import { AdminUploader } from './admin-uploader';
+import { Field, ImageField, Move, reorder } from './editor-fields';
+import { MegaMenuEditor } from './mega-menu-editor';
+import type { NavPanel } from '@/lib/navigation';
 import { inputCls } from './ui';
 
-const tabs = ['Brand & SEO', 'Homepage', 'Navigation', 'Collections', 'Community photos', 'Pages'] as const;
-function Field({
-  label,
-  value,
-  onChange,
-  multiline = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (s: string) => void;
-  multiline?: boolean;
-}) {
-  const id = useId();
-  const displayLabel =
-    (
-      {
-        title: 'Heading',
-        body: 'Supporting text',
-        secondaryText: 'Second button label',
-        secondaryHref: 'Second button destination',
-        intro: 'Introduction',
-        kicker: 'Small heading',
-        name: 'Display name',
-        blurb: 'Description',
-      } as Record<string, string>
-    )[label] || label;
-  return (
-    <div className="block text-sm font-semibold">
-      <label htmlFor={id} className="mb-1 block">
-        {displayLabel}
-      </label>
-      {multiline ? (
-        <textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={label === 'Page content' ? 14 : 4}
-          className={inputCls + ' py-2 font-normal'}
-        />
-      ) : (
-        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls + ' font-normal'} />
-      )}
-    </div>
-  );
-}
-function ImageField({ value, onChange }: { value: string; onChange: (s: string) => void }) {
-  const latestChange = useRef(onChange);
-  useEffect(() => {
-    latestChange.current = onChange;
-  }, [onChange]);
-  return (
-    <div className="space-y-2">
-      <AdminUploader
-        bucket="catalogue"
-        label="Upload image"
-        accept=".jpg,.jpeg,.png,.webp"
-        initial={value}
-        onDone={(v) => latestChange.current(v.url)}
-      />
-      <Field label="Image URL (or upload above)" value={value} onChange={onChange} />
-      {value && (
-        <button type="button" onClick={() => onChange('')} className="min-h-11 text-sm underline">
-          Remove image
-        </button>
-      )}
-    </div>
-  );
-}
-function Move({ index, length, onMove }: { index: number; length: number; onMove: (to: number) => void }) {
-  return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        disabled={index === 0}
-        onClick={() => onMove(index - 1)}
-        className="min-h-11 rounded border px-3 text-sm disabled:opacity-30"
-        aria-label="Move up"
-      >
-        ↑ Up
-      </button>
-      <button
-        type="button"
-        disabled={index === length - 1}
-        onClick={() => onMove(index + 1)}
-        className="min-h-11 rounded border px-3 text-sm disabled:opacity-30"
-        aria-label="Move down"
-      >
-        ↓ Down
-      </button>
-    </div>
-  );
-}
-function reorder<T>(items: T[], from: number, to: number) {
-  const result = [...items];
-  const [item] = result.splice(from, 1);
-  result.splice(to, 0, item!);
-  return result;
-}
-
+const tabs = ['Brand & SEO', 'Homepage', 'Mega menu', 'Navigation', 'Collections', 'Community photos', 'Pages'] as const;
 export function WebsiteEditor({
   initial,
   revision: initialRevision,
   products,
+  automaticMenu = [],
 }: {
   initial: WebsiteContent;
   revision: number;
   products: { id: string; name: string }[];
+  /** The menu the storefront builds from the live catalogue; offered as the starting point for a custom menu. */
+  automaticMenu?: NavPanel[];
 }) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -173,7 +80,7 @@ export function WebsiteEditor({
     });
   return (
     <div className="space-y-5" inert={!ready}>
-      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper p-4 shadow-sm">
+      <div className="sticky top-14 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper p-4 shadow-sm">
         <div>
           <p className="font-semibold">{!ready ? 'Loading editor…' : dirty ? 'Unpublished changes' : 'Up to date'}</p>
           <p className="text-xs text-muted">Published version {revision} · changes appear after publishing</p>
@@ -416,6 +323,9 @@ export function WebsiteEditor({
                 </details>
               ))}
             </>
+          )}
+          {tab === 'Mega menu' && (
+            <MegaMenuEditor value={content.megaMenu} onChange={(m) => update('megaMenu', m)} automatic={automaticMenu} />
           )}
           {tab === 'Navigation' &&
             (Object.keys(content.navigation) as (keyof WebsiteContent['navigation'])[]).map((group) => (
