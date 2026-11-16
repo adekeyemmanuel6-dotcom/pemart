@@ -17,8 +17,12 @@ import { NIGERIAN_STATES } from '@/lib/shipping';
 import { GARMENT_LABEL, presaleState } from '@/lib/presale/schema';
 import { getPresaleConfig } from '@/lib/presale/server';
 
-/** Storefront chrome shared by the (store) and (account) route groups. */
-export async function StoreShell({ children }: { children: React.ReactNode }) {
+/**
+ * Storefront chrome shared by the (store) and (account) route groups.
+ * `minimal` (used by the pre-sale page) drops the header, footer, bag, offers and announcement bars
+ * so visitors cannot browse into the store before launch.
+ */
+export async function StoreShell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) {
   const [settings, presale] = await Promise.all([getSettings(), getPresaleConfig()]);
   const content = resolveWebsite(settings);
   if (settings.maintenance_mode) {
@@ -71,7 +75,7 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
           Local preview · demonstration catalogue · no live payments
         </p>
       )}
-      {presale.showBar && presaleState(presale) === 'open' && (
+      {!minimal && presale.showBar && presaleState(presale) === 'open' && (
         <PresaleBar
           text={presale.barText} title={presale.headline} notesHelp={presale.notesHelp} notice={presale.notice} states={[...NIGERIAN_STATES]}
           garments={presale.garments.map((id) => ({ id, label: presale.garmentLabels[id] || GARMENT_LABEL[id] }))}
@@ -79,16 +83,16 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
           <PresalePoster config={presale} />
         </PresaleBar>
       )}
-      <AnnouncementBar settings={settings} />
-      <SiteHeader settings={settings} />
+      {!minimal && <AnnouncementBar settings={settings} />}
+      {!minimal && <SiteHeader settings={settings} />}
       <main id="main" className="min-h-[60vh]">
         {children}
       </main>
-      <SiteFooter settings={settings} />
+      {!minimal && <SiteFooter settings={settings} />}
       <WhatsAppButton number={settings.whatsapp_number} />
-      <BagDrawer />
+      {!minimal && <BagDrawer />}
       <ConsentBanner />
-      <OfferPopup />
+      {!minimal && <OfferPopup />}
       <AnalyticsRuntime />
     </div>
   );

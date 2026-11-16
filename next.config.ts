@@ -10,19 +10,6 @@ const config: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [{ protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' }],
   },
-  // Pre-sale launch: send homepage visitors to /presale. Temporary (307) so search engines keep
-  // indexing the homepage. Add ?preview=1 to the URL to see the real homepage. Delete this block
-  // when the pre-sale ends.
-  async redirects() {
-    return [
-      {
-        source: '/',
-        missing: [{ type: 'query', key: 'preview' }],
-        destination: '/presale',
-        permanent: false,
-      },
-    ];
-  },
   async headers() {
     const hardening = [
       { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
