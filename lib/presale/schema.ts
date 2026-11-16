@@ -34,6 +34,7 @@ export const PresaleConfigSchema = z.object({
   imageAlt: text('', 200),
   // Poster carousel: up to 10 pictures, in the order shown. A missing description falls back to the headline.
   images: z.array(z.object({ url: z.string().trim().min(1).max(500).refine((v) => /^(\/|https?:\/\/)/.test(v), 'Picture link must start with / or https://'), alt: z.string().trim().max(200).default('') })).max(10).default([]),
+  carouselSeconds: z.number().int().min(0).max(30).default(4),   // seconds per picture; 0 turns auto-play off
   // Poster background: a brand colour (optionally fading into a second colour) and/or a picture laid under it.
   bgColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #111111').default('#111111'),
   bgColor2: z.string().regex(/^(#[0-9a-fA-F]{6})?$/, 'Use a colour like #292929').default(''),

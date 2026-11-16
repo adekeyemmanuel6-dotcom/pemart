@@ -31,7 +31,7 @@ export function PresalePoster({ config, headingId }: { config: PresaleConfig; he
       <h1 id={headingId} className="display text-[clamp(3.25rem,12vw,7rem)] normal-case! leading-none">{toTitleCase(config.headline)}</h1>
       {config.subhead && <p className={`mx-auto mt-4 max-w-md text-base sm:text-lg ${soft}`}>{config.subhead}</p>}
 
-      <PresaleCarousel images={images} tone={tone} />
+      <PresaleCarousel images={images} tone={tone} autoplaySeconds={config.carouselSeconds} />
 
       {config.offers.length > 0 && (
         <ul className="mx-auto mt-8 grid max-w-md gap-4 text-left sm:grid-cols-2" aria-label="Pre-sale offers">

@@ -136,6 +136,44 @@ test('visitors see the strip, open the overlay and send a pre-order', async ({ p
   await expect(overlay).toHaveCount(0);
 });
 
+test('the carousel plays by itself, loops, can be paused, stops on hover, and stays still for reduced-motion visitors', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await ctx.newPage();
+  await page.clock.install();
+  await page.goto(`${B}/presale`);
+  const dot = (n: number) => page.getByRole('button', { name: `Show picture ${n}` });
+  await expect(dot(1)).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('button', { name: 'Pause the slideshow' })).toBeVisible();
+  await page.clock.fastForward(4100);
+  await expect(dot(2)).toHaveAttribute('aria-current', 'true');
+  await page.clock.fastForward(4100);
+  await expect(dot(1)).toHaveAttribute('aria-current', 'true');            // loops back to the first picture
+
+  await page.getByRole('button', { name: 'Pause the slideshow' }).click();
+  await expect(page.getByRole('button', { name: 'Play the slideshow' })).toHaveAttribute('aria-pressed', 'true');
+  await page.clock.fastForward(12000);
+  await expect(dot(1)).toHaveAttribute('aria-current', 'true');            // paused: nothing moves
+  await page.getByRole('button', { name: 'Play the slideshow' }).click();
+
+  await page.getByRole('region', { name: 'Pre-sale pictures' }).hover();
+  await page.clock.fastForward(12000);
+  await expect(dot(1)).toHaveAttribute('aria-current', 'true');            // hovering: nothing moves
+  await page.mouse.move(2, 2);
+  await page.clock.fastForward(9000);
+  await expect(dot(2)).toHaveAttribute('aria-current', 'true');            // let go: it carries on
+  await ctx.close();
+
+  const calm = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const p2 = await calm.newPage();
+  await p2.clock.install();
+  await p2.goto(`${B}/presale`);
+  await expect(p2.getByRole('button', { name: 'Show picture 1' })).toHaveAttribute('aria-current', 'true');
+  await p2.clock.fastForward(20000);
+  await expect(p2.getByRole('button', { name: 'Show picture 1' })).toHaveAttribute('aria-current', 'true');
+  await expect(p2.getByRole('button', { name: /slideshow/ })).toHaveCount(0);   // no pause button because nothing plays
+  await calm.close();
+});
+
 test('the /presale page works on a phone, keeps what was typed after a mistake, and blocks bad numbers', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();

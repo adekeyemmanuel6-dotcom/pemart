@@ -80,6 +80,12 @@ describe('title case', () => {
 });
 
 describe('poster pictures and background', () => {
+  it('auto-plays every 4 seconds by default; 0 turns it off; the range is limited', () => {
+    expect(presaleDefaults().carouselSeconds).toBe(4);
+    expect(PresaleConfigSchema.safeParse({ carouselSeconds: 0 }).success).toBe(true);
+    expect(PresaleConfigSchema.safeParse({ carouselSeconds: 31 }).success).toBe(false);
+    expect(PresaleConfigSchema.safeParse({ carouselSeconds: -1 }).success).toBe(false);
+  });
   it('uses the carousel list, falls back to the old single picture, and fills missing descriptions with the headline', () => {
     const c = resolvePresale({ headline: 'Big sale', images: [{ url: '/a.png', alt: '' }, { url: 'https://x.test/b.png', alt: 'B' }] });
     expect(presaleImages(c)).toEqual([{ url: '/a.png', alt: 'Big sale' }, { url: 'https://x.test/b.png', alt: 'B' }]);

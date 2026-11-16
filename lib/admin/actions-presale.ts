@@ -29,7 +29,7 @@ export async function savePresaleSettingsAction(_p: AdminResult, fd: FormData): 
     try { images = JSON.parse(String(fd.get('images') ?? '[]')); } catch { return fail('Could not read the pictures. Please reload the page and try again.'); }
     const raw = {
       enabled: bool(fd, 'enabled'), showBar: bool(fd, 'showBar'), barText: str(fd, 'barText'), kicker: str(fd, 'kicker'), headline: str(fd, 'headline'), subhead: str(fd, 'subhead'),
-      images, imageUrl: '', imageAlt: '', bgColor: str(fd, 'bgColor') || '#111111', bgColor2: bool(fd, 'bgGradient') ? str(fd, 'bgColor2') : '', bgImageUrl: str(fd, 'bgImageUrl'), startsOn: str(fd, 'startsOn'), endsOn: str(fd, 'endsOn'), offers,
+      images, carouselSeconds: Math.round(Number(str(fd, 'carouselSeconds') || 4)), imageUrl: '', imageAlt: '', bgColor: str(fd, 'bgColor') || '#111111', bgColor2: bool(fd, 'bgGradient') ? str(fd, 'bgColor2') : '', bgImageUrl: str(fd, 'bgImageUrl'), startsOn: str(fd, 'startsOn'), endsOn: str(fd, 'endsOn'), offers,
       garments: GARMENTS.filter((g) => bool(fd, `garment_${g}`)),
       garmentLabels: { tee: str(fd, 'label_tee'), sweatshirt: str(fd, 'label_sweatshirt'), hoodie: str(fd, 'label_hoodie') },
       notesHelp: str(fd, 'notesHelp'), notice: str(fd, 'notice'), successText: str(fd, 'successText'), closedText: str(fd, 'closedText'),

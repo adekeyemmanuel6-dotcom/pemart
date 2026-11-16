@@ -114,6 +114,7 @@ function SettingsForm({ c }: { c: PresaleConfig }) {
             <T id="ps-sub" label="Text under the headline" name="subhead" v={c.subhead} wide />
             <T id="ps-bar" label="Text on the top strip" name="barText" v={c.barText} wide />
             <div className="sm:col-span-2"><PresaleImages initial={images} /></div>
+            <div><label className={labelCls} htmlFor="ps-secs">Seconds per picture (0 = no auto-play)</label><input id="ps-secs" name="carouselSeconds" type="number" min={0} max={30} defaultValue={c.carouselSeconds} className={inputCls} /><p className="mt-1 text-xs text-muted">Pictures change by themselves. Visitors can pause, and it stops while they hover or touch it.</p></div>
           </div>
         </Card>
         <Card title="Background">
