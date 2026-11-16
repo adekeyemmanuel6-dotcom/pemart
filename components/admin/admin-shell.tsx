@@ -71,8 +71,9 @@ function AccountMenu({ email, roleLabel }: { email: string | null; roleLabel: st
   return (
     <div ref={ref} className="relative">
       <button type="button" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)}
-        className="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-sand" aria-label="Account menu">
-        <span className="grid size-8 place-items-center rounded-full bg-ink text-sm font-bold text-paper" aria-hidden>{initial}</span>
+        className="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-sand" aria-label={email ? `Account menu, ${email}` : 'Account menu'}>
+        {/* The initial is drawn by CSS (not text), so it is not read as a visible label that the button name must repeat. */}
+        <span data-initial={initial} className="grid size-8 place-items-center rounded-full bg-ink text-sm font-bold text-paper before:content-[attr(data-initial)]" aria-hidden />
         <span className="hidden max-w-40 truncate text-sm md:inline">{email}</span>
       </button>
       {open && (

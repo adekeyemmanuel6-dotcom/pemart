@@ -20,6 +20,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { href: '/admin/production', label: 'Production board', need: ['fulfilment', 'orders'], icon: 'production' },
       { href: '/admin/proofs', label: 'Custom proofs', need: ['fulfilment', 'orders'], icon: 'proofs' },
       { href: '/admin/quotes', label: 'Bulk quotes', need: ['orders'], icon: 'quotes' },
+      { href: '/admin/presale', label: 'Pre-sale', need: ['orders'], icon: 'quotes' },
       { href: '/admin/customers', label: 'Customers', need: ['customers'], icon: 'customers' },
     ],
   },

@@ -12,8 +12,8 @@ describe('roles and menu', () => {
   it('owners see everything, including settings, team, payments and activity', () => {
     expect(links(admin)).toEqual(expect.arrayContaining(['/admin/settings', '/admin/team', '/admin/payments', '/admin/activity', '/admin/media']));
   });
-  it('standard staff see what they saw before', () => {
-    expect(links(staff())).toEqual(['/admin', '/admin/orders', '/admin/production', '/admin/proofs', '/admin/quotes', '/admin/customers', '/admin/reviews', '/admin/help']);
+  it('standard staff see what they saw before, plus the pre-sale list (it needs the same Orders permission)', () => {
+    expect(links(staff())).toEqual(['/admin', '/admin/orders', '/admin/production', '/admin/proofs', '/admin/quotes', '/admin/presale', '/admin/customers', '/admin/reviews', '/admin/help']);
   });
   it('each preset sees only its areas, and never owner-only pages', () => {
     for (const p of PRESETS) {

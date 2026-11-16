@@ -116,6 +116,15 @@ Everything below is in the admin at `/admin` (admins only; staff see orders, pro
 - **Logo:** *Settings > Logo*. Upload it there; no code change needed.
 - **Custom designs:** *Proofs*. Upload the proof image and send it. The customer approves or asks for one free change (more are ₦2,000 each). Their 5-day delivery clock starts when they approve.
 
+## 7b. Pre-sale (pre-orders before a drop)
+
+A poster-style page and overlay where people say what they want, in which sizes, and where it goes. **No payment is taken**: you confirm with them on WhatsApp first.
+
+1. **Apply the database update once:** run `supabase/migrations/0023_presale.sql` in the Supabase SQL editor (it only adds new tables and functions; it changes nothing that exists). Until you do, *Pre-sale* in the admin says it needs the update and the store shows nothing.
+2. **Set it up:** *Admin > Pre-sale > Page settings* (owners). Upload your poster picture, write the headline (for example "Big sale"), add up to four offers (for example "Any two tees" and "₦30,000"), choose the dates and which of T-shirt, Sweatshirt and Hoodie to offer, then tick **Pre-sale is on** and save.
+3. **What visitors see:** a gold "Pre-order now" strip at the top of every page opens a full-screen overlay; the same form is also at `/presale` (share that link). They pick garments, enter a quantity for each size (S, M, L, XL, XXL), add their name, WhatsApp number, email, state, city, optional address and notes, and send. They get a reference like PRE-1001 and an email copy. The page closes itself after the end date.
+4. **What you see:** *Admin > Pre-sale > Requests* shows a table of **how many of each garment and size to make** (cancelled requests excluded), every request with a WhatsApp link, a status (New, Contacted, Confirmed, Cancelled) and a private note, plus **Download CSV** (one column per garment and size). Staff with the Orders permission can work the list; only owners change the page settings. New requests are also emailed to `ADMIN_NOTIFY_EMAIL`.
+
 ## 8. Testing
 
 ```bash

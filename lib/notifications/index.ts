@@ -14,6 +14,7 @@ import { getSettings } from '@/lib/settings';
 import { whatsappLink } from '@/lib/site';
 import { sendEmail } from './email';
 import WelcomeOffer from '@/emails/welcome-offer';
+import PresaleReceived from '@/emails/presale-received';
 
 const site = () => publicEnv.NEXT_PUBLIC_SITE_URL;
 const wa = async () => whatsappLink((await getSettings()).whatsapp_number, 'Hi Wear The Word, I have a question.');
@@ -72,4 +73,12 @@ export async function notifyQuoteReady(o: { to: string; name: string; number: st
 
 export async function notifyWelcomeOffer(o: { to: string; code: string; expires?: string }) {
   return sendEmail({ to: o.to, subject: 'Your 10% off first order code', tag: 'welcome-offer', react: createElement(WelcomeOffer, { code: o.code, expires: o.expires, siteUrl: site(), whatsappUrl: await wa() }) });
+}
+
+/** Pre-sale request: a receipt for the customer and a summary for the team (ADMIN_NOTIFY_EMAIL). Never throws. */
+export async function notifyPresale(r: { to: string; name: string; reference: string; lines: string[]; location: string; successText: string; summary: string }) {
+  const customer = await sendEmail({ to: r.to, subject: `Your pre-order request ${r.reference}`, tag: 'presale-received', react: createElement(PresaleReceived, { name: r.name, reference: r.reference, lines: r.lines, location: r.location, successText: r.successText, siteUrl: site(), whatsappUrl: await wa() }) });
+  const admin = process.env.ADMIN_NOTIFY_EMAIL;
+  if (admin) await sendEmail({ to: admin, subject: `New pre-order ${r.reference}`, tag: 'presale-admin', react: createElement('pre', null, r.summary) });
+  return customer;
 }

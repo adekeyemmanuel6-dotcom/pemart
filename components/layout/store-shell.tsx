@@ -11,10 +11,15 @@ import { ConsentBanner } from '@/components/consent/consent-banner';
 import { AnalyticsRuntime } from '@/components/consent/analytics-runtime';
 import { OfferPopup } from '@/components/offer/offer-popup';
 import { BagDrawer } from '@/components/bag/bag-drawer';
+import { PresaleBar } from '@/components/presale/presale-bar';
+import { PresalePoster } from '@/components/presale/presale-poster';
+import { NIGERIAN_STATES } from '@/lib/shipping';
+import { GARMENT_LABEL, presaleState } from '@/lib/presale/schema';
+import { getPresaleConfig } from '@/lib/presale/server';
 
 /** Storefront chrome shared by the (store) and (account) route groups. */
 export async function StoreShell({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings();
+  const [settings, presale] = await Promise.all([getSettings(), getPresaleConfig()]);
   const content = resolveWebsite(settings);
   if (settings.maintenance_mode) {
     return (
@@ -65,6 +70,14 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
         <p className="bg-sand px-4 py-2 text-center text-xs">
           Local preview · demonstration catalogue · no live payments
         </p>
+      )}
+      {presale.showBar && presaleState(presale) === 'open' && (
+        <PresaleBar
+          text={presale.barText} title={presale.headline} notesHelp={presale.notesHelp} notice={presale.notice} states={[...NIGERIAN_STATES]}
+          garments={presale.garments.map((id) => ({ id, label: presale.garmentLabels[id] || GARMENT_LABEL[id] }))}
+        >
+          <PresalePoster config={presale} />
+        </PresaleBar>
       )}
       <AnnouncementBar settings={settings} />
       <SiteHeader settings={settings} />
