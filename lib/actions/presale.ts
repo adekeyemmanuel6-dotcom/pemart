@@ -57,7 +57,7 @@ export async function submitPresale(_prev: PresaleState, fd: FormData): Promise<
   const location = [v.city, v.state].join(', ');
   logEvent('presale.submitted', { reference: r.data.reference, total: r.data.total_qty });
   const summary = [`Pre-order ${r.data.reference} (${r.data.total_qty} pieces)`, v.name, `${phone} | ${v.email}`, `${location}${v.address ? ` | ${v.address}` : ''}`, ...lines, v.notes ? `Notes: ${v.notes}` : '', `WhatsApp updates: ${v.whatsappUpdates ? 'yes' : 'no'}`].filter(Boolean).join('\n');
-  void notifyPresale({ to: v.email, name: v.name, reference: r.data.reference, lines, location, successText: config.successText, summary }).catch(() => undefined);
+  void notifyPresale({ to: v.email, name: v.name, reference: r.data.reference, lines, location, successText: config.successText, summary, subject: config.emailSubject, intro: config.emailIntro, footer: config.emailFooter }).catch(() => undefined);
   revalidatePath('/admin/presale');
   return { ok: true, message: config.successText, reference: r.data.reference, lines, total: r.data.total_qty };
 }

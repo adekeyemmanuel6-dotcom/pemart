@@ -13,6 +13,7 @@ import { publicEnv } from '@/lib/env';
 import { getSettings } from '@/lib/settings';
 import { whatsappLink } from '@/lib/site';
 import { sendEmail } from './email';
+import { adminRecipients } from './recipients';
 import WelcomeOffer from '@/emails/welcome-offer';
 import PresaleReceived from '@/emails/presale-received';
 
@@ -30,8 +31,8 @@ export async function notifyGiftCard(g: { to: string; code: string; amountKobo: 
 
 export async function notifyBulkQuote(q: { to: string; name: string; quantity: number; ref: string; summary: string }) {
   const customer = await sendEmail({ to: q.to, subject: 'We got your bulk quote request', tag: 'bulk-quote', react: createElement(BulkQuoteReceived, { name: q.name, quantity: q.quantity, ref: q.ref, siteUrl: site(), whatsappUrl: await wa() }) });
-  const admin = process.env.ADMIN_NOTIFY_EMAIL;
-  if (admin) await sendEmail({ to: admin, subject: `New bulk quote ${q.ref}: ${q.quantity} pieces`, tag: 'bulk-quote-admin', react: createElement('pre', null, q.summary) });
+  const admin = adminRecipients();
+  if (admin.length) await sendEmail({ to: admin, subject: `New bulk quote ${q.ref}: ${q.quantity} pieces`, tag: 'bulk-quote-admin', react: createElement('pre', null, q.summary) });
   return customer;
 }
 
@@ -62,8 +63,8 @@ export async function notifyAbandoned(o: { to: string; number: string; token: st
 
 /** A plain note to the shop owner (revision requested, etc). No-op until ADMIN_NOTIFY_EMAIL is set. */
 export async function notifyAdmin(subject: string, text: string) {
-  const to = process.env.ADMIN_NOTIFY_EMAIL;
-  if (!to) return { sent: false, reason: 'no_admin_email' };
+  const to = adminRecipients();
+  if (!to.length) return { sent: false, reason: 'no_admin_email' };
   return sendEmail({ to, subject, tag: 'admin', react: createElement('pre', null, text) });
 }
 
@@ -76,9 +77,9 @@ export async function notifyWelcomeOffer(o: { to: string; code: string; expires?
 }
 
 /** Pre-sale request: a receipt for the customer and a summary for the team (ADMIN_NOTIFY_EMAIL). Never throws. */
-export async function notifyPresale(r: { to: string; name: string; reference: string; lines: string[]; location: string; successText: string; summary: string }) {
-  const customer = await sendEmail({ to: r.to, subject: `Your pre-order request ${r.reference}`, tag: 'presale-received', react: createElement(PresaleReceived, { name: r.name, reference: r.reference, lines: r.lines, location: r.location, successText: r.successText, siteUrl: site(), whatsappUrl: await wa() }) });
-  const admin = process.env.ADMIN_NOTIFY_EMAIL;
-  if (admin) await sendEmail({ to: admin, subject: `New pre-order ${r.reference}`, tag: 'presale-admin', react: createElement('pre', null, r.summary) });
+export async function notifyPresale(r: { to: string; name: string; reference: string; lines: string[]; location: string; successText: string; summary: string; subject?: string; intro?: string; footer?: string }) {
+  const customer = await sendEmail({ to: r.to, subject: (r.subject || 'Your pre-order request {reference}').replaceAll('{reference}', r.reference), tag: 'presale-received', react: createElement(PresaleReceived, { name: r.name, reference: r.reference, lines: r.lines, location: r.location, successText: r.successText, intro: r.intro, footer: r.footer, siteUrl: site(), whatsappUrl: await wa() }) });
+  const admin = adminRecipients();
+  if (admin.length) await sendEmail({ to: admin, subject: `New pre-order ${r.reference}`, tag: 'presale-admin', react: createElement('pre', null, r.summary) });
   return customer;
 }

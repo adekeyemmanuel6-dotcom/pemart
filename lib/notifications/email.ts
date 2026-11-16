@@ -12,22 +12,24 @@ export type EmailResult = { sent: boolean; reason?: string };
  * email to ./.outbox so you can open it in a browser, and in production it logs and returns.
  * Email problems must never block or roll back a payment, so this never throws.
  */
-export async function sendEmail(o: { to: string; subject: string; react: ReactElement; tag: string }): Promise<EmailResult> {
+export async function sendEmail(o: { to: string | string[]; subject: string; react: ReactElement; tag: string }): Promise<EmailResult> {
   try {
+    const to = (Array.isArray(o.to) ? o.to : [o.to]).filter(Boolean);
+    if (to.length === 0) return { sent: false, reason: 'no_recipient' };
     const html = await render(o.react);
     const key = process.env.RESEND_API_KEY;
     if (!key) {
       if (process.env.NODE_ENV !== 'production') {
         const dir = path.join(process.cwd(), '.outbox');
         await mkdir(dir, { recursive: true });
-        await writeFile(path.join(dir, `${Date.now()}-${o.tag}-${o.to.replace(/[^a-z0-9@.]/gi, '_')}.html`), `<!-- to: ${o.to} | subject: ${o.subject} -->\n${html}`);
+        await writeFile(path.join(dir, `${Date.now()}-${o.tag}-${to.join('+').replace(/[^a-z0-9@.+]/gi, '_')}.html`), `<!-- to: ${to.join(', ')} | subject: ${o.subject} -->\n${html}`);
       }
       logEvent('email.skipped', { tag: o.tag, reason: 'RESEND_API_KEY not set' });
       return { sent: false, reason: 'not_configured' };
     }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.EMAIL_FROM ?? 'Wear The Word <onboarding@resend.dev>', to: [o.to], subject: o.subject, html, tags: [{ name: 'type', value: o.tag }] }),
+      body: JSON.stringify({ from: process.env.EMAIL_FROM ?? 'Wear The Word <onboarding@resend.dev>', to, subject: o.subject, html, tags: [{ name: 'type', value: o.tag }] }),
     });
     if (!res.ok) { logEvent('email.failed', { tag: o.tag, status: res.status }); return { sent: false, reason: `status_${res.status}` }; }
     logEvent('email.sent', { tag: o.tag });

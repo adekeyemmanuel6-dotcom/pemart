@@ -31,6 +31,7 @@ export async function savePresaleSettingsAction(_p: AdminResult, fd: FormData): 
       garments: GARMENTS.filter((g) => bool(fd, `garment_${g}`)),
       garmentLabels: { tee: str(fd, 'label_tee'), sweatshirt: str(fd, 'label_sweatshirt'), hoodie: str(fd, 'label_hoodie') },
       notesHelp: str(fd, 'notesHelp'), notice: str(fd, 'notice'), successText: str(fd, 'successText'), closedText: str(fd, 'closedText'),
+      emailSubject: str(fd, 'emailSubject'), emailIntro: str(fd, 'emailIntro'), emailFooter: str(fd, 'emailFooter'),
     };
     if (raw.imageUrl && !raw.imageAlt) raw.imageAlt = raw.headline || 'Pre-sale poster';   // a description is optional: fall back to the headline
     if (raw.startsOn && raw.endsOn && raw.endsOn < raw.startsOn) return fail('The end date is before the start date.');

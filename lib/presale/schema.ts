@@ -42,6 +42,10 @@ export const PresaleConfigSchema = z.object({
   successTitle: text('You are on the list', 80),
   successText: text('We have your pre-order request. We will message you on WhatsApp to confirm everything before you pay.', 300),
   closedText: text('Pre-sale is closed right now. Check back soon, or message us on WhatsApp.', 200),
+  // The confirmation email the customer receives. {reference} in the subject becomes e.g. PRE-1001.
+  emailSubject: text('Your pre-order request {reference}', 100),
+  emailIntro: text('', 500),
+  emailFooter: text('', 500),
 });
 export type PresaleConfig = z.infer<typeof PresaleConfigSchema>;
 export const presaleDefaults = (): PresaleConfig => PresaleConfigSchema.parse({});

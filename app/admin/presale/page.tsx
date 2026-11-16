@@ -124,6 +124,14 @@ function SettingsForm({ c }: { c: PresaleConfig }) {
           <div className="flex flex-wrap gap-x-6">{GARMENTS.map((g) => (<Check key={g} name={`garment_${g}`} label={`Offer ${GARMENT_LABEL[g]}`} on={c.garments.includes(g)} />))}</div>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">{GARMENTS.map((g) => (<T key={g} id={`ps-l-${g}`} label={`Name shown for ${GARMENT_LABEL[g]}`} name={`label_${g}`} v={c.garmentLabels[g]} />))}</div>
         </Card>
+        <Card title="Email the customer receives">
+          <p className="mb-2 text-sm text-muted">Sent the moment they submit. It always includes their name, reference, what they ordered and where it goes. The message you wrote under "Words" (after they send) is also at the top of it.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <T id="ps-es" label="Subject line" name="emailSubject" v={c.emailSubject} wide help="{reference} becomes their reference, for example PRE-1001." />
+            <T id="ps-ei" label="Extra paragraph near the top (optional)" name="emailIntro" v={c.emailIntro} wide />
+            <T id="ps-ef" label="Sign-off at the bottom (optional)" name="emailFooter" v={c.emailFooter} wide />
+          </div>
+        </Card>
         <Card title="Words">
           <div className="grid gap-3 sm:grid-cols-2">
             <T id="ps-notes" label="Hint inside the notes box" name="notesHelp" v={c.notesHelp} wide />

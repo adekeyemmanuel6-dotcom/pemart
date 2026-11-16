@@ -53,3 +53,12 @@ describe('pre-sale items', () => {
     expect(describeItems(items)).toEqual(['Hoodie: M × 2, XXL × 1', 'Sweatshirt: XL × 3']);
   });
 });
+
+describe('who gets the team notifications', () => {
+  it('splits ADMIN_NOTIFY_EMAIL on commas, semicolons and spaces, drops junk and duplicates', async () => {
+    const { parseRecipients } = await import('@/lib/notifications/recipients');
+    expect(parseRecipients('peace@wearthewordbypemart.com, adekeyemmanuel6@gmail.com')).toEqual(['peace@wearthewordbypemart.com', 'adekeyemmanuel6@gmail.com']);
+    expect(parseRecipients(' A@x.com;b@y.org  A@X.com not-an-email <c@z.com>')).toEqual(['a@x.com', 'b@y.org']);
+    expect(parseRecipients('')).toEqual([]); expect(parseRecipients(undefined)).toEqual([]);
+  });
+});

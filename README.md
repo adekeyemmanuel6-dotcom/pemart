@@ -76,7 +76,7 @@ The browser never decides a price. The server recalculates everything, and the w
 
 1. Create a [Resend](https://resend.com) account and an API key; set `RESEND_API_KEY`.
 2. *Domains > Add domain* (use a subdomain such as `mail.yourdomain.com`). Add the DNS records Resend shows (SPF, DKIM, optionally DMARC) at your DNS provider and wait for **Verified**.
-3. Set `EMAIL_FROM="Pemart <orders@mail.yourdomain.com>"` (must be on the verified domain) and `ADMIN_NOTIFY_EMAIL` (where new bulk-quote alerts go).
+3. Set `EMAIL_FROM="Pemart <orders@mail.yourdomain.com>"` (must be on the verified domain) and `ADMIN_NOTIFY_EMAIL` (where the team's alerts go: new pre-orders, bulk quotes; several addresses separated by commas, e.g. `peace@yourdomain.com,you@gmail.com`).
 4. Test: place a test order. The customer gets the confirmation; the order page shows the proof and status links. Until the domain is verified, Resend only delivers to your own address.
 5. Supabase sign-in emails are sent by Supabase, not Resend. For production volume, add your Resend SMTP details in *Supabase > Authentication > SMTP settings* so those emails also come from your domain.
 
