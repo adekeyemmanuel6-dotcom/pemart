@@ -113,7 +113,7 @@ function SettingsForm({ c }: { c: PresaleConfig }) {
             <T id="ps-bar" label="Text on the top strip" name="barText" v={c.barText} wide />
             <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="imageUrl" label="Poster picture (upload your design; portrait 4:5 looks best)" accept=".png,.jpg,.jpeg,.webp" initial={c.imageUrl} />
               {c.imageUrl && (<div className="mt-1 text-sm"><p className="text-muted">Current picture: <a href={c.imageUrl} target="_blank" rel="noopener noreferrer" className="underline">open it</a>. Upload another to replace it.</p><Check name="removeImage" label="Remove the picture" on={false} /></div>)}</div>
-            <T id="ps-alt" label="Describe the picture (required when there is one)" name="imageAlt" v={c.imageAlt} wide />
+            <T id="ps-alt" label="Describe the picture (optional; the headline is used if you leave it empty)" name="imageAlt" v={c.imageAlt} wide />
           </div>
         </Card>
         <Card title="Offers shown on the poster (optional)">

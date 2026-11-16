@@ -54,11 +54,11 @@ test('closed by default: no strip, and the page says so', async ({ page }) => {
 
 test('the owner switches it on, with a poster picture, offers and dates', async ({ page }) => {
   await saveSettings(page, { enabled: true, startsOn: lagosDate(-1), endsOn: lagosDate(7), headline: 'Big sale', offers: [['Any two tees', '₦30,000'], ['Any three tees', '₦43,500']], image: true });
-  // a picture without a description is refused
-  await expect(page.getByText(/Describe the picture \(a short description/)).toBeVisible();
-  await page.getByLabel(/Describe the picture \(required/).fill('Three tees on a rail');
-  await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
+  // a picture without a description saves fine (the headline is used as its description)
   await expect(page.getByText(/The pre-sale is live/)).toBeVisible();
+  await page.getByLabel(/Describe the picture/).fill('Three tees on a rail');
+  await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
+  await expect.poll(async () => (await q(`select config->>'imageAlt' a from presale_config`))[0].a).toBe('Three tees on a rail');
 });
 
 test('visitors see the strip, open the overlay and send a pre-order', async ({ page }) => {
