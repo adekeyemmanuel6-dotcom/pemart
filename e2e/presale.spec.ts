@@ -15,7 +15,7 @@ test.beforeAll(async () => {
 
 const login = async (page: Page, email: string, role: string, next: string) => { await page.goto(`${B}/api/dev/login?email=${email}&role=${role}&next=${encodeURIComponent(next)}`); };
 
-async function saveSettings(page: Page, f: { enabled: boolean; startsOn?: string; endsOn?: string; headline?: string; offers?: [string, string][]; image?: boolean }) {
+async function saveSettings(page: Page, f: { enabled: boolean; startsOn?: string; endsOn?: string; headline?: string; offers?: [string, string][]; images?: number; bg?: string }) {
   await login(page, 'admin@example.com', 'admin', '/admin/presale?tab=settings');
   const enabled = page.getByLabel(/Pre-sale is on/);
   if (f.enabled) await enabled.check(); else await enabled.uncheck();
@@ -23,10 +23,11 @@ async function saveSettings(page: Page, f: { enabled: boolean; startsOn?: string
   await page.getByLabel('Closes after (optional)').fill(f.endsOn ?? '');
   if (f.headline) await page.getByLabel(/Big headline/).fill(f.headline);
   for (const [i, [text, price]] of (f.offers ?? []).entries()) { await page.getByLabel(`Offer ${i + 1} text`).fill(text); await page.getByLabel('Price').nth(i).fill(price); }
-  if (f.image) {
-    await page.setInputFiles('input[type=file]', { name: 'poster.png', mimeType: 'image/png', buffer: PNG });
-    await page.getByText('Uploaded: poster.png').waitFor();
+  for (let n = 1; n <= (f.images ?? 0); n++) {
+    await page.setInputFiles('input[type=file] >> nth=0', { name: `poster-${n}.png`, mimeType: 'image/png', buffer: PNG });
+    await expect(page.getByText(`Poster pictures (${n} of 10)`)).toBeVisible();
   }
+  if (f.bg) await page.getByLabel('Background colour').fill(f.bg);
   await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
   return page;
 }
@@ -45,43 +46,83 @@ async function fillRequest(page: Page, o: { name: string; email: string; garment
 }
 
 test('closed by default: no strip, and the page says so', async ({ page }) => {
-  await page.goto(`${B}/`);
+  await page.goto(`${B}/?preview=1`);
   await expect(page.getByRole('region', { name: 'Pre-sale' })).toHaveCount(0);
   await page.goto(`${B}/presale`);
-  await expect(page.getByRole('heading', { name: 'Pre-sale is closed' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Pre-order/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Pre-Sale Is Closed' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Pre-Order/ })).toHaveCount(0);
 });
 
-test('the owner switches it on, with a poster picture, offers and dates', async ({ page }) => {
-  await saveSettings(page, { enabled: true, startsOn: lagosDate(-1), endsOn: lagosDate(7), headline: 'Big sale', offers: [['Any two tees', '₦30,000'], ['Any three tees', '₦43,500']], image: true });
-  // a picture without a description saves fine (the headline is used as its description)
+test('the owner switches it on: two carousel pictures, a brand background, offers and dates', async ({ page }) => {
+  await saveSettings(page, { enabled: true, startsOn: lagosDate(-1), endsOn: lagosDate(7), headline: 'Big sale', offers: [['Any two tees', '₦30,000'], ['Any three tees', '₦43,500']], images: 2, bg: '#c5a15d' });
   await expect(page.getByText(/The pre-sale is live/)).toBeVisible();
-  await page.getByLabel(/Describe the picture/).fill('Three tees on a rail');
+  const cfg = (await q(`select config from presale_config`))[0].config;
+  expect(cfg.images).toHaveLength(2);
+  expect(cfg.bgColor.toLowerCase()).toBe('#c5a15d'); expect(cfg.bgColor2).toBe('');
+});
+
+test('carousel manager: reorder, describe, remove, and the 10-picture limit', async ({ page }) => {
+  await login(page, 'admin@example.com', 'admin', '/admin/presale?tab=settings');
+  await expect(page.getByText('Poster pictures (2 of 10)')).toBeVisible();
+  const first = (await q(`select config->'images'->0->>'url' u from presale_config`))[0].u;
+  await page.getByRole('button', { name: 'Move picture 1 later' }).click();
+  await page.getByLabel('Description of picture 1 (optional)').fill('Second one now first');
   await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
-  await expect.poll(async () => (await q(`select config->>'imageAlt' a from presale_config`))[0].a).toBe('Three tees on a rail');
+  await expect.poll(async () => (await q(`select config->'images'->0->>'alt' a from presale_config`))[0].a).toBe('Second one now first');
+  expect((await q(`select config->'images'->1->>'url' u from presale_config`))[0].u).toBe(first);   // the old first picture moved to second
+
+  // fill the list to nine straight in the database (uploading nine files one by one adds nothing to the test), then use the real uploader for the tenth
+  await q(`update presale_config set config = jsonb_set(config, '{images}', (select jsonb_agg(jsonb_build_object('url', config->'images'->0->>'url', 'alt', 'Copy ' || g)) from generate_series(1, 9) g)) where id = 1`);
+  await page.reload();
+  await expect(page.getByText('Poster pictures (9 of 10)')).toBeVisible();
+  await page.setInputFiles('input[type=file] >> nth=0', { name: 'tenth.png', mimeType: 'image/png', buffer: PNG });
+  await expect(page.getByText('Poster pictures (10 of 10)')).toBeVisible();
+  await expect(page.getByText('That is the maximum.')).toBeVisible();
+  await expect(page.locator('input[type=file]')).toHaveCount(1);          // only the background picture uploader is left
+  await page.getByRole('button', { name: 'Remove picture 10' }).click();
+  await expect(page.getByText('Poster pictures (9 of 10)')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save pre-sale settings' })).toBeVisible();
+
+  // back to two pictures for the rest of the run
+  for (let n = 9; n >= 3; n--) await page.getByRole('button', { name: `Remove picture ${n}` }).click();
+  await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
+  await expect.poll(async () => (await q(`select jsonb_array_length(config->'images') n from presale_config`))[0].n).toBe(2);
 });
 
 test('visitors see the strip, open the overlay and send a pre-order', async ({ page }) => {
-  await page.goto(`${B}/collections/all`);
+  await page.goto(`${B}/collections/all?preview=1`);
   const strip = page.getByRole('region', { name: 'Pre-sale' });
   await expect(strip).toBeVisible();
-  await strip.getByRole('button', { name: 'Pre-order now' }).click();
-  const overlay = page.getByRole('dialog', { name: 'Big sale' });
+  await strip.getByRole('button', { name: 'Pre-Order Now' }).click();
+  const overlay = page.getByRole('dialog', { name: 'Big Sale' });
   await expect(overlay).toBeVisible();
-  await expect(overlay.getByText('Any two tees')).toBeVisible();
+  await expect(overlay.getByText('Any Two Tees')).toBeVisible();
   await expect(overlay.getByText('₦30,000')).toBeVisible();
-  await expect(overlay.getByRole('img', { name: 'Three tees on a rail' })).toBeVisible();
+  // two-picture carousel with controls, in a brand-gold background with dark text, Title Case headings and no glow
+  const carousel = overlay.getByRole('region', { name: 'Pre-sale pictures' });
+  await expect(carousel.getByRole('group', { name: /of 2/ })).toHaveCount(2);
+  await expect(carousel.getByRole('button', { name: 'Previous picture' })).toBeDisabled();
+  await carousel.getByRole('button', { name: 'Next picture' }).click();
+  await expect(carousel.getByRole('button', { name: 'Show picture 2' })).toHaveAttribute('aria-current', 'true');
+  await expect(carousel.getByRole('button', { name: 'Next picture' })).toBeDisabled();
+  await expect(overlay.getByText('Limited Drop', { exact: true })).toBeVisible();
+  const headline = overlay.getByRole('heading', { level: 1, name: 'Big Sale' });
+  await expect(headline).toBeVisible();
+  expect(await headline.evaluate((el) => getComputedStyle(el).textTransform)).toBe('none');
+  expect(await headline.evaluate((el) => getComputedStyle(el).textShadow)).toBe('none');
+  expect(await headline.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(17, 17, 17)');            // dark text on gold
+  expect(await headline.evaluate((el) => (el.parentElement as HTMLElement).style.background)).toContain('rgb(197, 161, 93)');
 
   // nothing chosen yet
-  await overlay.getByRole('button', { name: 'Send pre-order' }).click();
+  await overlay.getByRole('button', { name: 'Send Pre-Order' }).click();
   await expect(overlay.getByText('Please fix the highlighted fields.')).toBeVisible();
   await expect(overlay.getByText('Enter your full name')).toBeVisible();
   await expect(overlay.getByRole('alert').filter({ hasText: 'Choose your state' })).toBeVisible();
 
   await fillRequest(overlay as unknown as Page, { name: 'Ada Obi', email: 'ada@example.com', garments: { 'T-shirt': { Medium: 2, Large: 1 }, Hoodie: { 'XX-Large': 1 } }, notes: 'Black please' });
   await expect(overlay.getByText('Total: 4 pieces')).toBeVisible();
-  await overlay.getByRole('button', { name: 'Pre-order 4 pieces' }).click();
-  await expect(overlay.getByRole('heading', { name: 'Request received' })).toBeVisible();
+  await overlay.getByRole('button', { name: 'Pre-Order 4 Pieces' }).click();
+  await expect(overlay.getByRole('heading', { name: 'Request Received' })).toBeVisible();
   const ref = (await overlay.getByText(/^PRE-\d+$/).textContent())!;
   await expect(overlay.getByText('T-shirt: M × 2, L × 1')).toBeVisible();
   await expect(overlay.getByText('Hoodie: XXL × 1')).toBeVisible();
@@ -99,16 +140,19 @@ test('the /presale page works on a phone, keeps what was typed after a mistake, 
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   await page.goto(`${B}/presale`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Big sale' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Big Sale' })).toBeVisible();
+  // the cookie banner is switched on in the test environment; on a phone it would sit over the send button
+  const essential = page.getByRole('button', { name: 'Essential only' });
+  await essential.click({ timeout: 4000 }).catch(() => undefined);
   await fillRequest(page, { name: 'Tolu Bello', email: 'tolu@example.com', garments: { Sweatshirt: { Small: 3 } } });
   await page.getByLabel('WhatsApp number').fill('123');
-  await page.getByRole('button', { name: 'Pre-order 3 pieces' }).click();
+  await page.getByRole('button', { name: 'Pre-Order 3 Pieces' }).click();
   await expect(page.getByText(/valid Nigerian WhatsApp number/)).toBeVisible();
   await expect(page.getByLabel('Full name')).toHaveValue('Tolu Bello');            // not wiped by the error
   await expect(page.getByLabel('City or town')).toHaveValue('Akure');
   await page.getByLabel('WhatsApp number').fill('08031234567');
-  await page.getByRole('button', { name: 'Pre-order 3 pieces' }).click();
-  await expect(page.getByRole('heading', { name: 'Request received' })).toBeVisible();
+  await page.getByRole('button', { name: 'Pre-Order 3 Pieces' }).click();
+  await expect(page.getByRole('heading', { name: 'Request Received' })).toBeVisible();
   expect((await q(`select total_qty, items from presale_requests where email = 'tolu@example.com'`))[0]).toMatchObject({ total_qty: 3, items: [{ garment: 'sweatshirt', sizes: { S: 3 } }] });
   await ctx.close();
 });
@@ -165,9 +209,9 @@ test('accessibility: the page, the overlay and the admin screens have no axe vio
   await page.goto(`${B}/presale`);
   await page.getByRole('button', { name: 'T-shirt', exact: true }).click();
   found.push(...(await scan(page)).map((v) => `/presale → ${v}`));
-  await page.goto(`${B}/collections/all`);
-  await page.getByRole('region', { name: 'Pre-sale' }).getByRole('button', { name: 'Pre-order now' }).click();
-  await page.getByRole('dialog', { name: 'Big sale' }).waitFor();
+  await page.goto(`${B}/collections/all?preview=1`);
+  await page.getByRole('region', { name: 'Pre-sale' }).getByRole('button', { name: 'Pre-Order Now' }).click();
+  await page.getByRole('dialog', { name: 'Big Sale' }).waitFor();
   found.push(...(await scan(page)).map((v) => `overlay → ${v}`));
   await login(page, 'admin@example.com', 'admin', '/admin/presale');
   found.push(...(await scan(page)).map((v) => `/admin/presale → ${v}`));
@@ -180,10 +224,10 @@ test('accessibility: the page, the overlay and the admin screens have no axe vio
 test('the date window closes it: after the end date the strip disappears and the page says closed', async ({ page }) => {
   await saveSettings(page, { enabled: true, startsOn: lagosDate(-10), endsOn: lagosDate(-1) });
   await expect(page.getByText(/The pre-sale is live|Saved/)).toBeVisible();
-  await page.goto(`${B}/collections/all`);
+  await page.goto(`${B}/collections/all?preview=1`);
   await expect(page.getByRole('region', { name: 'Pre-sale' })).toHaveCount(0);
   await page.goto(`${B}/presale`);
-  await expect(page.getByRole('heading', { name: 'Pre-sale is closed' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pre-Sale Is Closed' })).toBeVisible();
   // a request cannot slip through a stale open form
   const before = (await q(`select count(*)::int n from presale_requests`))[0].n;
   await saveSettings(page, { enabled: false });

@@ -24,7 +24,7 @@ export default async function PresalePage() {
         <PresaleForm garments={garments} states={[...NIGERIAN_STATES]} notesHelp={config.notesHelp} notice={config.notice} />
       ) : (
         <div className="mx-auto max-w-md py-10 text-center" role="status">
-          <h2 className="display text-4xl">{state === 'soon' ? 'Opening soon' : 'Pre-sale is closed'}</h2>
+          <h2 className="display text-4xl normal-case!">{state === 'soon' ? 'Opening Soon' : 'Pre-Sale Is Closed'}</h2>
           <p className="mt-3 text-lg text-muted">{state === 'soon' && config.startsOn ? `Pre-sale opens on ${new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long', timeZone: 'Africa/Lagos' }).format(new Date(`${config.startsOn}T12:00:00+01:00`))}.` : config.closedText}</p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild><a href={whatsappLink(settings.whatsapp_number, 'Hi, I would like to know about the pre-sale.')} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a></Button>

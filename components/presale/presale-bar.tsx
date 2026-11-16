@@ -25,7 +25,7 @@ export function PresaleBar({ text, garments, states, notesHelp, notice, title, c
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <div className="bg-gold px-4 py-2 text-center text-sm font-semibold text-[#111111]" role="region" aria-label="Pre-sale">
         {text}{' '}
-        <Dialog.Trigger className="ml-1 inline-flex min-h-11 items-center rounded-btn bg-ink px-4 text-xs font-bold uppercase tracking-widest text-paper hover:bg-ink/85">Pre-order now</Dialog.Trigger>
+        <Dialog.Trigger className="ml-1 inline-flex min-h-11 items-center rounded-btn bg-ink px-4 text-sm font-bold text-paper hover:bg-ink/85">Pre-Order Now</Dialog.Trigger>
       </div>
       <Dialog.Portal>
         <Dialog.Content aria-describedby={undefined} className="fixed inset-0 z-[80] overflow-y-auto bg-[#1b1c1f]">

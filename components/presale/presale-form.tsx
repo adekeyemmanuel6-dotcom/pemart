@@ -28,8 +28,8 @@ export function PresaleForm({ garments, states, notesHelp, notice, onDone }: { g
   if (state?.ok) {
     return (
       <div role="status" className="space-y-4 text-center">
-        <p className="font-script text-3xl text-mocha">thank you</p>
-        <h2 className="display text-4xl">{state.demo ? 'Demo only' : 'Request received'}</h2>
+        <p className="font-script text-3xl text-mocha">Thank You</p>
+        <h2 className="display text-4xl normal-case!">{state.demo ? 'Demo Only' : 'Request Received'}</h2>
         <p className="text-lg">{state.message}</p>
         {state.reference && <p className="rounded-lg border-2 border-dashed border-ink py-3 text-2xl font-bold tracking-widest">{state.reference}</p>}
         {state.lines && (<ul className="mx-auto max-w-sm space-y-1 text-left">{state.lines.map((l) => (<li key={l} className="rounded border border-line bg-sand/50 px-3 py-2 text-sm">{l}</li>))}</ul>)}
@@ -44,7 +44,7 @@ export function PresaleForm({ garments, states, notesHelp, notice, onDone }: { g
       <input type="hidden" name="items" value={JSON.stringify(items)} />
 
       <fieldset>
-        <legend className="display mb-1 text-3xl">1. What would you like?</legend>
+        <legend className="display mb-1 text-3xl normal-case!">1. What Would You Like?</legend>
         <p className="mb-3 text-sm text-muted">Pick one or more, then enter how many you want in each size.</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Garments">
           {garments.map((g) => {
@@ -89,7 +89,7 @@ export function PresaleForm({ garments, states, notesHelp, notice, onDone }: { g
       </fieldset>
 
       <fieldset className="space-y-3">
-        <legend className="display mb-1 text-3xl">2. Your details</legend>
+        <legend className="display mb-1 text-3xl normal-case!">2. Your Details</legend>
         <div><Label htmlFor="pr-name">Full name</Label><Input id="pr-name" name="name" defaultValue={v.name} autoComplete="name" aria-invalid={!!fe.name} aria-describedby="pr-name-e" className={field} /><Err id="pr-name-e" msg={fe.name} /></div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div><Label htmlFor="pr-phone">WhatsApp number</Label><Input id="pr-phone" name="phone" type="tel" defaultValue={v.phone} autoComplete="tel" placeholder="0803 123 4567" aria-invalid={!!fe.phone} aria-describedby="pr-phone-e" className={field} /><Err id="pr-phone-e" msg={fe.phone} /></div>
@@ -98,7 +98,7 @@ export function PresaleForm({ garments, states, notesHelp, notice, onDone }: { g
       </fieldset>
 
       <fieldset className="space-y-3">
-        <legend className="display mb-1 text-3xl">3. Where should we send it?</legend>
+        <legend className="display mb-1 text-3xl normal-case!">3. Where Should We Send It?</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="pr-state">State</Label>
@@ -115,14 +115,14 @@ export function PresaleForm({ garments, states, notesHelp, notice, onDone }: { g
       </fieldset>
 
       <fieldset className="space-y-3">
-        <legend className="display mb-1 text-3xl">4. Anything else?</legend>
+        <legend className="display mb-1 text-3xl normal-case!">4. Anything Else?</legend>
         <div><Label htmlFor="pr-notes">Notes (optional)</Label><textarea id="pr-notes" name="notes" rows={4} maxLength={1500} defaultValue={v.notes} placeholder={notesHelp} className="mt-1 w-full rounded-btn border border-line bg-white px-3 py-2 text-base" /></div>
         <label className="flex min-h-12 items-center gap-3 text-sm"><input type="checkbox" name="whatsappUpdates" defaultChecked={state ? v.whatsappUpdates === 'on' : true} className="size-5 accent-ink" />Send me updates about my pre-order on WhatsApp</label>
       </fieldset>
 
       {notice && <p className="rounded-lg bg-sand/70 p-3 text-sm">{notice}</p>}
       {state && !state.ok && <p role="alert" className="rounded-btn border border-ember/40 bg-ember/10 p-3 text-sm">{state.message}</p>}
-      <Button type="submit" className="w-full text-lg" disabled={pending}>{pending ? 'Sending…' : total > 0 ? `Pre-order ${total} ${total === 1 ? 'piece' : 'pieces'}` : 'Send pre-order'}</Button>
+      <Button type="submit" className="w-full text-lg" disabled={pending}>{pending ? 'Sending…' : total > 0 ? `Pre-Order ${total} ${total === 1 ? 'Piece' : 'Pieces'}` : 'Send Pre-Order'}</Button>
     </form>
   );
 }

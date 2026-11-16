@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ActionForm } from '@/components/admin/action-form';
 import { AdminUploader } from '@/components/admin/admin-uploader';
+import { PresaleImages } from '@/components/admin/presale-images';
 import { NeedsMigration } from '@/components/admin/needs-migration';
 import { Card, DataTable, Empty, PageTitle, fmtDate, inputCls, labelCls } from '@/components/admin/ui';
 import { adm, isMissingFunction, requirePerm } from '@/lib/admin/db';
@@ -94,6 +95,7 @@ export default async function PresalePage({ searchParams }: { searchParams: Prom
 function SettingsForm({ c }: { c: PresaleConfig }) {
   const Check = ({ name, label, on }: { name: string; label: string; on: boolean }) => (<label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={name} defaultChecked={on} className="size-5 accent-ink" />{label}</label>);
   const T = ({ id, label, name, v, wide, help }: { id: string; label: string; name: string; v: string; wide?: boolean; help?: string }) => (<div className={wide ? 'sm:col-span-2' : ''}><label className={labelCls} htmlFor={id}>{label}</label><input id={id} name={name} defaultValue={v} className={inputCls} />{help && <p className="mt-1 text-xs text-muted">{help}</p>}</div>);
+  const images = c.images.length ? c.images : c.imageUrl ? [{ url: c.imageUrl, alt: c.imageAlt }] : [];
   const offers = [...c.offers, { text: '', price: '' }, { text: '', price: '' }, { text: '', price: '' }, { text: '', price: '' }].slice(0, 4);
   return (
     <ActionForm action={savePresaleSettingsAction} submitLabel="Save pre-sale settings" pendingLabel="Saving…">
@@ -107,13 +109,20 @@ function SettingsForm({ c }: { c: PresaleConfig }) {
         </Card>
         <Card title="Poster">
           <div className="grid gap-3 sm:grid-cols-2">
-            <T id="ps-kicker" label="Small handwritten line" name="kicker" v={c.kicker} />
-            <T id="ps-head" label="Big headline (e.g. Big sale)" name="headline" v={c.headline} />
+            <T id="ps-kicker" label="Small line above the headline" name="kicker" v={c.kicker} help="Shown in Title Case." />
+            <T id="ps-head" label="Big headline (e.g. Big Sale)" name="headline" v={c.headline} help="Shown in Title Case." />
             <T id="ps-sub" label="Text under the headline" name="subhead" v={c.subhead} wide />
             <T id="ps-bar" label="Text on the top strip" name="barText" v={c.barText} wide />
-            <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="imageUrl" label="Poster picture (upload your design; portrait 4:5 looks best)" accept=".png,.jpg,.jpeg,.webp" initial={c.imageUrl} />
-              {c.imageUrl && (<div className="mt-1 text-sm"><p className="text-muted">Current picture: <a href={c.imageUrl} target="_blank" rel="noopener noreferrer" className="underline">open it</a>. Upload another to replace it.</p><Check name="removeImage" label="Remove the picture" on={false} /></div>)}</div>
-            <T id="ps-alt" label="Describe the picture (optional; the headline is used if you leave it empty)" name="imageAlt" v={c.imageAlt} wide />
+            <div className="sm:col-span-2"><PresaleImages initial={images} /></div>
+          </div>
+        </Card>
+        <Card title="Background">
+          <p className="mb-2 text-sm text-muted">The poster behind the headline. Text turns dark or light by itself so it stays readable. Brand colours: black #111111, gold #C5A15D, charcoal #292929, white #FFFFFF.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><label className={labelCls} htmlFor="ps-bg1">Background colour</label><input id="ps-bg1" name="bgColor" type="color" defaultValue={c.bgColor} className={`${inputCls} p-1`} /></div>
+            <div><label className={labelCls} htmlFor="ps-bg2">Fade into a second colour (optional)</label>
+              <div className="flex items-center gap-3"><input id="ps-bg2" name="bgColor2" type="color" defaultValue={c.bgColor2 || '#292929'} className={`${inputCls} p-1`} /><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="bgGradient" defaultChecked={!!c.bgColor2} className="size-5 accent-ink" />Use it</label></div></div>
+            <div className="sm:col-span-2"><AdminUploader bucket="catalogue" name="bgImageUrl" label="Background picture or pattern (optional, laid under your colour)" accept=".png,.jpg,.jpeg,.webp" initial={c.bgImageUrl} /></div>
           </div>
         </Card>
         <Card title="Offers shown on the poster (optional)">

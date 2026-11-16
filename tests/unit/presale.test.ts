@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PresaleConfigSchema, PresaleSubmitSchema, cleanItems, describeItems, itemQty, presaleDefaults, presaleState, resolvePresale, totalQty } from '@/lib/presale/schema';
+import { toTitleCase } from '@/lib/presale/title-case';
+import { PresaleConfigSchema, isLightColour, presaleImages, PresaleSubmitSchema, cleanItems, describeItems, itemQty, presaleDefaults, presaleState, resolvePresale, totalQty } from '@/lib/presale/schema';
 
 const valid = { name: 'Ada Obi', email: 'ada@example.com', phone: '0803 123 4567', state: 'Ondo', city: 'Akure', items: [{ garment: 'tee', sizes: { M: 2 } }] };
 
@@ -60,5 +61,43 @@ describe('who gets the team notifications', () => {
     expect(parseRecipients('peace@wearthewordbypemart.com, adekeyemmanuel6@gmail.com')).toEqual(['peace@wearthewordbypemart.com', 'adekeyemmanuel6@gmail.com']);
     expect(parseRecipients(' A@x.com;b@y.org  A@X.com not-an-email <c@z.com>')).toEqual(['a@x.com', 'b@y.org']);
     expect(parseRecipients('')).toEqual([]); expect(parseRecipients(undefined)).toEqual([]);
+  });
+});
+
+describe('title case', () => {
+  it('capitalises headings, keeps small words small in the middle, and leaves brands and prices alone', () => {
+    expect(toTitleCase('limited drop')).toBe('Limited Drop');
+    expect(toTitleCase('pre-sale')).toBe('Pre-Sale');
+    expect(toTitleCase('big sale')).toBe('Big Sale');
+    expect(toTitleCase('what would you like?')).toBe('What Would You Like?');
+    expect(toTitleCase('the best of the year')).toBe('The Best of the Year');
+    expect(toTitleCase('any two tees')).toBe('Any Two Tees');
+    expect(toTitleCase('message us on WhatsApp')).toBe('Message Us on WhatsApp');
+    expect(toTitleCase('ONLY 50 pieces for ₦30,000')).toBe('ONLY 50 Pieces for ₦30,000');
+    expect(toTitleCase('  spaced   out  ')).toBe('  Spaced   Out  ');
+    expect(toTitleCase('')).toBe('');
+  });
+});
+
+describe('poster pictures and background', () => {
+  it('uses the carousel list, falls back to the old single picture, and fills missing descriptions with the headline', () => {
+    const c = resolvePresale({ headline: 'Big sale', images: [{ url: '/a.png', alt: '' }, { url: 'https://x.test/b.png', alt: 'B' }] });
+    expect(presaleImages(c)).toEqual([{ url: '/a.png', alt: 'Big sale' }, { url: 'https://x.test/b.png', alt: 'B' }]);
+    expect(presaleImages(resolvePresale({ imageUrl: '/old.png', imageAlt: 'Old' }))).toEqual([{ url: '/old.png', alt: 'Old' }]);
+    expect(presaleImages(resolvePresale({}))).toEqual([]);
+  });
+  it('allows at most 10 pictures and only safe links', () => {
+    const many = (n: number) => Array.from({ length: n }, (_, i) => ({ url: `/p${i}.png`, alt: '' }));
+    expect(PresaleConfigSchema.safeParse({ images: many(10) }).success).toBe(true);
+    expect(PresaleConfigSchema.safeParse({ images: many(11) }).success).toBe(false);
+    expect(PresaleConfigSchema.safeParse({ images: [{ url: 'javascript:alert(1)', alt: '' }] }).success).toBe(false);
+  });
+  it('validates colours and picks readable text', () => {
+    expect(PresaleConfigSchema.safeParse({ bgColor: 'red' }).success).toBe(false);
+    expect(PresaleConfigSchema.safeParse({ bgColor: '#C5A15D', bgColor2: '#292929' }).success).toBe(true);
+    expect(PresaleConfigSchema.safeParse({ bgColor2: '#zzz' }).success).toBe(false);
+    expect(isLightColour('#111111')).toBe(false); expect(isLightColour('#292929')).toBe(false);
+    expect(isLightColour('#FFFFFF')).toBe(true); expect(isLightColour('#C5A15D')).toBe(true);   // gold takes dark text
+    expect(presaleDefaults().bgColor).toBe('#111111');
   });
 });

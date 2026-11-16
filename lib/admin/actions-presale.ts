@@ -25,15 +25,16 @@ export async function savePresaleSettingsAction(_p: AdminResult, fd: FormData): 
   const me = await requireAdmin('/admin/presale');
   return run(['/admin/presale', '/presale', '/'], async () => {
     const offers = [1, 2, 3, 4].map((n) => ({ text: str(fd, `offer${n}_text`), price: str(fd, `offer${n}_price`) })).filter((o) => o.text);
+    let images: unknown = [];
+    try { images = JSON.parse(String(fd.get('images') ?? '[]')); } catch { return fail('Could not read the pictures. Please reload the page and try again.'); }
     const raw = {
       enabled: bool(fd, 'enabled'), showBar: bool(fd, 'showBar'), barText: str(fd, 'barText'), kicker: str(fd, 'kicker'), headline: str(fd, 'headline'), subhead: str(fd, 'subhead'),
-      imageUrl: bool(fd, 'removeImage') ? '' : str(fd, 'imageUrl'), imageAlt: bool(fd, 'removeImage') ? '' : str(fd, 'imageAlt'), startsOn: str(fd, 'startsOn'), endsOn: str(fd, 'endsOn'), offers,
+      images, imageUrl: '', imageAlt: '', bgColor: str(fd, 'bgColor') || '#111111', bgColor2: bool(fd, 'bgGradient') ? str(fd, 'bgColor2') : '', bgImageUrl: str(fd, 'bgImageUrl'), startsOn: str(fd, 'startsOn'), endsOn: str(fd, 'endsOn'), offers,
       garments: GARMENTS.filter((g) => bool(fd, `garment_${g}`)),
       garmentLabels: { tee: str(fd, 'label_tee'), sweatshirt: str(fd, 'label_sweatshirt'), hoodie: str(fd, 'label_hoodie') },
       notesHelp: str(fd, 'notesHelp'), notice: str(fd, 'notice'), successText: str(fd, 'successText'), closedText: str(fd, 'closedText'),
       emailSubject: str(fd, 'emailSubject'), emailIntro: str(fd, 'emailIntro'), emailFooter: str(fd, 'emailFooter'),
     };
-    if (raw.imageUrl && !raw.imageAlt) raw.imageAlt = raw.headline || 'Pre-sale poster';   // a description is optional: fall back to the headline
     if (raw.startsOn && raw.endsOn && raw.endsOn < raw.startsOn) return fail('The end date is before the start date.');
     const parsed = PresaleConfigSchema.safeParse(raw);
     if (!parsed.success) { const i = parsed.error.issues[0]!; return fail(`${i.path.join(' > ') || 'Settings'}: ${i.message}`); }

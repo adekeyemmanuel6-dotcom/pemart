@@ -16,6 +16,7 @@ import { PresalePoster } from '@/components/presale/presale-poster';
 import { NIGERIAN_STATES } from '@/lib/shipping';
 import { GARMENT_LABEL, presaleState } from '@/lib/presale/schema';
 import { getPresaleConfig } from '@/lib/presale/server';
+import { toTitleCase } from '@/lib/presale/title-case';
 
 /**
  * Storefront chrome shared by the (store) and (account) route groups.
@@ -77,7 +78,7 @@ export async function StoreShell({ children, minimal = false }: { children: Reac
       )}
       {!minimal && presale.showBar && presaleState(presale) === 'open' && (
         <PresaleBar
-          text={presale.barText} title={presale.headline} notesHelp={presale.notesHelp} notice={presale.notice} states={[...NIGERIAN_STATES]}
+          text={presale.barText} title={toTitleCase(presale.headline)} notesHelp={presale.notesHelp} notice={presale.notice} states={[...NIGERIAN_STATES]}
           garments={presale.garments.map((id) => ({ id, label: presale.garmentLabels[id] || GARMENT_LABEL[id] }))}
         >
           <PresalePoster config={presale} />

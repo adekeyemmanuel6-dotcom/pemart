@@ -27,11 +27,17 @@ export const PresaleConfigSchema = z.object({
   enabled: z.boolean().default(false),
   showBar: z.boolean().default(true),               // show the "Pre-order now" strip across the store
   barText: text('Pre-sale is open. Reserve your pieces now.', 120),
-  kicker: text('limited drop', 60),
+  kicker: text('Limited Drop', 60),
   headline: text('Pre-sale', 60),
   subhead: text('Reserve your pieces before they drop. Tell us what you want, your sizes and where to send it. No payment now: we confirm with you on WhatsApp.', 400),
-  imageUrl: text('', 500),                           // the poster / lookbook picture
+  imageUrl: text('', 500),                           // legacy single picture (still shown if `images` is empty)
   imageAlt: text('', 200),
+  // Poster carousel: up to 10 pictures, in the order shown. A missing description falls back to the headline.
+  images: z.array(z.object({ url: z.string().trim().min(1).max(500).refine((v) => /^(\/|https?:\/\/)/.test(v), 'Picture link must start with / or https://'), alt: z.string().trim().max(200).default('') })).max(10).default([]),
+  // Poster background: a brand colour (optionally fading into a second colour) and/or a picture laid under it.
+  bgColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #111111').default('#111111'),
+  bgColor2: z.string().regex(/^(#[0-9a-fA-F]{6})?$/, 'Use a colour like #292929').default(''),
+  bgImageUrl: text('', 500),
   startsOn: date.default(''),
   endsOn: date.default(''),
   offers: z.array(z.object({ text: z.string().trim().min(1).max(80), price: z.string().trim().max(40) })).max(4).default([]),
@@ -39,7 +45,6 @@ export const PresaleConfigSchema = z.object({
   garmentLabels: z.object({ tee: text('T-shirt', 30), sweatshirt: text('Sweatshirt', 30), hoodie: text('Hoodie', 30) }).prefault({}),
   notesHelp: text('Colour preference, fit, a gift message, delivery date: anything we should know.', 200),
   notice: text('Pre-order requests are not payments. We will confirm price, availability and delivery with you before you pay anything.', 300),
-  successTitle: text('You are on the list', 80),
   successText: text('We have your pre-order request. We will message you on WhatsApp to confirm everything before you pay.', 300),
   closedText: text('Pre-sale is closed right now. Check back soon, or message us on WhatsApp.', 200),
   // The confirmation email the customer receives. {reference} in the subject becomes e.g. PRE-1001.
@@ -48,6 +53,18 @@ export const PresaleConfigSchema = z.object({
   emailFooter: text('', 500),
 });
 export type PresaleConfig = z.infer<typeof PresaleConfigSchema>;
+/** The pictures to show: the carousel list, or the legacy single picture. */
+export const presaleImages = (c: PresaleConfig): { url: string; alt: string }[] =>
+  (c.images.length ? c.images : c.imageUrl ? [{ url: c.imageUrl, alt: c.imageAlt }] : []).map((i) => ({ url: i.url, alt: i.alt || c.headline || 'Pre-sale' }));
+
+/** Light backgrounds need dark text and the other way round (picks whichever of black or white has more contrast). */
+export function isLightColour(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return false;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1]!.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.179;   // where black text and white text have equal contrast
+}
+
 export const presaleDefaults = (): PresaleConfig => PresaleConfigSchema.parse({});
 export const resolvePresale = (raw: unknown): PresaleConfig => {
   const r = PresaleConfigSchema.safeParse(raw ?? {});
