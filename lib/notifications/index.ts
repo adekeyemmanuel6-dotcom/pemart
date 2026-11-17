@@ -77,8 +77,8 @@ export async function notifyWelcomeOffer(o: { to: string; code: string; expires?
 }
 
 /** Pre-sale request: a receipt for the customer and a summary for the team (ADMIN_NOTIFY_EMAIL). Never throws. */
-export async function notifyPresale(r: { to: string; name: string; reference: string; lines: string[]; location: string; successText: string; summary: string; subject?: string; intro?: string; footer?: string }) {
-  const customer = await sendEmail({ to: r.to, subject: (r.subject || 'Your pre-order request {reference}').replaceAll('{reference}', r.reference), tag: 'presale-received', react: createElement(PresaleReceived, { name: r.name, reference: r.reference, lines: r.lines, location: r.location, successText: r.successText, intro: r.intro, footer: r.footer, siteUrl: site(), whatsappUrl: await wa() }) });
+export async function notifyPresale(r: { to: string; name: string; reference: string; lines: string[]; location: string; successText: string; summary: string; subject?: string; intro?: string; footer?: string; notice?: string }) {
+  const customer = await sendEmail({ to: r.to, subject: (r.subject || 'Your pre-order request {reference}').replaceAll('{reference}', r.reference), tag: 'presale-received', react: createElement(PresaleReceived, { name: r.name, reference: r.reference, lines: r.lines, location: r.location, successText: r.successText, intro: r.intro, footer: r.footer, notice: r.notice, siteUrl: site(), whatsappUrl: await wa() }) });
   const admin = adminRecipients();
   if (admin.length) await sendEmail({ to: admin, subject: `New pre-order ${r.reference}`, tag: 'presale-admin', react: createElement('pre', null, r.summary) });
   return customer;

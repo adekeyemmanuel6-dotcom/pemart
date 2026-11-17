@@ -29,7 +29,7 @@ export const PresaleConfigSchema = z.object({
   barText: text('Pre-sale is open. Reserve your pieces now.', 120),
   kicker: text('Limited Drop', 60),
   headline: text('Pre-sale', 60),
-  subhead: text('Reserve your pieces before they drop. Tell us what you want, your sizes and where to send it. No payment now: we confirm with you on WhatsApp.', 400),
+  subhead: text('Reserve your pieces before they drop. Tell us what you want, your sizes and where to send it. No payment now: you pay when the website goes live.', 400),
   imageUrl: text('', 500),                           // legacy single picture (still shown if `images` is empty)
   imageAlt: text('', 200),
   // Poster carousel: up to 10 pictures, in the order shown. A missing description falls back to the headline.
@@ -45,8 +45,8 @@ export const PresaleConfigSchema = z.object({
   garments: z.array(z.enum(GARMENTS)).min(1).default([...GARMENTS]),
   garmentLabels: z.object({ tee: text('T-shirt', 30), sweatshirt: text('Sweatshirt', 30), hoodie: text('Hoodie', 30) }).prefault({}),
   notesHelp: text('Colour preference, fit, a gift message, delivery date: anything we should know.', 200),
-  notice: text('Pre-order requests are not payments. We will confirm price, availability and delivery with you before you pay anything.', 300),
-  successText: text('We have your pre-order request. We will message you on WhatsApp to confirm everything before you pay.', 300),
+  notice: text('This is a pre-order request, not a payment, and nothing is charged now. When the website goes live we will message you on WhatsApp and email so you can complete your payment.', 300),
+  successText: text('We have your pre-order request. When the website goes live we will message you on WhatsApp and email so you can make your payment.', 300),
   closedText: text('Pre-sale is closed right now. Check back soon, or message us on WhatsApp.', 200),
   // The confirmation email the customer receives. {reference} in the subject becomes e.g. PRE-1001.
   emailSubject: text('Your pre-order request {reference}', 100),

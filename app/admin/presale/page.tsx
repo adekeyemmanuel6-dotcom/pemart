@@ -145,7 +145,7 @@ function SettingsForm({ c }: { c: PresaleConfig }) {
         <Card title="Words">
           <div className="grid gap-3 sm:grid-cols-2">
             <T id="ps-notes" label="Hint inside the notes box" name="notesHelp" v={c.notesHelp} wide />
-            <T id="ps-notice" label="Notice above the send button" name="notice" v={c.notice} wide />
+            <T id="ps-notice" label="Payment notice (above the send button and in their email)" name="notice" v={c.notice} wide />
             <T id="ps-ok" label="Message after they send (also in their email)" name="successText" v={c.successText} wide />
             <T id="ps-closed" label="Message when pre-sale is closed" name="closedText" v={c.closedText} wide />
           </div>
