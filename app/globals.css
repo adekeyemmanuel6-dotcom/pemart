@@ -17,6 +17,12 @@
   --ember: #A43B24;
   --muted: #5C5C5C;
   --line: #E4E1DB;
+  /* Wear The Word brand colours, used by the combo sections. Ember Orange is for fills and buttons (dark text on it), never for small text on Ivory. */
+  --wtw-coal: #171717;
+  --wtw-ivory: #F7F1E8;
+  --wtw-ember: #DE7144;
+  --wtw-stone: #B7AA9C;
+  --wtw-graphite: #42413F;
 }
 
 /* Admin only: dark mode. The storefront stays light and warm. */

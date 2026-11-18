@@ -11,6 +11,8 @@ import { ConsentBanner } from '@/components/consent/consent-banner';
 import { AnalyticsRuntime } from '@/components/consent/analytics-runtime';
 import { OfferPopup } from '@/components/offer/offer-popup';
 import { BagDrawer } from '@/components/bag/bag-drawer';
+import { CalculatorDialog } from '@/components/combos/calculator-dialog';
+import { getComboCatalogue, getComboSettings } from '@/lib/combos/server';
 import { PresaleBar } from '@/components/presale/presale-bar';
 import { PresalePoster } from '@/components/presale/presale-poster';
 import { NIGERIAN_STATES } from '@/lib/shipping';
@@ -24,7 +26,8 @@ import { toTitleCase } from '@/lib/presale/title-case';
  * so visitors cannot browse into the store before launch.
  */
 export async function StoreShell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) {
-  const [settings, presale] = await Promise.all([getSettings(), getPresaleConfig()]);
+  const [settings, presale, comboSettings, comboCatalogue] = await Promise.all([getSettings(), getPresaleConfig(), getComboSettings(), getComboCatalogue()]);
+  const combo = comboSettings.enabled && comboCatalogue.collections.length > 0 ? { label: comboSettings.headerLabel } : null;
   const content = resolveWebsite(settings);
   if (settings.maintenance_mode) {
     return (
@@ -85,13 +88,14 @@ export async function StoreShell({ children, minimal = false }: { children: Reac
         </PresaleBar>
       )}
       {!minimal && <AnnouncementBar settings={settings} />}
-      {!minimal && <SiteHeader settings={settings} />}
+      {!minimal && <SiteHeader settings={settings} combo={combo} />}
       <main id="main" className="min-h-[60vh]">
         {children}
       </main>
       {!minimal && <SiteFooter settings={settings} />}
       <WhatsAppButton number={settings.whatsapp_number} />
       {!minimal && <BagDrawer />}
+      {!minimal && <CalculatorDialog />}
       <ConsentBanner />
       {!minimal && <OfferPopup />}
       <AnalyticsRuntime />

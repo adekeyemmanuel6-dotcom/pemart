@@ -3,12 +3,13 @@ import { EXISTING_PAGES, resolveWebsite } from '@/lib/website/schema';
 import { BRAND_COLLECTIONS, WORD_THEMES } from '@/lib/brand';
 import type { MetadataRoute } from 'next';
 import { getCatalogue } from '@/lib/catalogue/load';
+import { getComboCatalogue } from '@/lib/combos/server';
 import { isBundleAvailable } from '@/lib/catalogue/helpers';
 import { publicEnv } from '@/lib/env';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = publicEnv.NEXT_PUBLIC_SITE_URL;
-  const cat = await getCatalogue();
+  const [cat, combos] = await Promise.all([getCatalogue(), getComboCatalogue()]);
   const fixed = [
     '',
     '/collections',
@@ -51,5 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...cat.bundles
       .filter((b) => isBundleAvailable(b))
       .map((b) => ({ url: `${base}/bundles/${b.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
+    ...(combos.collections.length ? [{ url: `${base}/combos`, changeFrequency: 'weekly' as const, priority: 0.7 }] : []),
+    ...combos.collections.map((c) => ({ url: `${base}/combos/${c.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
   ];
 }

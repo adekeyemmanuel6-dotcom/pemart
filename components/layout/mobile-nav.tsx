@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import type { NavPanel } from '@/lib/navigation';
+import { useCalculator } from '@/lib/combos/calculator-store';
 
 const row = 'flex min-h-14 w-full items-center justify-between border-b border-line text-left text-[15px] font-semibold uppercase tracking-[0.1em]';
 
@@ -12,7 +13,8 @@ const row = 'flex min-h-14 w-full items-center justify-between border-b border-l
  * opening one shows its links with a visible Back control. The sheet traps focus, closes on Escape
  * and locks page scroll.
  */
-export function MobileNav({ panels }: { panels: NavPanel[] }) {
+export function MobileNav({ panels, comboLabel }: { panels: NavPanel[]; comboLabel?: string }) {
+  const showCalc = useCalculator((s) => s.show);
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
   const backRef = useRef<HTMLButtonElement>(null);
@@ -57,6 +59,11 @@ export function MobileNav({ panels }: { panels: NavPanel[] }) {
                   </li>
                 ))}
               </ul>
+              {comboLabel && (
+                <button type="button" onClick={() => { done(); showCalc(null); }} className="mt-6 flex min-h-14 w-full items-center justify-center border-2 border-[var(--wtw-ember)] text-sm font-semibold uppercase tracking-[0.14em]">
+                  {comboLabel}
+                </button>
+              )}
               {gifts && (
                 <Link href="/gift-boxes" onClick={done} className="mt-6 flex min-h-14 items-center justify-center bg-ink text-sm font-semibold uppercase tracking-[0.14em] text-white">
                   Shop Gift Boxes

@@ -6,6 +6,8 @@ import { Minus, Plus, Trash2, Truck } from 'lucide-react';
 import { useQuote, useDeliveryState } from '@/lib/checkout/use-quote';
 import type { PublicQuote } from '@/lib/checkout/types';
 import { useBag } from '@/lib/cart-store';
+import { useCalculator } from '@/lib/combos/calculator-store';
+import type { ComboSelection } from '@/lib/combos/types';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { formatNaira } from '@/lib/money';
 import type { ProductType } from '@/lib/catalogue/types';
@@ -61,6 +63,7 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
   const { quote: q, loading, error, hasLines } = useQuote({ state });
   const lines = useBag((s) => s.lines), remove = useBag((s) => s.remove), setQty = useBag((s) => s.setQuantity), add = useBag((s) => s.add);
   const [pick, setPick] = useState('');
+  const setOpen = useBag((s) => s.setOpen), showCalc = useCalculator((s) => s.show);
 
   if (!hasLines) {
     return (
@@ -103,6 +106,8 @@ export function BagContents({ variant, onNavigate }: { variant: 'drawer' | 'page
                       <span className="w-7 text-center font-semibold" aria-live="polite">{l.quantity}</span>
                       <button type="button" className="grid size-11 place-items-center" onClick={() => setQty(l.id, l.quantity + 1)} aria-label="Increase quantity"><Plus className="size-4" aria-hidden /></button>
                     </div>)}
+                  {l.kind === 'combo' && (() => { const raw = lines.find((x) => x.id === l.id)?.selection as ComboSelection | undefined; return raw ? (
+                    <button type="button" onClick={() => { setOpen(false); showCalc(null, { lineId: l.id, selection: raw }); }} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4" aria-label={`Edit ${l.name}`}>Edit</button>) : null; })()}
                   <button type="button" onClick={() => remove(l.id)} className="inline-flex min-h-11 items-center gap-1 px-2 text-sm font-semibold underline-offset-4 hover:underline" aria-label={`Remove ${l.name}`}><Trash2 className="size-4" aria-hidden />Remove</button>
                 </div>
               </div>

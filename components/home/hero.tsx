@@ -6,12 +6,13 @@ import { DEFAULT_HERO, bannerAlt, type WebsiteContent, type WebsiteSection } fro
 import { ArtPicture } from './art-picture';
 import { HeroSlider } from './hero-slider';
 import { sectionLook } from './section-look';
+import { ComboTrigger } from '@/components/combos/combo-trigger';
 
 const pill =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-8 text-sm font-semibold uppercase tracking-[0.14em] transition-colors duration-150';
 
 /** Homepage hero in the style chosen in Website editor: split (text + image), sliding banners, or one banner. */
-export function Hero({ section: s, brand }: { section: WebsiteSection; brand: WebsiteContent['brand'] }) {
+export function Hero({ section: s, brand, comboLabel }: { section: WebsiteSection; brand: WebsiteContent['brand']; comboLabel?: string }) {
   const hero = { ...DEFAULT_HERO, ...s.hero };
   const look = sectionLook(s);
 
@@ -68,10 +69,11 @@ export function Hero({ section: s, brand }: { section: WebsiteSection; brand: We
           {s.kicker && <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gold sm:text-sm">{s.kicker}</p>}
           <h1 id="hero-title" className="display mt-5 whitespace-pre-line text-5xl sm:text-7xl xl:text-8xl">{s.title}</h1>
           {s.body && <p className="mx-auto mt-6 max-w-xl whitespace-pre-line text-base text-white/85 sm:text-lg">{s.body}</p>}
-          {(s.linkText || s.secondaryText) && (
+          {(s.linkText || s.secondaryText || comboLabel) && (
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               {s.linkText && <Link href={s.href} className={`${pill} bg-white text-[#111] hover:bg-gold`}>{s.linkText}</Link>}
               {s.secondaryText && <Link href={s.secondaryHref} className={`${pill} border border-white/80 text-white hover:border-gold hover:bg-gold hover:text-[#111]`}>{s.secondaryText}</Link>}
+              {!s.secondaryText && comboLabel && <ComboTrigger className={`${pill} border border-white/80 text-white hover:border-gold hover:bg-gold hover:text-[#111]`}>{comboLabel}</ComboTrigger>}
             </div>
           )}
         </div>
@@ -101,6 +103,11 @@ export function Hero({ section: s, brand }: { section: WebsiteSection; brand: We
           {s.secondaryText && (
             <Button asChild variant="secondary">
               <Link href={s.secondaryHref}>{s.secondaryText}</Link>
+            </Button>
+          )}
+          {!s.secondaryText && comboLabel && (
+            <Button asChild variant="secondary">
+              <ComboTrigger>{comboLabel}</ComboTrigger>
             </Button>
           )}
         </div>
