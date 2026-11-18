@@ -26,7 +26,10 @@ export const ADMIN_GROUPS: NavGroup[] = [
   },
   {
     label: 'Catalogue',
-    items: [{ href: '/admin/catalogue', label: 'Products & gift boxes', need: ['catalogue'], icon: 'catalogue' }],
+    items: [
+      { href: '/admin/catalogue', label: 'Products & gift boxes', need: ['catalogue'], icon: 'catalogue' },
+      { href: '/admin/combos', label: 'Combo Management', need: ['catalogue'], icon: 'catalogue' },
+    ],
   },
   {
     label: 'Website',
