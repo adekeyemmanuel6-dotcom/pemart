@@ -484,7 +484,7 @@ insert into public.combo_components (slug, name, kind, description, internal_cos
   ('premium-tshirt',  'Premium Cotton T-shirt', 'garment', 'Premium cotton, 240–300 GSM.', 1000000, true, 1, 1, true),
   ('sweatshirt',      'Sweatshirt',             'garment', 'Heavyweight sweatshirt.',        1500000, true, 1, 2, true),
   ('hoodie',          'Hoodie',                 'garment', 'Heavyweight hoodie.',            2000000, true, 1, 3, true),
-  ('normal-tshirt',   'Normal T-shirt',         'garment', 'Everyday cotton, 120–160 GSM. Reference only: not offered in the combos.', 300000, true, 1, 9, false),
+  ('normal-tshirt',   'Normal T-shirt',         'garment', 'Everyday cotton, 120–160 GSM.', 300000, true, 1, 9, true),
   ('custom-frame',    'Customised Frame',       'frame',   'Framed Scripture print, customised for you.', null, true, 1, 1, true)
 on conflict (slug) do nothing;
 
