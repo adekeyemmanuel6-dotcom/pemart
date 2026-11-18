@@ -1,9 +1,11 @@
 import type { BundleSelection } from '@/lib/bundles/selection';
 import type { ProductType } from '@/lib/catalogue/types';
+import type { ComboCatalogue, ComboSelection } from '@/lib/combos/types';
 
 export type CartLineInput =
   | { id: string; kind: 'variant'; refId: string; quantity: number; upsell?: boolean; giftCard?: { recipientEmail?: string; message?: string } }
   | { id: string; kind: 'bundle'; refId: string; quantity: number; selection: BundleSelection }
+  | { id: string; kind: 'combo'; refId: string; quantity: number; selection: ComboSelection }
   | { id: string; kind: 'custom'; refId: string; quantity: number }
   | { id: string; kind: 'revision'; refId: string; quantity: number };
 
@@ -24,6 +26,8 @@ export type PricingInput = {
 
 /** What the database tells us (discount, gift card, credit, custom briefs). Never supplied by the browser. */
 export type DbContext = {
+  /** Published combo collections, read live from the database for every quote (never from a browser or a stale cache). */
+  combos?: ComboCatalogue;
   discount?: {
     id: string; code: string; type: 'percentage' | 'fixed'; value: number; min_spend_kobo: number;
     starts_at: string | null; ends_at: string | null; usage_limit: number | null; times_used: number;
@@ -43,7 +47,7 @@ export type PricingSettings = {
 };
 
 export type QuoteLine = {
-  id: string; kind: 'variant' | 'bundle' | 'custom' | 'gift_card' | 'revision';
+  id: string; kind: 'variant' | 'bundle' | 'combo' | 'custom' | 'gift_card' | 'revision';
   name: string; detail: string[]; contents: string[];
   quantity: number; unitKobo: number; lineKobo: number;
   visual: { type: ProductType | 'bundle'; designSlug: string | null; colour: string | null; finish: string | null; imageUrl: string | null };
@@ -51,7 +55,7 @@ export type QuoteLine = {
 };
 
 export type DbItem = {
-  kind: 'variant' | 'bundle' | 'gift_card' | 'custom' | 'revision'; variant_id?: string; bundle_id?: string; name: string;
+  kind: 'variant' | 'bundle' | 'combo' | 'gift_card' | 'custom' | 'revision'; variant_id?: string; bundle_id?: string; name: string;
   options: Record<string, unknown>; selections?: unknown; unit_price: number; quantity: number; custom_request_id?: string; gift_message?: string;
 };
 

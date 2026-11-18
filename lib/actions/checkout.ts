@@ -11,6 +11,8 @@ import { clientIp } from '@/lib/client-ip';
 import { getSettings } from '@/lib/settings';
 import { normaliseNigerianPhone } from '@/lib/validators/phone';
 
+import { comboSelectionSchema } from '@/lib/combos/schema';
+
 const id = z.string().min(1).max(64);
 const choice = z.object({ key: z.string().max(80), designSlug: z.string().max(80).optional(), colour: z.string().max(40).optional(), size: z.string().max(10).optional(), option: z.string().max(80).optional(), customText: z.string().max(60).optional() });
 // Unknown keys (such as a price someone adds in dev tools) are stripped by zod before anything is priced.
@@ -19,6 +21,7 @@ const lineSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('bundle'), id, refId: id, quantity: z.number(), selection: z.object({ bundleSlug: z.string().max(80), choices: z.array(choice).max(30), giftMessage: z.string().max(400).optional(), giftWrap: z.boolean().optional() }) }),
   z.object({ kind: z.literal('custom'), id, refId: id, quantity: z.number() }),
   z.object({ kind: z.literal('revision'), id, refId: id, quantity: z.number() }),
+  z.object({ kind: z.literal('combo'), id, refId: z.string().min(1).max(80), quantity: z.number(), selection: comboSelectionSchema }),
 ]);
 const pricingSchema = z.object({
   lines: z.array(lineSchema).max(50), code: z.string().max(40).optional(), giftCode: z.string().max(40).optional(), useCredit: z.boolean().optional(),

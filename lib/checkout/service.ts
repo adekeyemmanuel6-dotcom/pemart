@@ -38,6 +38,11 @@ export async function quoteCart(input: PricingInput, who: Who = {}, now = new Da
       const r = await rpc<Record<string, unknown>>('checkout_context', { code: input.code?.trim() || null, gift_code: input.giftCode?.trim() || null, profile_id: who.profileId ?? null, email: who.email ?? null });
       if (r.data) { Object.assign(ctx, { discount: r.data.discount, gift_card: r.data.gift_card, credit_kobo: r.data.credit_kobo }); }
     }
+    if (input.lines.some((l) => l.kind === 'combo')) {
+      // Combos are priced from the LIVE published data, so an unpublished collection or a price change is caught right here.
+      const live = await rpc<NonNullable<DbContext['combos']>>('combo_public_list', {});
+      ctx.combos = live.data ?? { collections: [], unavailable: [] };
+    }
     const customIds = input.lines.filter((l) => l.kind === 'custom' || l.kind === 'revision').map((l) => l.refId);
     if (customIds.length) {
       const r = await rpc<DbContext['customRequests']>('checkout_custom_requests', { ids: customIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id)) });
@@ -179,7 +184,7 @@ export type OrderView = {
   delivery_zone_name: string | null; is_gift: boolean; gift_message: string | null; discount_code: string | null; payment_reference: string | null;
   paid_at: string | null; production_start_at: string | null; promised_by: string | null; delivered_at: string | null; expires_at: string | null; created_at: string; token: string; profile_id: string | null;
   custom_requests: CustomRequestView[];
-  items: { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string }[] | null; unit_price_kobo: number; quantity: number; custom_request_id: string | null; gift_message: string | null; review_status: string | null }[];
+  items: { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string; notes?: string }[] | null; unit_price_kobo: number; quantity: number; custom_request_id: string | null; gift_message: string | null; review_status: string | null }[];
   events: { status: string; note: string | null; created_at: string }[];
 };
 
@@ -203,7 +208,7 @@ export function toEmailOrder(o: OrderView): EmailOrder {
   return {
     number: o.number, token: o.token, hasCustom: o.has_custom, proofHours: o.has_custom ? 24 : null, promisedBy: o.promised_by,
     items: o.items.map((i) => ({ name: i.name, quantity: i.quantity, unitKobo: i.unit_price_kobo, giftMessage: i.gift_message,
-      contents: (i.selections ?? []).map((s) => `${s.label}: ${[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : ''].filter(Boolean).join(' · ')}`) })),
+      contents: (i.selections ?? []).map((s) => `${s.label}: ${[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}`) })),
     subtotalKobo: o.subtotal_kobo, discountKobo: o.discount_kobo, deliveryFeeKobo: o.delivery_fee_kobo, extrasKobo: extras, creditKobo: o.credit_used_kobo, giftCardKobo: o.gift_card_used_kobo, totalKobo: o.total_kobo,
     address: o.address, giftMessage: o.gift_message,
   };

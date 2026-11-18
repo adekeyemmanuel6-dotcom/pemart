@@ -13,7 +13,7 @@ import { staffUpdateLink } from '@/lib/notifications/whatsapp';
 import { STATUS_LABEL, nextStatuses, type OrderStatus } from '@/lib/orders/status';
 import { TIERS } from '@/lib/custom/tiers';
 
-type Item = { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string }[] | null; unit_price_kobo: number; quantity: number; gift_message: string | null };
+type Item = { id: string; kind: string; name: string; options: Record<string, unknown>; selections: { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string; notes?: string }[] | null; unit_price_kobo: number; quantity: number; gift_message: string | null };
 type Custom = { id: string; tier: keyof typeof TIERS; product_type: string; colour: string | null; status: string; text_fields: { lines?: string[]; name?: string; date?: string; verse?: string; size?: string }; type_style: string | null; notes: string | null; upload_paths: string[]; proofs: unknown[]; design_slug: string | null; print_positions: string[] };
 type Order = Record<string, any> & { id: string; number: string; status: OrderStatus; items: Item[]; events: { status: string; note: string | null; created_at: string; actor: string | null }[]; payments: { reference: string; amount_kobo: number; status: string; verified_at: string | null }[]; custom_requests: Custom[]; commission: { amount_kobo: number; status: string } | null; customer: { id: string; name: string | null; store_credit_kobo: number } | null }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -53,7 +53,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ number
               <li key={i.id} className="py-3">
                 <div className="flex justify-between gap-3"><p className="font-semibold">{i.quantity > 1 ? `${i.quantity} × ` : ''}{i.name}</p><p className="font-semibold">{formatNaira(i.unit_price_kobo * i.quantity)}</p></div>
                 {i.kind === 'variant' && <p className="text-sm text-muted">{[i.options.colour, i.options.size, i.options.option].filter(Boolean).join(' · ')}</p>}
-                {i.selections && <ul className="mt-1 space-y-0.5 text-sm text-muted">{i.selections.map((s) => (<li key={s.label}><strong className="text-ink">{s.label}:</strong> {[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : ''].filter(Boolean).join(' · ')}</li>))}</ul>}
+                {i.selections && <ul className="mt-1 space-y-0.5 text-sm text-muted">{i.selections.map((s) => (<li key={s.label}><strong className="text-ink">{s.label}:</strong> {[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}</li>))}</ul>}
                 {i.gift_message && <p className="mt-1 text-sm italic">Gift message: “{i.gift_message}”</p>}
                 {i.kind === 'bulk' && <p className="text-sm text-muted">{String((i.options as { organisation?: string }).organisation ?? '')} {JSON.stringify((i.options as { sizes?: unknown }).sizes ?? {})}</p>}
               </li>))}</ul>

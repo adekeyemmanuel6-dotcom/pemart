@@ -10,10 +10,10 @@ import { track } from '@/lib/analytics';
  */
 export type BagLine = {
   id: string;
-  kind: 'variant' | 'bundle' | 'custom' | 'revision';
+  kind: 'variant' | 'bundle' | 'combo' | 'custom' | 'revision';
   refId: string; // variant id, bundle slug, or custom request id
   quantity: number;
-  /** bundle: a BundleSelection. custom: { request, persisted, summary }. Never trusted for pricing. */
+  /** combo: a ComboSelection (choices only; the server prices it). bundle: a BundleSelection. custom: { request, persisted, summary }. Never trusted for pricing. */
   selection?: Record<string, unknown>;
   giftMessage?: string;
   giftWrap?: boolean;

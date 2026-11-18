@@ -1,4 +1,5 @@
 import { buildBundleContext, validateSelection } from '@/lib/bundles/selection';
+import { priceCombo } from '@/lib/combos/pricing';
 import { availableQty, variantPrice } from '@/lib/catalogue/helpers';
 import type { Bundle, Catalogue, Product, Variant } from '@/lib/catalogue/types';
 import { TIERS } from '@/lib/custom/tiers';
@@ -30,6 +31,7 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
   // product id -> collection id, for discount restrictions
   const eligibleByLine = new Map<string, { kobo: number; productIds: string[]; collectionIds: string[]; discountable: boolean }>();
   let wrapUnits = 0;
+  let hasComboCustom = false;
   let hasCustom = false, hasBundle = false, hasReadyPhysical = false, hasGiftCard = false, hasGiftBox = false;
   let proofHours = 0;
   let customOnlyExpressBlock = false; // a bundle with printed names is personalised, so no express
@@ -97,6 +99,20 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
       if (bctx.units.some((u) => u.requiresCustomText)) customOnlyExpressBlock = true;
       for (const r of result.resolved) { const hit = variantIndex.get(r.variantId); if (hit) hold(r.variantId, quantity, hit.variant); }
       dbItems.push({ kind: 'bundle', bundle_id: bundle.id, name: bundle.name, options: { giftWrap: wrap }, selections: result.resolved, unit_price: bundle.price_kobo, quantity, gift_message: raw.selection.giftMessage?.trim() || undefined });
+      continue;
+    }
+
+    // ---------------------------------------------------------------- combo lines (BEHOLD / ABIDE / THE DOER'S and any collection the owner adds)
+    if (raw.kind === 'combo') {
+      const config = ctx.combos?.collections.find((c) => c.slug === raw.refId);
+      if (!config) { bad({ id: raw.id, quantity, kind: 'combo', name: 'Combo' }, 'This combo is no longer available'); continue; }
+      const q = priceCombo(config, raw.selection, { now, unavailable: new Set(ctx.combos?.unavailable ?? []) });
+      const lineKobo = q.unitKobo * quantity;
+      lines.push({ ...base, kind: 'combo', name: config.name, detail: [], contents: q.contents, unitKobo: q.unitKobo, lineKobo, slug: config.slug,
+        visual: { type: 'bundle', designSlug: null, colour: null, finish: null, imageUrl: config.image_url }, issues: [...base.issues, ...q.issues], upsell: false });
+      eligibleByLine.set(raw.id, { kobo: lineKobo, productIds: [], collectionIds: [], discountable: true });
+      hasBundle = true; hasReadyPhysical = true; hasComboCustom = true; customOnlyExpressBlock = true;
+      dbItems.push({ kind: 'combo', name: config.name, options: { comboCollectionId: config.id, comboSlug: config.slug, comboVersion: config.version, rule: q.rule, frameSignature: q.signature, priceLines: q.lines }, selections: q.resolved, unit_price: q.unitKobo, quantity });
       continue;
     }
 
@@ -244,7 +260,7 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
   }
 
   // ---------------------------------------------------------------- consent and blocking problems
-  const needsFinalSaleConsent = hasCustom;
+  const needsFinalSaleConsent = hasCustom || hasComboCustom;   // personalised combos are made for one person, so they are final sale too
   if (needsFinalSaleConsent && !input.acceptFinalSale) issues.push('Please confirm the custom items are final sale (except for print defects).');
   if (input.giftMessage && input.giftMessage.length > 300) issues.push('The gift message is too long');
   if (lines.length === 0) issues.push('Your bag is empty');
