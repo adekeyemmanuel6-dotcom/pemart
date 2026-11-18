@@ -24,8 +24,11 @@ async function saveSettings(page: Page, f: { enabled: boolean; startsOn?: string
   if (f.headline) await page.getByLabel(/Big headline/).fill(f.headline);
   for (const [i, [text, price]] of (f.offers ?? []).entries()) { await page.getByLabel(`Offer ${i + 1} text`).fill(text); await page.getByLabel('Price').nth(i).fill(price); }
   for (let n = 1; n <= (f.images ?? 0); n++) {
-    await page.setInputFiles('input[type=file] >> nth=0', { name: `poster-${n}.png`, mimeType: 'image/png', buffer: PNG });
-    await expect(page.getByText(`Poster pictures (${n} of 10)`)).toBeVisible();
+    // an upload picked while the previous one is still being saved can be dropped, so retry until it registers
+    await expect(async () => {
+      if (!(await page.getByText(`Poster pictures (${n} of 10)`).count())) await page.setInputFiles('input[type=file] >> nth=0', { name: `poster-${n}.png`, mimeType: 'image/png', buffer: PNG });
+      await expect(page.getByText(`Poster pictures (${n} of 10)`)).toBeVisible({ timeout: 6000 });
+    }).toPass({ timeout: 40_000 });
   }
   if (f.bg) await page.getByLabel('Background colour').fill(f.bg);
   await page.getByRole('button', { name: 'Save pre-sale settings' }).click();
