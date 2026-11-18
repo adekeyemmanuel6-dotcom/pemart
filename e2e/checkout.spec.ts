@@ -37,8 +37,8 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   const drawer = d.getByRole('dialog', { name: 'Your bag' });
   await drawer.getByText('Seek First Oversized Tee').waitFor();
   ok(await drawer.getByText('₦22,000').first().isVisible(), 'A: drawer opens with the tee and its server price');
-  ok(await drawer.getByText(/away from free delivery in Lagos/).isVisible(), 'A: free-delivery progress shows');
-  ok(await drawer.getByText(/Arrives by/).isVisible(), 'A: estimated delivery date shown');
+  ok(await drawer.getByText(/more to unlock FREE delivery/).isVisible(), 'A: free-delivery progress shows');
+  ok((await drawer.getByText(/Arrives by/).count()) === 0, 'A: no delivery date is promised in the bag before the city is known (it appears at checkout)');
   await drawer.getByLabel('Discount code').fill('pemart10'); await drawer.getByRole('button', { name: 'Apply' }).click();
   await drawer.getByText(/PEMART10 applied: ₦2,200 off/).waitFor(); ok(true, 'A: discount code applied (₦2,200 off)');
   await d.screenshot({ path: 'test-results/shots/p4-drawer.png' });
@@ -70,12 +70,12 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   await drawer2.getByText("What's inside").click();
   ok(await drawer2.getByText(/His perfume: .*Blue Amber/).isVisible() && await drawer2.getByText(/Her perfume: .*White Jasmine/).isVisible(), 'B: every selection visible in the bag');
   ok(await drawer2.getByText('“Merry Christmas, my love”').isVisible(), 'B: gift message in the bag');
-  ok(await drawer2.getByText('You have free delivery in Lagos').isVisible(), 'B: ₦89,000 box earns free Lagos delivery');
+  ok(await drawer2.getByText(/Add ₦111,000 more to unlock FREE delivery/).isVisible(), 'B: ₦89,000 box is ₦111,000 short of the ₦200,000 free-delivery threshold');
   await drawer2.getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/\/checkout/);
   await fillCheckout(d, { email: 'love@example.com' });
   await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor(); await payMock(d);
   const oB = (await q(`select o.*, i.selections, i.gift_message from orders o join order_items i on i.order_id=o.id where o.has_bundle order by o.created_at desc limit 1`))[0];
-  ok(oB.status === 'paid' && Number(oB.total_kobo) === 8900000 && oB.selections.length === 6 && oB.gift_message === 'Merry Christmas, my love', "B: DB order has 6 selections, gift message, ₦89,000 (free delivery)");
+  ok(oB.status === 'paid' && Number(oB.total_kobo) === 9250000 && oB.selections.length === 6 && oB.gift_message === 'Merry Christmas, my love', "B: DB order has 6 selections, gift message, ₦89,000 + ₦3,500 Lagos delivery");
   const orderText = await d.locator('main').innerText();
   ok(/His tee/.test(orderText) && /Blue Amber/.test(orderText) && /Infinity/.test(orderText) && /Ember Orange/.test(orderText), 'B: order page lists every selection');
   const outbox = fs.readdirSync(path.join(process.cwd(), '.outbox')).filter(f => f.includes('love'));
@@ -123,7 +123,7 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   ok(await d3.getByText('₦4,500').first().isVisible(), 'H: upsell added at the special price ₦4,500');
   await d3.getByRole('link', { name: 'View full bag' }).click(); await d.waitForURL(/\/bag/);
   const inc = d.getByRole('group', { name: /Quantity for Seek First/ }).getByRole('button', { name: 'Increase quantity' }); await inc.click(); await d.waitForTimeout(400); await inc.click(); await d.waitForTimeout(700);
-  ok(await d.getByText(/You have free delivery in Lagos|away from free delivery/).first().isVisible(), 'H: bag page progress updates with quantity');
+  ok(await d.getByText(/unlock FREE delivery|Congratulations/).first().isVisible(), 'H: bag page progress updates with quantity');
   await q(`update product_variants set stock_qty = 0 where sku='FAITH-BRACELET-ANCHOR'`);
   await d.reload(); await d.waitForTimeout(1500);
   ok(await d.getByText('Sold out').first().isVisible() || await d.getByText(/Only \d+ left|no longer available/).first().isVisible(), 'H: sold-out item flagged in the bag');

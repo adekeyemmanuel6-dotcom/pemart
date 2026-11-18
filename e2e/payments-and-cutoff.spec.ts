@@ -44,11 +44,13 @@ test('Gift-box cutoff: countdown before the date; plain notice, disabled urgency
   const admin = await adminCtx.newPage();
   await admin.goto(`${B}/api/dev/login?email=admin@example.com&role=admin&next=/admin/settings`);
   const lagos = (await q(`select id, christmas_cutoff_date from delivery_zones where name = 'Lagos'`))[0];
+  // The cutoff has no admin field any more (it stays in the data), so set it directly, then save the zone once so the storefront cache refreshes.
   const setCutoff = async (date: string) => {
+    await q(`update delivery_zones set christmas_cutoff_date = $1 where id = $2`, [date, lagos.id]);
     await admin.goto(`${B}/admin/settings`);
-    await admin.locator(`#c-${lagos.id}`).fill(date);
-    await admin.getByRole('button', { name: /Save Lagos/ }).click();
+    await admin.getByRole('button', { name: 'Save delivery service' }).first().click();
     await admin.getByText('Zone saved.').waitFor();
+    ok(String((await q(`select christmas_cutoff_date::text d from delivery_zones where id = $1`, [lagos.id]))[0].d).startsWith(date), `cutoff ${date} survives saving the zone`);
   };
 
   try {
@@ -72,6 +74,7 @@ test('Gift-box cutoff: countdown before the date; plain notice, disabled urgency
     await page.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click();
     await page.waitForURL(/\/checkout/);
     await page.locator('#email').fill('late@example.com');
+    await page.locator('#city').fill('Ikeja'); await page.selectOption('#state', 'Lagos'); // the zone, and so its cutoff, is known once the destination is
     await expect(page.getByRole('complementary', { name: 'Review and pay' }).getByText(/Christmas cutoff has passed, so gift boxes ordered now will not arrive before Christmas/)).toBeVisible();
   } finally {
     await setCutoff('2026-12-17');
