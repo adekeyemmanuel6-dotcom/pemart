@@ -13,6 +13,7 @@ async function seed(page: Page) {
   const [admin] = await q(`select id from profiles where role = 'admin' order by created_at limit 1`);
   await q(`update combo_collections set status='draft', published_snapshot=null, base_price_kobo=null; delete from combo_price_rules; truncate orders restart identity cascade;
            update combo_components set is_active = true, archived_at = null, inventory_status = 'made_to_order' where slug in ('premium-tshirt','sweatshirt','hoodie','custom-frame')`);
+  await q(`update delivery_zones set rate_verified = true`); // delivery rates must be verified by the owner before any order can be paid
   const id = async (table: string, slug: string) => (await q(`select id from ${table} where slug = $1`, [slug]))[0].id as string;
   const col = async (slug: string) => await id('combo_collections', slug);
   const opt = async (comp: string, o: string) => (await q(`select o.id from combo_component_options o join combo_components c on c.id = o.component_id where c.slug = $1 and o.slug = $2`, [comp, o]))[0].id as string;
@@ -36,8 +37,7 @@ async function seed(page: Page) {
 async function open(page: Page, slug?: string) {
   await page.goto(`${B}/?preview=1`); // the store is locked to /presale until launch; staff preview cookie
   await page.goto(`${B}/${slug ? `combos/${slug}` : ''}`);
-  await page.getByRole('button', { name: slug ? /Customize/ : 'Build Your Combo' }).first().click();
-  await expect(dlg(page)).toBeVisible();
+  await expect(async () => { await page.getByRole('button', { name: slug ? /Customize/ : 'Build Your Combo' }).first().click(); await expect(dlg(page)).toBeVisible({ timeout: 3000 }); }).toPass({ timeout: 40_000 });
 }
 const pick = async (page: Page, name: RegExp) => dlg(page).locator('label', { hasText: name }).first().click();
 async function garment(page: Page, name: string) {
@@ -113,7 +113,7 @@ test('mobile: full-height sheet, sticky total and button reachable', async ({ br
   const page = await ctx.newPage();
   await page.goto(`${B}/?preview=1`);
   await page.goto(`${B}/combos/behold`);
-  await page.getByRole('button', { name: /Customize/ }).first().click();
+  await expect(async () => { await page.getByRole('button', { name: /Customize/ }).first().click(); await expect(dlg(page)).toBeVisible({ timeout: 3000 }); }).toPass({ timeout: 40_000 }); // first click can land before hydration
   const box = await dlg(page).boundingBox();
   expect(box!.width).toBeGreaterThan(380); expect(box!.height).toBeGreaterThan(770);
   await expect(dlg(page).getByRole('button', { name: 'Add to bag' })).toBeInViewport();
