@@ -136,6 +136,7 @@ test('add to bag -> checkout -> paid order keeps every choice', async ({ page })
   await drawer.getByRole('link', { name: /^Checkout/ }).click();
   await page.waitForURL(/\/checkout/);
   await fillCheckout(page, 'ada@example.com', 'Lagos');
+  await page.getByLabel(/I understand custom and personalised items are/).check();
   await payMock(page);
   const items = await q(`select kind, options, selections, unit_price_kobo from order_items where kind = 'combo'`);
   expect(items).toHaveLength(1);
