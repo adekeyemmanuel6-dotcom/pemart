@@ -63,7 +63,7 @@ export function CalculatorDialog() {
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) close(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-ink/60" />
-        <Dialog.Content aria-describedby="combo-desc" onCloseAutoFocus={(e) => { e.preventDefault(); if (opener.el?.isConnected) opener.el.focus(); }} className="fixed inset-0 z-50 flex flex-col bg-paper md:inset-auto md:left-1/2 md:top-1/2 md:max-h-[92vh] md:w-[min(56rem,94vw)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:shadow-xl">
+        <Dialog.Content aria-describedby="combo-desc" onCloseAutoFocus={(e) => { e.preventDefault(); if (opener.el?.isConnected) opener.el.focus(); }} className="fixed inset-0 z-50 flex flex-col bg-paper md:m-auto md:h-fit md:max-h-[92vh] md:w-[min(56rem,94vw)] md:rounded-lg md:shadow-xl">
           <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3">
             <div><Dialog.Title className="display text-2xl sm:text-3xl">Build Your Combo</Dialog.Title>
               <Dialog.Description id="combo-desc" className="text-sm text-muted">Choose what you wear and the promises you keep before your eyes. The price updates as you choose.</Dialog.Description></div>
