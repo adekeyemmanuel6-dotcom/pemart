@@ -18,7 +18,7 @@ export async function fillCheckout(d: Page, email: string, state?: string) {
   await d.locator('#phone').fill('0803 123 4567');
   if (await d.locator('#line1').count()) {
     await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja');
-    if (state) await d.selectOption('#state', state);
+    await d.selectOption('#state', state ?? 'Lagos');
   }
 }
 
@@ -37,7 +37,7 @@ export async function startUnpaidTeeOrder(d: Page, email: string, size = 'M') {
   await d.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click();
   await d.waitForURL(/checkout/);
   await fillCheckout(d, email);
-  await d.getByText('Promised by').waitFor();
+  await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
   await d.getByRole('button', { name: /^Pay ₦/ }).click();
   await d.getByRole('dialog', { name: /Simulated Paystack/ }).waitFor();
   await d.getByRole('button', { name: 'Cancel' }).click();

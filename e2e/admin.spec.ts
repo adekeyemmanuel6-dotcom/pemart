@@ -6,11 +6,11 @@ import path from 'node:path';
 import { B, ok, pool, q } from './helpers';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-async function fillCheckout(d, email) { await d.locator('#email').fill(email); await d.locator('#phone').fill('0803 123 4567'); await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja'); }
+async function fillCheckout(d, email) { await d.locator('#email').fill(email); await d.locator('#phone').fill('0803 123 4567'); await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja'); await d.selectOption('#state', 'Lagos'); }
 async function payMock(d) { await d.getByRole('button', { name: /^Pay ₦/ }).click(); await d.getByRole('dialog', { name: /Simulated Paystack/ }).waitFor(); await d.getByRole('button', { name: 'Simulate successful payment' }).click(); await d.waitForURL(/\/order\/PM-\d+/, { timeout: 20000 }); }
 async function buyTee(d, email, size = 'M', sku = 'seek-first-tee') {
   await d.goto(`${B}/products/${sku}`); await d.getByRole('button', { name: size, exact: true }).click(); await d.getByRole('button', { name: 'Add to bag' }).first().click();
-  await d.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/checkout/); await fillCheckout(d, email); await d.getByText('Promised by').waitFor(); await payMock(d); return d.url().match(/PM-\d+/)[0];
+  await d.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/checkout/); await fillCheckout(d, email); await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor(); await payMock(d); return d.url().match(/PM-\d+/)[0];
 }
 async function buyCustom(d, email) {
   await d.goto(`${B}/custom`); await d.waitForTimeout(700); await d.getByLabel('Line 1').fill('Grace upon grace'); await d.getByRole('button', { name: 'M', exact: true }).first().click();
@@ -43,13 +43,13 @@ test('Admin: role gates, overview, orders, production board, proofs, quotes, rev
   const navText = await sp.locator('nav[aria-label="Admin"]').innerText();
   ok(/Orders/.test(navText) && /Production/.test(navText) && !/Settings|Discounts|Reports|Catalogue/.test(navText), 'A: staff navigation shows operations only');
   for (const path of ['/admin/settings', '/admin/discounts', '/admin/reports', '/admin/catalogue', '/admin/catalogue/products/00000000-0000-0000-0000-000000000000']) {
-    await sp.goto(B + path); ok(sp.url().endsWith('/admin?denied=1') && await sp.getByText('That area is for admins only.').isVisible(), `A: staff blocked from ${path}`);
+    await sp.goto(B + path); ok(sp.url().endsWith('/admin?denied=1') && await sp.getByText(/You do not have access to that area/).isVisible(), `A: staff blocked from ${path}`);
   }
   const csvStaffReports = await staffCtx.request.get(`${B}/admin/reports/export?type=sales&from=2026-01-01&to=2026-12-31`, { maxRedirects: 0 });
   ok(csvStaffReports.status() >= 300 && csvStaffReports.status() < 400, `A: staff cannot download report CSVs (status ${csvStaffReports.status()})`);
   const custCsv = await cust.request.get(`${B}/admin/customers/export`, { maxRedirects: 0 }); ok(custCsv.status() >= 300 && custCsv.status() < 400, 'A: a customer cannot download the customer CSV');
   const adminCtx = await b.newContext({ viewport: { width: 1280, height: 900 } }); const ap = await login(adminCtx, 'admin@example.com', 'admin');
-  const adminNav = await ap.locator('nav[aria-label="Admin"]').innerText(); ok(/Settings/.test(adminNav) && /Reports/.test(adminNav) && /Catalogue/.test(adminNav) && /Discounts/.test(adminNav), 'A: admin navigation shows everything');
+  const adminNav = await ap.locator('nav[aria-label="Admin"]').innerText(); ok(/Settings/.test(adminNav) && /Reports/.test(adminNav) && /Products & gift boxes/.test(adminNav) && /Discounts/.test(adminNav), 'A: admin navigation shows everything');
   // direct server-action style attack: staff posting an admin action is refused at the database
   const staffId = (await q(`select id from profiles where email='staff@example.com'`))[0].id;
   const attack = await pool.query(`select public.admin_settings_save($1::jsonb)`, [JSON.stringify({ actor: staffId, settings: { announcement_text: 'HACKED' } })]).catch(e => e);
@@ -140,7 +140,7 @@ test('Admin: role gates, overview, orders, production board, proofs, quotes, rev
   await ap.getByRole('button', { name: 'Save images' }).click(); await ap.getByText(/Every image needs alt text/).waitFor(); ok(true, 'I: photos without alt text are refused');
   await ap.fill('input[id^=alt-]', 'A black oversized tee on a hanger'); await ap.getByRole('button', { name: 'Save images' }).click(); await ap.getByText('Images saved in this order.').waitFor(); ok(true, 'I: photo saved with alt text');
   await ap.goto(`${B}/admin/catalogue?tab=products`); await ap.getByRole('link', { name: 'E2E New Tee' }).click();
-  await ap.fill('#n', 'E2E New Tee Renamed'); await ap.getByRole('button', { name: 'Save product' }).click(); await ap.getByText('Product saved.').waitFor();
+  await ap.fill('#n', 'E2E New Tee Renamed'); await ap.selectOption('select[name=status]', 'active'); /* new products start as drafts */ await ap.getByRole('button', { name: 'Save product' }).click(); await ap.getByText('Product saved.').waitFor();
   await shop.goto(`${B}/products/e2e-new-tee`); ok(await shop.getByRole('heading', { name: 'E2E New Tee Renamed' }).isVisible() && await shop.getByText('₦19,500').first().isVisible(), 'I: the edit appears on the store');
   // stock adjust on a stocked product
   const bracelet = (await q(`select id from products where slug='faith-bracelet'`))[0].id; await ap.goto(`${B}/admin/catalogue/products/${bracelet}`);
@@ -164,13 +164,13 @@ test('Admin: role gates, overview, orders, production board, proofs, quotes, rev
   await ap.goto(`${B}/admin/settings`); await ap.fill('#at', 'Free delivery this weekend!'); await ap.getByRole('button', { name: 'Save settings' }).click(); await ap.getByText(/Settings saved/).waitFor();
   await shop.goto(`${B}/`); ok(await shop.getByText('Free delivery this weekend!').isVisible(), 'K: the announcement bar updates on the store');
   await ap.fill('#wa', '123'); await ap.getByRole('button', { name: 'Save settings' }).click(); await ap.getByText(/international format/).waitFor(); ok(true, 'K: a bad WhatsApp number is rejected');
-  await ap.goto(`${B}/admin/settings`); await ap.fill('input[id^="f-"] >> nth=0', '4000'); await ap.getByRole('button', { name: /Save Lagos/ }).click(); await ap.getByText('Zone saved.').waitFor();
-  await shop.goto(`${B}/products/seek-first-tee`); await shop.waitForTimeout(500); ok(await shop.getByText(/Delivery from ₦4,000 in Lagos/).isVisible(), 'K: the new Lagos delivery fee shows on product pages');
-  await ap.goto(`${B}/admin/settings`); await ap.fill('input[id^="f-"] >> nth=0', '3500'); await ap.getByRole('button', { name: /Save Lagos/ }).click(); await ap.getByText('Zone saved.').waitFor();
+  await ap.goto(`${B}/admin/settings`); await ap.fill('input[name=fee] >> nth=0', '4000'); await ap.getByRole('button', { name: 'Save delivery service' }).first().click(); await ap.getByText('Zone saved.').waitFor();
+  ok(Number((await q(`select fee_kobo from delivery_zones where name = 'Lagos'`))[0].fee_kobo) === 400000, 'K: the new Lagos delivery fee is saved (product pages no longer show a fee; checkout does)');
+  await ap.goto(`${B}/admin/settings`); await ap.fill('input[name=fee] >> nth=0', '3500'); await ap.getByRole('button', { name: 'Save delivery service' }).first().click(); await ap.getByText('Zone saved.').waitFor();
   await ap.goto(`${B}/admin/settings`); await ap.fill('#at', 'Order by 17 Dec for Christmas delivery in Lagos'); await ap.getByLabel(/Maintenance mode/).check(); await ap.getByRole('button', { name: 'Save settings' }).click(); await ap.getByText(/Settings saved/).waitFor();
   await shop.goto(`${B}/`); ok(await shop.getByText(/making a few updates/).isVisible(), 'K: maintenance mode shows the "back soon" page');
   await ap.goto(`${B}/admin`); ok(await ap.getByRole('heading', { name: 'Overview' }).isVisible(), 'K: the admin stays available during maintenance');
-  await ap.goto(`${B}/admin/settings`); await ap.getByLabel(/Maintenance mode/).uncheck(); await ap.getByRole('button', { name: 'Save settings' }).click(); await ap.getByText(/Settings saved/).waitFor(); await shop.goto(`${B}/`); ok(await shop.getByRole('link', { name: 'Shop Gift Boxes' }).isVisible(), 'K: store reopens');
+  await ap.goto(`${B}/admin/settings`); await ap.getByLabel(/Maintenance mode/).uncheck(); await ap.getByRole('button', { name: 'Save settings' }).click(); await ap.getByText(/Settings saved/).waitFor(); await shop.goto(`${B}/`); ok(await shop.getByRole('banner').isVisible(), 'K: store reopens');
 
   // ===== L. reports
   await ap.goto(`${B}/admin/reports`); ok(await ap.getByRole('heading', { name: 'Sales by day' }).isVisible() && await ap.getByRole('img', { name: /Revenue by day/ }).isVisible(), 'L: reports page with a chart');

@@ -34,6 +34,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: DB,
       PAYSTACK_MOCK: '1',
+      E2E_STORE_UNLOCKED: '1', // the live store is locked to /presale until launch (middleware.ts)
       PAYSTACK_SECRET_KEY: 'sk_test_e2e',
       CRON_SECRET: 'cron-secret',
       NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,

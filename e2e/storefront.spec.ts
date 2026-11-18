@@ -59,8 +59,8 @@ test.describe('cookie consent and analytics', () => {
     await page.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click();
     await page.waitForURL(/checkout/);
     await page.locator('#email').fill('track@example.com'); await page.locator('#phone').fill('0803 123 4567');
-    await page.locator('#recipient').fill('Ada Obi'); await page.locator('#line1').fill('12 Allen Avenue'); await page.locator('#city').fill('Ikeja');
-    await page.getByText('Promised by').waitFor();
+    await page.locator('#recipient').fill('Ada Obi'); await page.locator('#line1').fill('12 Allen Avenue'); await page.locator('#city').fill('Ikeja'); await page.selectOption('#state', 'Lagos');
+    await page.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
     await expect.poll(() => dataLayer(page)).toContain('event:begin_checkout');
     expect(await pixelQueue(page)).toContain('track:InitiateCheckout');
 
@@ -308,8 +308,8 @@ test.describe('security headers and CSP', () => {
     await page.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click();
     await page.waitForURL(/checkout/);
     await page.locator('#email').fill('csp@example.com'); await page.locator('#phone').fill('0803 123 4567');
-    await page.locator('#recipient').fill('Ada Obi'); await page.locator('#line1').fill('12 Allen Avenue'); await page.locator('#city').fill('Ikeja');
-    await page.getByText('Promised by').waitFor();
+    await page.locator('#recipient').fill('Ada Obi'); await page.locator('#line1').fill('12 Allen Avenue'); await page.locator('#city').fill('Ikeja'); await page.selectOption('#state', 'Lagos');
+    await page.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
     await page.getByRole('button', { name: /^Pay ₦/ }).click();
     await page.getByRole('dialog', { name: /Simulated Paystack/ }).waitFor();
     await page.getByRole('button', { name: 'Simulate successful payment' }).click();

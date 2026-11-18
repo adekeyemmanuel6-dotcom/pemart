@@ -33,7 +33,7 @@ export const Empty = ({ children }: { children: ReactNode }) => (<p className="r
 
 export function DataTable({ head, children, caption }: { head: string[]; children: ReactNode; caption: string }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-line">
+    <div className="overflow-x-auto rounded-lg border border-line" role="region" aria-label={caption} tabIndex={0}>
       <table className="w-full min-w-[640px] text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-sand/60"><tr>{head.map((h) => (<th key={h} scope="col" className="whitespace-nowrap px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted">{h}</th>))}</tr></thead>

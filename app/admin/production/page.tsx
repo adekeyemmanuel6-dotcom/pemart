@@ -30,7 +30,7 @@ export default async function ProductionBoard() {
             <select id="to" name="to" className={inputCls} defaultValue="in_production">{['in_production', 'quality_check', 'packed', 'out_for_delivery', 'delivered', 'reprint'].map((s) => (<option key={s} value={s}>{STATUS_LABEL[s]}</option>))}</select></div>
           <button className="min-h-11 rounded-btn bg-ink px-5 text-sm font-semibold text-paper">Move selected</button>
         </div>
-        <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0" role="list" aria-label="Production columns">
+        <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0" role="list" aria-label="Production columns" tabIndex={0}>
           {COLUMNS.map((col) => {
             const items = cards.filter((c) => col.statuses.includes(c.status));
             return (

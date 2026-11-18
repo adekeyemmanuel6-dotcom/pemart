@@ -8,7 +8,7 @@ const staffRpc = async (fn, arg) => (await q(`select public.${fn}($1::jsonb) r`,
 
 async function fillCheckout(d, email) {
   await d.locator('#email').fill(email); await d.locator('#phone').fill('0803 123 4567');
-  await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja');
+  await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja'); await d.selectOption('#state', 'Lagos');
 }
 async function payMock(d) {
   await d.getByRole('button', { name: /^Pay ₦/ }).click();
@@ -19,7 +19,7 @@ async function payMock(d) {
 async function buyTee(d, email, size = 'M') {
   await d.goto(`${B}/products/seek-first-tee`); await d.getByRole('button', { name: size, exact: true }).click(); await d.getByRole('button', { name: 'Add to bag' }).first().click();
   await d.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/checkout/);
-  await fillCheckout(d, email); await d.getByText('Promised by').waitFor(); await payMock(d);
+  await fillCheckout(d, email); await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor(); await payMock(d);
   return d.url().match(/PM-\d+/)[0];
 }
 async function buyCustom(d, email, words = 'Grace upon grace') {
@@ -97,7 +97,7 @@ test('After the sale: tracking, proof round trip, paid revision, resume payment,
   // ===== 4. resume an unpaid order
   await d.goto(`${B}/products/seek-first-tee`); await d.getByRole('button', { name: 'L', exact: true }).click(); await d.getByRole('button', { name: 'Add to bag' }).first().click();
   await d.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/checkout/);
-  await fillCheckout(d, 'later@example.com'); await d.getByText('Promised by').waitFor();
+  await fillCheckout(d, 'later@example.com'); await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
   await d.getByRole('button', { name: /^Pay ₦/ }).click(); await d.getByRole('dialog', { name: /Simulated Paystack/ }).waitFor(); await d.getByRole('button', { name: 'Cancel' }).click();
   await d.getByText(/Payment was not completed/).waitFor(); ok(true, '4: cancelling the popup keeps the order saved');
   const pend = (await q(`select number, public_token from orders where contact_email='later@example.com'`))[0];

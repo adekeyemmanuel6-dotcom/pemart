@@ -13,7 +13,7 @@ export async function generateMetadata() {
     openGraph: {
       title: brand.seoTitle,
       description: brand.seoDescription,
-      ...(brand.ogImage ? { images: [{ url: brand.ogImage }] } : {}),
+      images: [{ url: brand.ogImage || '/og/pemart', width: 1200, height: 630 }],
     },
   };
 }

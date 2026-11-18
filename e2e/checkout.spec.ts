@@ -11,7 +11,7 @@ async function fillCheckout(d, o: { email?: string; state?: string } = {}) {
   await d.locator('#phone').fill('0803 123 4567');
   if (await d.locator('#line1').count()) {
     await d.locator('#recipient').fill('Ada Obi'); await d.locator('#line1').fill('12 Allen Avenue'); await d.locator('#city').fill('Ikeja');
-    if (o.state) await d.selectOption('#state', o.state);
+    await d.selectOption('#state', o.state ?? 'Lagos');
   }
 }
 async function payMock(d) {
@@ -44,7 +44,7 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   await d.screenshot({ path: 'test-results/shots/p4-drawer.png' });
   await drawer.getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/\/checkout/);
   await fillCheckout(d);
-  await d.getByText('Promised by').waitFor();
+  await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
   const aside = d.locator('aside[aria-label="Review and pay"]');
   ok((await aside.innerText()).includes('₦23,300'), 'A: checkout total = ₦22,000 - ₦2,200 + ₦3,500 = ₦23,300');
   await d.screenshot({ path: 'test-results/shots/p4-checkout.png', fullPage: true });
@@ -73,7 +73,7 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   ok(await drawer2.getByText('You have free delivery in Lagos').isVisible(), 'B: ₦89,000 box earns free Lagos delivery');
   await drawer2.getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/\/checkout/);
   await fillCheckout(d, { email: 'love@example.com' });
-  await d.getByText('Promised by').waitFor(); await payMock(d);
+  await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor(); await payMock(d);
   const oB = (await q(`select o.*, i.selections, i.gift_message from orders o join order_items i on i.order_id=o.id where o.has_bundle order by o.created_at desc limit 1`))[0];
   ok(oB.status === 'paid' && Number(oB.total_kobo) === 8900000 && oB.selections.length === 6 && oB.gift_message === 'Merry Christmas, my love', "B: DB order has 6 selections, gift message, ₦89,000 (free delivery)");
   const orderText = await d.locator('main').innerText();
@@ -103,7 +103,7 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   await d.keyboard.press('Escape');
   await d.evaluate(() => { const s = JSON.parse(localStorage.getItem('pemart-bag')); s.state.lines = s.state.lines.map(l => ({ ...l, price: 1, priceKobo: 1, unitKobo: 1, total: 1 })); localStorage.setItem('pemart-bag', JSON.stringify(s)); });
   await d.goto(`${B}/checkout`); await d.waitForTimeout(500); await fillCheckout(d, { email: 'tamper@example.com' });
-  await d.getByText('Promised by').waitFor();
+  await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor();
   ok((await aside.innerText()).includes('₦25,500'), 'D: tampered prices ignored: total is still ₦25,500');
   await payMock(d);
   ok(Number((await q(`select total_kobo from orders where contact_email='tamper@example.com'`))[0].total_kobo) === 2550000, 'D: DB charged ₦25,500 despite the tampered bag');
@@ -112,7 +112,7 @@ test("Buying flows: guest tee with code, Couple's Christmas Box, custom design, 
   await d.goto(`${B}/products/seek-first-tee`); await d.getByRole('button', { name: 'L', exact: true }).click(); await d.getByRole('button', { name: 'Add to bag' }).first().click();
   const dr = d.getByRole('dialog', { name: 'Your bag' }); await dr.getByLabel('Discount code').fill('GRACE10'); await dr.getByRole('button', { name: 'Apply' }).click();
   await dr.getByText(/GRACE10 applied/).waitFor(); await dr.getByRole('link', { name: /^Checkout/ }).click(); await d.waitForURL(/checkout/);
-  await fillCheckout(d, { email: 'amb@example.com' }); await d.getByText('Promised by').waitFor(); await payMock(d);
+  await fillCheckout(d, { email: 'amb@example.com' }); await d.locator('button:not([disabled])', { hasText: /^Pay ₦/ }).waitFor(); await payMock(d);
   const com = await q(`select c.* from commissions c join orders o on o.id=c.order_id where o.contact_email='amb@example.com'`);
   ok(com.length === 1 && com[0].status === 'pending' && Number(com[0].amount_kobo) === 220000, 'G: ambassador code → one pending commission of ₦2,200');
 

@@ -10,7 +10,8 @@ import { isSensitivePath, nonceCsp } from '@/lib/csp';
 // Pre-sale lock: until launch, every public store page sends visitors to /presale.
 // Staff open any page with ?preview=1 once (sets a 30-day cookie) to browse the full store; ?preview=0 clears it.
 // To open the store at launch, set STORE_LOCKED to false (or delete this block).
-const STORE_LOCKED = true;
+// The browser test suite sets E2E_STORE_UNLOCKED=1 (playwright.config.ts) so older storefront/admin specs can browse the shop; no deployment sets it.
+const STORE_LOCKED = process.env.E2E_STORE_UNLOCKED !== '1';
 const PREVIEW_COOKIE = 'wtw_preview';
 const OPEN_PATHS = ['/presale', '/admin', '/api', '/auth', '/account', '/privacy', '/terms', '/og', '/robots.txt', '/sitemap.xml', '/manifest', '/_vercel'];
 
