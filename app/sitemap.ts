@@ -4,6 +4,7 @@ import { BRAND_COLLECTIONS, WORD_THEMES } from '@/lib/brand';
 import type { MetadataRoute } from 'next';
 import { getCatalogue } from '@/lib/catalogue/load';
 import { getComboCatalogue } from '@/lib/combos/server';
+import { listWords } from '@/lib/catalogue/words';
 import { isBundleAvailable } from '@/lib/catalogue/helpers';
 import { publicEnv } from '@/lib/env';
 
@@ -52,6 +53,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...cat.bundles
       .filter((b) => isBundleAvailable(b))
       .map((b) => ({ url: `${base}/bundles/${b.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
+    ...(listWords(cat).length ? [{ url: `${base}/words`, changeFrequency: 'weekly' as const, priority: 0.7 }] : []),
+    ...listWords(cat).map((w) => ({ url: `${base}/words/${w.design.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
     ...(combos.collections.length ? [{ url: `${base}/combos`, changeFrequency: 'weekly' as const, priority: 0.7 }] : []),
     ...combos.collections.map((c) => ({ url: `${base}/combos/${c.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
   ];

@@ -179,7 +179,8 @@ describe.skipIf(!TEST_DB)('admin functions against real Postgres', () => {
       await place([await tee('SEEK-FIRST-TEE-BLACK-L')], details('b@example.com', 'Bola', 'Ogun', 'Abeokuta'), { state: 'Ogun' });
       const old = await place([await tee('SEEK-FIRST-TEE-BLACK-XL')], details('old@example.com', 'Old'));
       await q(`update public.orders set paid_at = now() - interval '20 days' where number=$1`, [old.number]);
-      const today = new Date().toISOString().slice(0, 10), from = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+      const lagosDay = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date(t)); // reports count Lagos days, which differ from UTC days late in the evening
+      const today = lagosDay(Date.now()), from = lagosDay(Date.now() - 3 * 86400000);
       const rep = await ok('admin_reports', admin, { from, to: today });
       expect(rep.totals.orders).toBe(2);
       expect(rep.totals.revenue).toBe((2550000 - 220000) + 2750000);

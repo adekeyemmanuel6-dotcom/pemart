@@ -48,7 +48,7 @@ async function garment(page: Page, name: string) {
 const frame = async (page: Page, i: number, size: RegExp, text?: string) => {
   const group = dlg(page).getByRole('radiogroup', { name: `Frame ${i} size` });
   await group.locator('label', { hasText: size }).click();
-  if (text) await dlg(page).getByLabel(new RegExp(`Scripture or promise for (frame ${i}|your frame)`)).fill(text);
+  if (text) await dlg(page).getByLabel(new RegExp(`(Scripture or promise for|Or write your own for) (frame ${i}|your frame)`)).fill(text);
 };
 
 test.beforeAll(async ({ browser }) => {

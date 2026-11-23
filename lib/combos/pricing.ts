@@ -35,10 +35,17 @@ export function bestDiscount(config: ComboConfig, subtotal: number, now: Date): 
   return best;
 }
 
-export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now?: Date; unavailable?: ReadonlySet<string> } = {}): ComboQuote {
+export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now?: Date; unavailable?: ReadonlySet<string>; words?: readonly { id: string; name: string }[] } = {}): ComboQuote {
   const now = opts.now ?? new Date();
   const off = opts.unavailable ?? new Set<string>();
   const avail = (c: ComboComponent) => c.available && !off.has(c.id);
+  // A chosen word must still exist. Callers that do not load words (older code) simply do not record one.
+  const wordOf = (u: UnitChoice, label: string): { word?: string; designId?: string } => {
+    if (!u.designId || !opts.words) return {};
+    const w = opts.words.find((x) => x.id === u.designId);
+    if (!w) { issues.push(`The word you chose for ${label.toLowerCase()} is no longer available`); return {}; }
+    return { word: w.name, designId: w.id };
+  };
   const issues: string[] = [];
   const resolved: ResolvedLine[] = [];
   const frameSizeIds: string[] = [];
@@ -62,7 +69,7 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
           if (sizes.length && !size) issues.push(`Choose a size for your ${comp.name}`);
           if (colours.length && !colour) issues.push(`Choose a colour for your ${comp.name}`);
           garment ??= comp;
-          resolved.push({ label, productName: comp.name, componentId: comp.id, slotId: slot.id, colour: colour?.label, size: size?.label, customText: text, notes });
+          resolved.push({ label, productName: comp.name, componentId: comp.id, slotId: slot.id, colour: colour?.label, size: size?.label, customText: text, notes, ...wordOf(u, label) });
         } else {
           const comp = slot.components[0];
           if (!comp) { issues.push(`${slot.label} is not set up yet`); continue; }
@@ -71,7 +78,7 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
           const fs = sizes.find((o) => o.id === u.frameSizeId);
           if (!fs) { issues.push(`Choose a size for ${label.toLowerCase()}`); continue; }
           sizesChosen.push(fs.id); frameSizeIds.push(fs.id);
-          resolved.push({ label, productName: comp.name, componentId: comp.id, slotId: slot.id, option: fs.label, customText: text, notes });
+          resolved.push({ label, productName: comp.name, componentId: comp.id, slotId: slot.id, option: fs.label, customText: text, notes, ...wordOf(u, label) });
         }
       }
       if (slot.kind === 'frame' && slot.same_size_only && new Set(sizesChosen).size > 1) issues.push('All frames in this combo must be the same size');
@@ -132,7 +139,7 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
   // "Price currently unavailable" is only said once the selection is complete; before that the customer is just guided to finish it.
   if (!priced && issues.length === 0) issues.push(UNAVAILABLE_PRICE);
 
-  const contents = resolved.map((r) => `${r.label}: ${[r.productName, r.colour, r.size, r.option, r.customText ? `“${r.customText}”` : '', r.notes ? `Note: ${r.notes}` : ''].filter(Boolean).join(' · ')}`);
+  const contents = resolved.map((r) => `${r.label}: ${[r.productName, r.word ? `Word: ${r.word}` : '', r.colour, r.size, r.option, r.customText ? `“${r.customText}”` : '', r.notes ? `Note: ${r.notes}` : ''].filter(Boolean).join(' · ')}`);
   return {
     ok: issues.length === 0 && priced, priced, issues,
     unitKobo: priced ? Math.max(0, subtotal - discountKobo) : 0, subtotalKobo: priced ? subtotal : 0, discountKobo, rule: priced ? rule : null,

@@ -4,7 +4,7 @@ import { adm, requirePerm } from '@/lib/admin/db';
 import { fmtDate } from '@/components/admin/ui';
 
 export const metadata = { title: 'Packing slip', robots: { index: false } };
-type Sel = { label: string; productName: string; colour?: string; size?: string; option?: string; customText?: string; notes?: string };
+type Sel = { label: string; productName: string; colour?: string; size?: string; option?: string; word?: string; customText?: string; notes?: string };
 
 /** A clean, light page meant for printing. No prices: it goes in the box. */
 export default async function PackingSlip({ params }: { params: Promise<{ number: string }> }) {
@@ -22,7 +22,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ number
           <tbody>{o.items.map((i) => (
             <tr key={i.id} className="border-b border-gray-300 align-top"><td className="py-2 font-bold">{i.quantity}</td>
               <td className="py-2"><p className="font-semibold">{i.name}</p>{i.kind === 'variant' && <p>{[i.options.colour, i.options.size, i.options.option].filter(Boolean).join(' · ')}</p>}
-                {i.selections && <ul className="mt-1">{i.selections.map((s) => (<li key={s.label}>☐ <strong>{s.label}:</strong> {[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}</li>))}</ul>}
+                {i.selections && <ul className="mt-1">{i.selections.map((s) => (<li key={s.label}>☐ <strong>{s.label}:</strong> {[s.productName, s.word ? `Word: ${s.word}` : '', s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}</li>))}</ul>}
                 {i.gift_message && <p className="mt-1 italic">Card: “{i.gift_message}”</p>}</td><td className="py-2 text-center text-xl">☐</td></tr>))}</tbody></table>
         {(o.is_gift || o.gift_wrap_kobo > 0) && <section className="mt-5 rounded border-2 border-black p-3"><p className="font-bold">🎁 Gift{o.gift_wrap_kobo > 0 ? ': wrap and card' : ''}</p>{o.gift_message && <p className="italic">“{o.gift_message}”</p>}</section>}
         <footer className="mt-8 border-t border-gray-400 pt-3 text-center text-xs">Wear what you believe. · Questions? Message us on WhatsApp.</footer>

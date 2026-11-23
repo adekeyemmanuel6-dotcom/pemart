@@ -80,7 +80,7 @@ export function automaticNavigation(content: WebsiteContent, cat: Catalogue | nu
       label: 'Shop',
       href: '/collections/all',
       columns: [
-        { heading: 'Featured', links: [{ href: '/collections/all?sort=newest', name: 'New Arrivals' }, { href: '/collections/all', name: 'Shop All' }] },
+        { heading: 'Featured', links: [{ href: '/collections/all?sort=newest', name: 'New Arrivals' }, { href: '/collections/all', name: 'Shop All' }, ...(products.some((p) => p.design_id) ? [{ href: '/words', name: 'Shop by Word' }] : [])] },
         ...(clothing.length ? [{ heading: 'Clothing', links: clothing }] : []),
         ...(lifestyle.length ? [{ heading: 'Lifestyle & Gifts', links: lifestyle }] : []),
       ],

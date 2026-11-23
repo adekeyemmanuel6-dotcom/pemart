@@ -201,3 +201,35 @@ describe('admin configuration checks, enumeration and cost', () => {
     expect(estimateCost(doers, { ...s, items: { [perfume.id]: { qty: 1 } } }).missing).toEqual(['Perfume']);
   });
 });
+
+describe('choosing one of your words', () => {
+  const words = [{ id: '11111111-1111-4111-8111-111111111111', name: 'Through Christ That Strengthens Me' }, { id: '22222222-2222-4222-8222-222222222222', name: 'Be Still' }];
+  const withWord = (designId: string | undefined) => {
+    const { behold } = makeCollections(lib);
+    const sel = pick(behold, lib.tee, [lib.f12.id]);
+    const g = behold.slots.find((x) => x.kind === 'garment')!, f = behold.slots.find((x) => x.kind === 'frame')!;
+    sel.units[g.id]![0]!.designId = designId; sel.units[f.id]![0]!.designId = words[1]!.id;
+    return { behold, sel };
+  };
+  it('records the word on the garment and frame, in the contents and in the order snapshot', () => {
+    const { behold, sel } = withWord(words[0]!.id);
+    const q = priceCombo(behold, sel, { words });
+    expect(q.ok).toBe(true);
+    expect(q.resolved.find((r) => r.productName.includes('T-shirt'))).toMatchObject({ word: words[0]!.name, designId: words[0]!.id });
+    expect(q.resolved.find((r) => r.option)).toMatchObject({ word: 'Be Still' });
+    expect(q.contents.join(' ')).toContain('Word: Through Christ That Strengthens Me');
+  });
+  it('never changes the price', () => {
+    const { behold, sel } = withWord(words[0]!.id);
+    expect(priceCombo(behold, sel, { words }).unitKobo).toBe(priceCombo(behold, withWord(undefined).sel, { words }).unitKobo);
+  });
+  it('refuses a word that no longer exists, so a stale draft cannot be bought', () => {
+    const { behold, sel } = withWord('33333333-3333-4333-8333-333333333333');
+    const q = priceCombo(behold, sel, { words });
+    expect(q.ok).toBe(false); expect(q.issues.join(' ')).toMatch(/word you chose.*no longer available/i);
+  });
+  it('callers that do not load words simply do not record one', () => {
+    const { behold, sel } = withWord(words[0]!.id);
+    expect(priceCombo(behold, sel).resolved.every((r) => r.word === undefined)).toBe(true);
+  });
+});

@@ -78,7 +78,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
             {i.kind === 'revision' && <p className="text-sm text-muted">One extra revision for your custom design</p>}
             {i.kind === 'custom' && <p className="text-sm text-muted">{[(i.options as { colour?: string }).colour, (i.options as { size?: string }).size].filter(Boolean).join(' · ')} · custom design, final sale</p>}
             {i.kind === 'variant' && <p className="text-sm text-muted">{[(i.options as { colour?: string }).colour, (i.options as { size?: string }).size, (i.options as { option?: string }).option].filter(Boolean).join(' · ')}</p>}
-            {i.selections && (<ul className="mt-1 space-y-0.5 text-sm text-muted">{i.selections.map((s) => (<li key={s.label}><strong className="text-ink">{s.label}:</strong> {[s.productName, s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}</li>))}</ul>)}
+            {i.selections && (<ul className="mt-1 space-y-0.5 text-sm text-muted">{i.selections.map((s) => (<li key={s.label}><strong className="text-ink">{s.label}:</strong> {[s.productName, s.word ? `Word: ${s.word}` : '', s.colour, s.size, s.option, s.customText ? `"${s.customText}"` : '', s.notes ? `Note: ${s.notes}` : ''].filter(Boolean).join(' · ')}</li>))}</ul>)}
             {i.gift_message && <p className="mt-1 text-sm italic">Gift message: &ldquo;{i.gift_message}&rdquo;</p>}
           </li>
         ))}

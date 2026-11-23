@@ -30,10 +30,12 @@ export type ComboConfig = {
   slots: ComboSlot[]; rules: ComboRules; overheads?: ComboOverheads;
 };
 /** What `combo_public_list` returns: published snapshots, plus components switched off since publishing. */
-export type ComboCatalogue = { collections: ComboConfig[]; unavailable: string[] };
+/** A word (design) a customer can choose for a garment or frame. Public data only. */
+export type ComboWord = { id: string; slug: string; name: string; reference: string | null; image: string | null };
+export type ComboCatalogue = { collections: ComboConfig[]; unavailable: string[]; words?: ComboWord[] };
 
 /** One physical unit the customer configures: a garment, or one frame. */
-export type UnitChoice = { componentId?: string; sizeId?: string; colourId?: string; frameSizeId?: string; text?: string; notes?: string };
+export type UnitChoice = { designId?: string; componentId?: string; sizeId?: string; colourId?: string; frameSizeId?: string; text?: string; notes?: string };
 export type ComboSelection = {
   collection: string;                                        // the collection slug
   units: Record<string, UnitChoice[]>;                       // slot id -> one entry per unit (garment, frames)
@@ -45,6 +47,8 @@ export type PriceLine = { key: string; label: string; amountKobo: number; kind: 
 export type ResolvedLine = {
   label: string; productName: string; componentId: string; slotId: string; qty?: number;
   colour?: string; size?: string; option?: string; customText?: string; notes?: string;
+  /** The word (design) the customer chose: its name for display, its id for the record. */
+  word?: string; designId?: string;
 };
 export type ComboQuote = {
   ok: boolean;                       // nothing blocks adding to the bag

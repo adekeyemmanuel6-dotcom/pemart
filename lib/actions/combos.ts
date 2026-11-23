@@ -22,6 +22,6 @@ export async function checkCombo(selection: unknown): Promise<CheckComboResult> 
   const live = await rpc<ComboCatalogue>('combo_public_list', {});
   const config = live.data?.collections.find((c) => c.slug === parsed.data.collection);
   if (!config) return fail('This combo is not available right now.');
-  const q = priceCombo(config, parsed.data as never, { unavailable: new Set(live.data?.unavailable ?? []) });
+  const q = priceCombo(config, parsed.data as never, { unavailable: new Set(live.data?.unavailable ?? []), words: live.data?.words ?? [] });
   return { ok: q.ok, priced: q.priced, unitKobo: q.unitKobo, lines: q.lines, issues: q.issues, version: config.version };
 }

@@ -106,7 +106,7 @@ export function priceCart(cat: Catalogue, settings: PricingSettings, ctx: DbCont
     if (raw.kind === 'combo') {
       const config = ctx.combos?.collections.find((c) => c.slug === raw.refId);
       if (!config) { bad({ id: raw.id, quantity, kind: 'combo', name: 'Combo' }, 'This combo is no longer available'); continue; }
-      const q = priceCombo(config, raw.selection, { now, unavailable: new Set(ctx.combos?.unavailable ?? []) });
+      const q = priceCombo(config, raw.selection, { now, unavailable: new Set(ctx.combos?.unavailable ?? []), words: ctx.combos?.words ?? [] });
       const lineKobo = q.unitKobo * quantity;
       lines.push({ ...base, kind: 'combo', name: config.name, detail: [], contents: q.contents, unitKobo: q.unitKobo, lineKobo, slug: config.slug,
         visual: { type: 'bundle', designSlug: null, colour: null, finish: null, imageUrl: config.image_url }, issues: [...base.issues, ...q.issues], upsell: false });

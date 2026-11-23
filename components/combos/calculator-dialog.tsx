@@ -6,7 +6,7 @@ import { checkCombo } from '@/lib/actions/combos';
 import { useBag } from '@/lib/cart-store';
 import { opener, useCalculator } from '@/lib/combos/calculator-store';
 import { defaultSelection, priceCombo, startingPrice } from '@/lib/combos/pricing';
-import { NOTES_MAX, TEXT_MAX, UNAVAILABLE_PRICE, type ComboCatalogue, type ComboComponent, type ComboConfig, type ComboSelection, type ComboSlot, type UnitChoice } from '@/lib/combos/types';
+import { NOTES_MAX, TEXT_MAX, UNAVAILABLE_PRICE, type ComboCatalogue, type ComboComponent, type ComboConfig, type ComboSelection, type ComboSlot, type ComboWord, type UnitChoice } from '@/lib/combos/types';
 import { formatNaira } from '@/lib/money';
 
 const field = 'min-h-11 w-full rounded-btn border border-line bg-paper px-3 text-base text-ink';
@@ -87,7 +87,7 @@ export function CalculatorDialog() {
                 {config && sel && (<>
                   {(config.scripture_ref || config.description) && <p className="text-sm text-muted">{config.scripture_text ? `“${config.scripture_text}” ` : ''}{config.scripture_ref && <strong>{config.scripture_ref}. </strong>}{config.description}</p>}
                   {config.slots.filter((s) => s.mode !== 'unavailable').sort((a, b) => a.sort_order - b.sort_order).map((slot) => (
-                    <SlotView key={slot.id} slot={slot} sel={sel} off={off} setUnit={setUnit} setItem={setItem} />))}
+                    <SlotView key={slot.id} slot={slot} sel={sel} off={off} words={cat?.words ?? []} setUnit={setUnit} setItem={setItem} />))}
                 </>)}
               </div>)}
           </div>
@@ -110,7 +110,23 @@ export function CalculatorDialog() {
   );
 }
 
-function SlotView({ slot, sel, off, setUnit, setItem }: { slot: ComboSlot; sel: ComboSelection; off: ReadonlySet<string>; setUnit: (s: ComboSlot, i: number, p: Partial<UnitChoice>) => void; setItem: (s: ComboSlot, qty: number, notes?: string) => void }) {
+/** "Choose one of our words" for a garment or frame. Optional: the customer can also write their own. */
+function WordPicker({ id, words, value, onChange, label }: { id: string; words: ComboWord[]; value?: string; onChange: (v: string | undefined) => void; label: string }) {
+  if (words.length === 0) return null;
+  const chosen = words.find((w) => w.id === value);
+  return (
+    <div className="sm:col-span-2">
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{label}</label>
+      <select id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} className={field}>
+        <option value="">Choose one of our words (optional)</option>
+        {words.map((w) => (<option key={w.id} value={w.id}>{w.name}{w.reference ? ` (${w.reference})` : ''}</option>))}
+      </select>
+      {chosen && <p className="mt-1 text-sm text-muted">{chosen.name}{chosen.reference ? `, ${chosen.reference}` : ''}</p>}
+    </div>
+  );
+}
+
+function SlotView({ slot, sel, off, words, setUnit, setItem }: { slot: ComboSlot; sel: ComboSelection; off: ReadonlySet<string>; words: ComboWord[]; setUnit: (s: ComboSlot, i: number, p: Partial<UnitChoice>) => void; setItem: (s: ComboSlot, qty: number, notes?: string) => void }) {
   const units = sel.units[slot.id] ?? [];
   const ok = (c: ComboComponent) => c.available && !off.has(c.id);
   if (slot.kind === 'garment') {
@@ -126,7 +142,8 @@ function SlotView({ slot, sel, off, setUnit, setItem }: { slot: ComboSlot; sel: 
           {comp && (<div className="mt-3 grid gap-3 sm:grid-cols-2">
             {colours.length > 0 && <div><label htmlFor={`${id}-c`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Colour</label><select id={`${id}-c`} value={u.colourId ?? ''} onChange={(e) => setUnit(slot, i, { colourId: e.target.value || undefined })} className={field}><option value="">Choose a colour</option>{colours.map((o) => (<option key={o.id} value={o.id}>{o.label}</option>))}</select></div>}
             {sizes.length > 0 && <div><label htmlFor={`${id}-s`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Size</label><select id={`${id}-s`} value={u.sizeId ?? ''} onChange={(e) => setUnit(slot, i, { sizeId: e.target.value || undefined })} className={field}><option value="">Choose a size</option>{sizes.map((o) => (<option key={o.id} value={o.id}>{o.label}</option>))}</select></div>}
-            {slot.customise && <div className="sm:col-span-2"><label htmlFor={`${id}-t`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Your Scripture or words for the garment (optional)</label><input id={`${id}-t`} maxLength={TEXT_MAX} value={u.text ?? ''} onChange={(e) => setUnit(slot, i, { text: e.target.value })} placeholder="e.g. Psalm 119:18" className={field} /></div>}
+            {slot.customise && <WordPicker id={`${id}-w`} words={words} value={u.designId} onChange={(v) => setUnit(slot, i, { designId: v })} label="Word for the garment" />}
+            {slot.customise && <div className="sm:col-span-2"><label htmlFor={`${id}-t`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{words.length ? 'Or write your own words for the garment (optional)' : 'Your Scripture or words for the garment (optional)'}</label><input id={`${id}-t`} maxLength={TEXT_MAX} value={u.text ?? ''} onChange={(e) => setUnit(slot, i, { text: e.target.value })} placeholder="e.g. Psalm 119:18" className={field} /></div>}
           </div>)}
         </fieldset>);
     })}</>);
@@ -143,7 +160,8 @@ function SlotView({ slot, sel, off, setUnit, setItem }: { slot: ComboSlot; sel: 
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={`Frame ${i + 1} size`}>{sizes.map((o) => (
             <label key={o.id} className={`flex min-h-11 cursor-pointer items-center rounded-btn border-2 px-4 text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${u.frameSizeId === o.id ? 'border-ink bg-ink text-paper' : 'border-line bg-paper'}`}>
               <input type="radio" className="sr-only" name={`${id}-size`} checked={u.frameSizeId === o.id} onChange={() => setUnit(slot, i, { frameSizeId: o.id })} />{o.label}</label>))}</div>
-          {slot.customise && (<div className="mt-2"><label htmlFor={`${id}-t`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Scripture or promise for {slot.quantity > 1 ? `frame ${i + 1}` : 'your frame'}</label>
+          {slot.customise && words.length > 0 && (<div className="mt-2 grid"><WordPicker id={`${id}-w`} words={words} value={u.designId} onChange={(v) => setUnit(slot, i, { designId: v })} label={`Word for ${slot.quantity > 1 ? `frame ${i + 1}` : 'your frame'}`} /></div>)}
+          {slot.customise && (<div className="mt-2"><label htmlFor={`${id}-t`} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{words.length ? 'Or write your own for ' : 'Scripture or promise for '}{slot.quantity > 1 ? `frame ${i + 1}` : 'your frame'}</label>
             <input id={`${id}-t`} maxLength={TEXT_MAX} value={u.text ?? ''} onChange={(e) => setUnit(slot, i, { text: e.target.value })} placeholder="e.g. Jeremiah 29:11" className={field} /></div>)}
         </div>);
       })}</div></fieldset>);

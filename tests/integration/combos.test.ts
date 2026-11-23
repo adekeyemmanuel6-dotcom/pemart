@@ -234,4 +234,45 @@ describe.skipIf(!TEST_DB)('combo collections against real Postgres', () => {
     const created = await ok('admin_combo_save', admin, { collection: { slug: 'frames-only', name: 'FRAMES ONLY' }, slots: [], rules: [] });
     expect((await call('admin_combo_publish', admin, { id: created.id })).error?.message).toMatch(/Add a garment/);
   });
+
+  describe('choosing one of your words', () => {
+    const designOf = async (slug?: string) => (await one<{ id: string; name: string }>(slug ? 'select id, name from designs where slug = $1' : 'select id, name from designs where is_active order by name limit 1', slug ? [slug] : []));
+
+    it('the public list carries the active words (public fields only) and drops a word the moment it is switched off', async () => {
+      const d = await designOf();
+      const words = (await rpc('combo_public_list', {})).data.words as Json[];
+      expect(words.length).toBeGreaterThan(0);
+      expect(words.find((w) => w.id === d.id)).toEqual({ id: d.id, slug: expect.any(String), name: d.name, reference: expect.anything(), image: expect.anything() });
+      for (const w of words) expect(Object.keys(w).sort()).toEqual(['id', 'image', 'name', 'reference', 'slug']);
+      await q(`update designs set is_active = false where id = $1`, [d.id]);
+      expect(((await rpc('combo_public_list', {})).data.words as Json[]).some((w) => w.id === d.id)).toBe(false);
+    });
+
+    it('the chosen word is priced for free, shown in the bag, and kept on the paid order', async () => {
+      const d = await designOf();
+      const cfg = await priceAndPublish('behold', 5000000);
+      const sel = choose(cfg, 'premium-tshirt', ['12x16']);
+      const base = (await svc.quoteCart({ lines: [comboLine('behold', sel)], state: 'Lagos', city: 'Ikeja', acceptFinalSale: true } as never));
+      const g = cfg.slots.find((x) => x.kind === 'garment')!; sel.units[g.id]![0]!.designId = d.id;
+      const withWord = await svc.quoteCart({ lines: [comboLine('behold', sel)], state: 'Lagos', city: 'Ikeja', acceptFinalSale: true } as never);
+      expect(withWord.ok).toBe(true);
+      expect(withWord.totalKobo).toBe(base.totalKobo);
+      expect(withWord.lines[0]!.contents.join(' ')).toContain(`Word: ${d.name}`);
+      const s = await start([comboLine('behold', sel)]);
+      if (s.mode === 'pay') await svc.settlePayment(s.reference, { source: 'webhook', amountKobo: s.totalKobo, currency: 'NGN', payload: {} });
+      const item = await one<{ selections: Json[] }>(`select selections from order_items where kind = 'combo'`);
+      expect(item.selections.find((r) => r.productName.includes('T-shirt'))).toMatchObject({ word: d.name, designId: d.id });
+    });
+
+    it('a word switched off after it was put in the bag is refused at the bag and at payment', async () => {
+      const d = await designOf();
+      const cfg = await priceAndPublish('behold', 5000000);
+      const sel = choose(cfg, 'premium-tshirt', ['12x16']);
+      sel.units[cfg.slots.find((x) => x.kind === 'garment')!.id]![0]!.designId = d.id;
+      await q(`update designs set is_active = false where id = $1`, [d.id]);
+      const quote = await svc.quoteCart({ lines: [comboLine('behold', sel)], state: 'Lagos', city: 'Ikeja', acceptFinalSale: true } as never);
+      expect(quote.ok).toBe(false); expect(quote.issues.join()).toMatch(/word you chose.*no longer available/i);
+      expect((await svc.createOrderAndInitPayment({ lines: [comboLine('behold', sel)], state: 'Lagos', acceptFinalSale: true } as never, details, {})).ok).toBe(false);
+    });
+  });
 });

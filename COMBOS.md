@@ -5,6 +5,7 @@ Combos (BEHOLD, ABIDE, THE DOER'S) are customisable packages. Everything is edit
 ## Set up (once)
 1. Apply `supabase/migrations/0024_combos.sql` in the Supabase SQL editor (safe to re-run; it changes no existing data). Rollback: `supabase/rollback/0024_combos.sql`.
 1b. Then apply `supabase/migrations/0025_combo_normal_tshirt.sql` (switches the Normal T-shirt on; it never overrides a change you made in the item library).
+1c. Then apply `supabase/migrations/0027_combo_words.sql` (lets customers choose one of your words in the calculator).
 2. The three collections are created as **drafts with no selling prices**. Nothing is public and nothing can be bought until you set prices and publish.
 3. No new environment variables.
 

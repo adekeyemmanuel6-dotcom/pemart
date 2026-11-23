@@ -131,6 +131,7 @@ export function ProductView({ product: p, bundle, children }: { product: ViewPro
               {p.compareAtKobo && p.compareAtKobo > price && <span className="ml-2 text-lg text-muted line-through">{formatNaira(p.compareAtKobo)}</span>}
             </p>
             <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-mocha"><Truck className="size-4" aria-hidden />{p.type === 'gift_card' ? 'Delivered by email, instantly after payment' : <>{p.madeToOrder ? 'Made to order · ' : ''}Delivery confirmed at checkout</>}</p>
+            {p.designSlug && garment && <p className="mt-1"><Link href={`/words/${p.designSlug}`} className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4">See this word in every garment</Link></p>}
           </div>
 
           {need.colour && (

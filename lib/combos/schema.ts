@@ -3,6 +3,7 @@ import { NOTES_MAX, TEXT_MAX, type ComboSelection } from './types';
 
 const id = z.string().regex(/^[0-9a-f-]{36}$/i, 'Invalid id');
 export const unitChoiceSchema = z.object({
+  designId: id.optional(),
   componentId: id.optional(), sizeId: id.optional(), colourId: id.optional(), frameSizeId: id.optional(),
   text: z.string().max(TEXT_MAX * 2).optional(), notes: z.string().max(NOTES_MAX * 2).optional(),
 });

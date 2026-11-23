@@ -23,3 +23,14 @@ Tip: duplicate the product name pattern ("<Word>, Premium T-shirt") so customers
 ## Notes
 - Combos (Behold, Abide, The Doer's) are separate and unchanged; they have their own garment choices under Combo Management.
 - CSV import accepts the new type `sweatshirt`. Quality and photo colours are set in the admin screens, not the CSV.
+
+## Word pages (step 2)
+- **Shop by Word** (`/words`) lists every word that has at least one product on sale, with how many garments it comes in and the lowest price. It is linked from the Shop menu and the sitemap.
+- **A word's page** (`/words/<word>`) shows the word's verse and story, then every garment grouped as T-shirts (Normal before Premium), Sweatshirts and Hoodies. Nothing to set up: it builds itself from the products you attach to the word. A word with no active products has no page.
+- Each product page has a **"See this word in every garment"** link back to it.
+- Set the word's name, verse reference and story under Admin → Catalogue → Designs; they show on the page.
+
+## Choose your word in combos
+In the combo calculator, any garment or frame that allows the customer's own text now also offers **"Word for the garment / frame"**, listing your active words. They can pick one, write their own words, or both. The choice never changes the price. It is shown in the bag and kept on the order (with the word's id), the order page, packing slip and emails.
+- Switching a word off (Designs → inactive) removes it from the list straight away, and refuses a bag that still contains it.
+- Needs `supabase/migrations/0027_combo_words.sql` (apply after 0026; rollback in `supabase/rollback/0027_combo_words.sql`).
