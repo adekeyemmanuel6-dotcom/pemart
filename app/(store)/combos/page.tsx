@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ComboTrigger } from '@/components/combos/combo-trigger';
 import { JsonLd, breadcrumbLd } from '@/components/json-ld';
+import { editions, listedCollections } from '@/lib/combos/pairs';
 import { startingPrice } from '@/lib/combos/pricing';
 import { getComboCatalogue, getComboSettings } from '@/lib/combos/server';
 import { UNAVAILABLE_PRICE } from '@/lib/combos/types';
@@ -24,7 +25,7 @@ export default async function CombosPage() {
       <header className="mb-8 max-w-2xl"><h1 className="display text-5xl sm:text-7xl">{s.page.headline}</h1><p className="mt-3 text-lg text-muted">{s.page.intro}</p></header>
       {cat.collections.length === 0 ? (<p className="rounded-lg border border-dashed border-line p-8 text-center text-muted">Our combo collections are coming soon.</p>) : (
         <ul className="grid gap-6 md:grid-cols-3">
-          {cat.collections.map((c) => { const from = startingPrice(c, off); return (
+          {listedCollections(cat.collections).map((c) => { const from = startingPrice(c, off); const pair = editions(cat.collections, c)?.couples ?? null; const pairFrom = pair ? startingPrice(pair, off) : null; return (
             <li key={c.id} className="flex flex-col rounded-lg border border-line bg-sand/40">
               {c.image_url && <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg"><Image src={c.image_url} alt="" fill sizes="(min-width:768px) 33vw, 100vw" className="object-cover" /></div>}
               <div className="flex flex-1 flex-col p-5">
@@ -35,6 +36,7 @@ export default async function CombosPage() {
                 <div className="mt-auto flex flex-wrap gap-2 pt-4">
                   <ComboTrigger slug={c.slug} className="inline-flex min-h-11 items-center rounded-btn bg-ink px-5 text-sm font-semibold uppercase tracking-[0.08em] text-paper hover:bg-ink/85">Customize &amp; Calculate Price</ComboTrigger>
                   <Link href={`/combos/${c.slug}`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4">Details</Link></div>
+                {pair && <p className="mt-2 text-sm text-muted">Couples edition (2 garments): <Link href={`/combos/${pair.slug}`} className="font-semibold underline underline-offset-4">{pairFrom === null ? UNAVAILABLE_PRICE : `from ${formatNaira(pairFrom)}`}</Link></p>}
               </div></li>); })}
         </ul>)}
     </div>

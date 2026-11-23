@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ComboTrigger } from '@/components/combos/combo-trigger';
 import { JsonLd, breadcrumbLd } from '@/components/json-ld';
+import { editions } from '@/lib/combos/pairs';
 import { startingPrice } from '@/lib/combos/pricing';
-import { getComboBySlug } from '@/lib/combos/server';
+import { getComboBySlug, getComboCatalogue } from '@/lib/combos/server';
 import { UNAVAILABLE_PRICE } from '@/lib/combos/types';
 import { publicEnv } from '@/lib/env';
 import { formatNaira } from '@/lib/money';
@@ -26,6 +27,8 @@ export default async function ComboPage({ params }: Props) {
   const found = await getComboBySlug(slug);
   if (!found) notFound();
   const { config: c, unavailable } = found;
+  const ed = editions((await getComboCatalogue()).collections, c);
+  const other = ed ? (c.pair_of ? ed.single : ed.couples) : null;
   const base = publicEnv.NEXT_PUBLIC_SITE_URL;
   const from = startingPrice(c, new Set(unavailable));
   const slots = c.slots.filter((s) => s.mode !== 'unavailable').sort((a, b) => a.sort_order - b.sort_order);
@@ -47,10 +50,11 @@ export default async function ComboPage({ params }: Props) {
           {c.description && <p className="mt-4 text-lg text-muted">{c.description}</p>}
           <p className="mt-5 text-2xl font-bold">{from === null ? UNAVAILABLE_PRICE : `From ${formatNaira(from)}`}</p>
           <ComboTrigger slug={c.slug} className="mt-5 inline-flex min-h-12 items-center rounded-btn bg-[var(--wtw-ember)] px-7 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--wtw-coal)] hover:bg-ink hover:text-paper">Customize &amp; Calculate Price</ComboTrigger>
+          {other && <p className="mt-4 text-sm">{c.pair_of ? 'Just for you? ' : 'Making it a pair? '}<Link href={`/combos/${other.slug}`} className="font-semibold underline underline-offset-4">{c.pair_of ? 'See the single edition' : 'See the couples edition (2 garments)'}</Link></p>}
           <h2 className="display mt-8 text-2xl">What is in this combo</h2>
           <ul className="mt-2 space-y-2">
             {slots.map((s) => (<li key={s.id} className="rounded-lg border border-line p-3">
-              {s.kind === 'garment' && (<><strong>{s.label}</strong>: choose {s.components.map((x) => x.name).join(', ')}.</>)}
+              {s.kind === 'garment' && (<><strong>{s.quantity > 1 ? `${s.quantity} garments, one for each of you` : s.label}</strong>: choose {s.components.map((x) => x.name).join(', ')}{s.quantity > 1 ? ' for each' : ''}.</>)}
               {s.kind === 'frame' && (<><strong>{s.quantity} × {s.label}</strong>{s.components[0] && <>, in {s.components[0].options.filter((o) => o.group === 'frame_size').map((o) => o.label).join(' or ')}</>}. Each with your own Scripture.</>)}
               {s.kind === 'item' && (<><strong>{s.components[0]?.name ?? s.label}</strong>{s.quantity > 1 ? ` × ${s.quantity}` : ''}{s.mode === 'optional' ? ' (optional add-on)' : ' (included)'}{s.components[0]?.description ? ` · ${s.components[0].description}` : ''}</>)}
             </li>))}

@@ -233,3 +233,63 @@ describe('choosing one of your words', () => {
     expect(priceCombo(behold, sel).resolved.every((r) => r.word === undefined)).toBe(true);
   });
 });
+
+describe('couples edition: two garments', () => {
+  const couples = () => {
+    const { behold } = makeCollections(lib);
+    const g = behold.slots.find((x) => x.kind === 'garment')!;
+    g.quantity = 2;
+    behold.rules.base_price_kobo = 9000000;
+    behold.rules.garment_adjust = [{ id: 'ga-h', component_id: lib.hoodie.id, amount_kobo: 1000000 }, { id: 'ga-s', component_id: lib.sweat.id, amount_kobo: 500000 }];
+    behold.rules.fixed_variants = [];
+    behold.rules.frame_size_adjust = [{ id: 'fa-20', option_id: lib.f16.id, amount_kobo: 700000 }];
+    return behold;
+  };
+  const pickTwo = (cfg: ReturnType<typeof couples>, a: typeof lib.tee, b: typeof lib.tee, frame: string) => {
+    const s = defaultSelection(cfg);
+    const g = cfg.slots.find((x) => x.kind === 'garment')!, f = cfg.slots.find((x) => x.kind === 'frame')!;
+    s.units[g.id] = [a, b].map((c) => ({ componentId: c.id, sizeId: first(c, 'size'), colourId: first(c, 'colour') }));
+    s.units[f.id] = [{ frameSizeId: frame }];
+    return s;
+  };
+  it('two T-shirts and a 12×16 frame: the base price', () => {
+    const cfg = couples(); const q = priceCombo(cfg, pickTwo(cfg, lib.tee, lib.tee, lib.f12.id));
+    expect(q.ok).toBe(true); expect(q.unitKobo).toBe(9000000);
+    expect(q.resolved.filter((r) => r.productName.includes('T-shirt'))).toHaveLength(2);
+  });
+  it('each garment adds its own extra: hoodie + T-shirt, and hoodie + sweatshirt', () => {
+    const cfg = couples();
+    expect(priceCombo(cfg, pickTwo(cfg, lib.hoodie, lib.tee, lib.f12.id)).unitKobo).toBe(9000000 + 1000000);
+    const mixed = priceCombo(cfg, pickTwo(cfg, lib.hoodie, lib.sweat, lib.f12.id));
+    expect(mixed.unitKobo).toBe(9000000 + 1000000 + 500000);
+    expect(mixed.lines.filter((l) => l.kind === 'garment').map((l) => l.label).sort()).toEqual(['Hoodie', 'Sweatshirt']);
+  });
+  it('two of the same garment are charged twice, shown as "× 2"', () => {
+    const cfg = couples(); const q = priceCombo(cfg, pickTwo(cfg, lib.hoodie, lib.hoodie, lib.f16.id));
+    expect(q.unitKobo).toBe(9000000 + 2000000 + 700000);
+    expect(q.lines.find((l) => l.kind === 'garment')).toMatchObject({ label: 'Hoodie × 2', amountKobo: 2000000 });
+  });
+  it('asks for both garments, not just one', () => {
+    const cfg = couples(); const s = pickTwo(cfg, lib.tee, lib.tee, lib.f12.id);
+    const g = cfg.slots.find((x) => x.kind === 'garment')!; s.units[g.id] = [s.units[g.id]![0]!];
+    const q = priceCombo(cfg, s);
+    expect(q.ok).toBe(false); expect(q.issues.join(' ')).toMatch(/Choose your customised garment/i);
+  });
+  it('a fixed price never applies to a two-garment package, and the editor is told to remove it', () => {
+    const cfg = couples();
+    cfg.rules.fixed_variants = [{ id: 'fx', component_id: lib.tee.id, signature: lib.f12.id, amount_kobo: 1, label: 'x' }];
+    expect(priceCombo(cfg, pickTwo(cfg, lib.tee, lib.tee, lib.f12.id)).unitKobo).toBe(9000000);
+    expect(configIssues(cfg).some((i) => i.level === 'error' && /one-garment package/.test(i.message))).toBe(true);
+  });
+  it('lists every pair of garments for the price preview and the starting price', () => {
+    const cfg = couples(); const all = enumerateConfigs(cfg);
+    const garments = 3;                                     // premium T-shirt, sweatshirt, hoodie
+    expect(all.length).toBe((garments * (garments + 1)) / 2 * 2);   // 6 unordered pairs x 2 frame sizes
+    expect(all.some((e) => e.garmentName === 'Hoodie + Premium Cotton T-shirt' || e.garmentName === 'Premium Cotton T-shirt + Hoodie')).toBe(true);
+    expect(startingPrice(cfg)).toBe(9000000);
+  });
+  it('estimates the cost of both garments', () => {
+    const cfg = couples(); const e = estimateCost(cfg, pickTwo(cfg, lib.hoodie, lib.tee, lib.f12.id));
+    expect(e.parts.filter((p) => p.label === 'Hoodie' || p.label === 'Premium Cotton T-shirt')).toHaveLength(2);
+  });
+});

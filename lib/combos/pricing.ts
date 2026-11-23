@@ -51,6 +51,7 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
   const frameSizeIds: string[] = [];
   const extras: { slot: ComboSlot; comp: ComboComponent; qty: number; price: number }[] = [];
   let garment: ComboComponent | undefined;
+  const garments: ComboComponent[] = [];   // one per garment unit: a couples edition has two
 
   for (const slot of sortedSlots(config)) {
     if (slot.kind === 'garment' || slot.kind === 'frame') {
@@ -68,7 +69,7 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
           const size = sizes.find((o) => o.id === u.sizeId), colour = colours.find((o) => o.id === u.colourId);
           if (sizes.length && !size) issues.push(`Choose a size for your ${comp.name}`);
           if (colours.length && !colour) issues.push(`Choose a colour for your ${comp.name}`);
-          garment ??= comp;
+          garment ??= comp; garments.push(comp);
           resolved.push({ label, productName: comp.name, componentId: comp.id, slotId: slot.id, colour: colour?.label, size: size?.label, customText: text, notes, ...wordOf(u, label) });
         } else {
           const comp = slot.components[0];
@@ -107,15 +108,24 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
   const lines: PriceLine[] = [];
   let rule: ComboQuote['rule'] = null;
   let pkg: number | null = null;
-  const fixed = garment ? config.rules.fixed_variants.find((f) => f.component_id === garment!.id && f.signature === signature) : undefined;
+  // A fixed price names one garment, so it only applies to a one-garment package. Couples editions use base + extras.
+  const garmentUnits = config.slots.filter((x) => x.kind === 'garment' && x.mode !== 'unavailable').reduce((n, x) => n + x.quantity, 0);
+  const fixed = garment && garmentUnits === 1 ? config.rules.fixed_variants.find((f) => f.component_id === garment!.id && f.signature === signature) : undefined;
   if (fixed) {
     pkg = fixed.amount_kobo; rule = 'fixed_variant';
     lines.push({ key: 'package', label: fixed.label || `${config.name} package`, amountKobo: fixed.amount_kobo, kind: 'package' });
   } else if (config.rules.base_price_kobo != null) {
     rule = 'base'; pkg = config.rules.base_price_kobo;
     lines.push({ key: 'package', label: `${config.name} package`, amountKobo: config.rules.base_price_kobo, kind: 'package' });
-    const ga = garment ? config.rules.garment_adjust.find((a) => a.component_id === garment!.id) : undefined;
-    if (ga && ga.amount_kobo !== 0) { pkg += ga.amount_kobo; lines.push({ key: 'garment', label: `${garment!.name}`, amountKobo: ga.amount_kobo, kind: 'garment' }); }
+    // Each garment unit adds its own extra: a hoodie and a T-shirt in a couples edition are priced one by one.
+    const garmentCounts = new Map<string, { comp: ComboComponent; n: number }>();
+    for (const g of garments) garmentCounts.set(g.id, { comp: g, n: (garmentCounts.get(g.id)?.n ?? 0) + 1 });
+    for (const { comp, n } of garmentCounts.values()) {
+      const ga = config.rules.garment_adjust.find((a) => a.component_id === comp.id);
+      if (!ga || ga.amount_kobo === 0) continue;
+      pkg += ga.amount_kobo * n;
+      lines.push({ key: `garment-${comp.id}`, label: `${comp.name}${n > 1 ? ` × ${n}` : ''}`, amountKobo: ga.amount_kobo * n, kind: 'garment' });
+    }
     const counts = new Map<string, number>();
     for (const id of frameSizeIds) counts.set(id, (counts.get(id) ?? 0) + 1);
     const frameComp = config.slots.find((s) => s.kind === 'frame')?.components[0];
@@ -185,14 +195,16 @@ export function enumerateConfigs(config: ComboConfig, cap = 300): EnumeratedConf
   let frameCombos: { slot: ComboSlot; combo: { id: string; label: string }[] }[][] = [[]];
   for (const options of perFrameSlot) frameCombos = frameCombos.flatMap((acc) => (options.length ? options.map((o) => [...acc, o]) : [acc]));
   const out: EnumeratedConfig[] = [];
-  for (const comp of gSlot.components) {
+  // One garment per unit; a couples edition (two garments) lists every pair, e.g. "Hoodie + Premium T-shirt".
+  for (const set of multisets(gSlot.components, gSlot.quantity)) {
     for (const fc of frameCombos) {
       if (out.length >= cap) return out;
       const units: ComboSelection['units'] = {};
-      units[gSlot.id] = Array.from({ length: gSlot.quantity }, () => ({ componentId: comp.id, sizeId: optionsOf(comp, 'size')[0]?.id, colourId: optionsOf(comp, 'colour')[0]?.id }));
+      units[gSlot.id] = set.map((comp) => ({ componentId: comp.id, sizeId: optionsOf(comp, 'size')[0]?.id, colourId: optionsOf(comp, 'colour')[0]?.id }));
       for (const { slot, combo } of fc) units[slot.id] = combo.map((o) => ({ frameSizeId: o.id }));
       const frameLabels = fc.flatMap((x) => x.combo.map((o) => o.label));
-      out.push({ label: [comp.name, ...(frameLabels.length ? [frameLabels.join(' + ')] : [])].join(' · '), garmentId: comp.id, garmentName: comp.name, frameSizeIds: fc.flatMap((x) => x.combo.map((o) => o.id)), frameLabels, selection: { collection: config.slug, units, items: {} } });
+      const garmentName = set.map((c) => c.name).join(' + ');
+      out.push({ label: [garmentName, ...(frameLabels.length ? [frameLabels.join(' + ')] : [])].join(' · '), garmentId: set[0]!.id, garmentName, frameSizeIds: fc.flatMap((x) => x.combo.map((o) => o.id)), frameLabels, selection: { collection: config.slug, units, items: {} } });
     }
   }
   return out;
@@ -229,6 +241,8 @@ export function configIssues(config: ComboConfig, now = new Date()): ConfigIssue
     else if (!comp.available) out.push({ level: 'warning', message: `${comp.name} is switched off, so this combo cannot be bought.` });
   }
   const frameOptionIds = new Set(frameSlots.flatMap((s) => s.components.flatMap((c) => optionsOf(c, 'frame_size').map((o) => o.id))));
+  const garmentUnits = slots.filter((x) => x.kind === 'garment').reduce((n, x) => n + x.quantity, 0);
+  if (garmentUnits > 1 && config.rules.fixed_variants.length > 0) out.push({ level: 'error', message: 'Fixed prices only work for a one-garment package. Remove them and use the base price with garment and frame extras.' });
   const seen = new Set<string>();
   const nFrames = frameSlots.reduce((n, s) => n + s.quantity, 0);
   for (const f of config.rules.fixed_variants) {

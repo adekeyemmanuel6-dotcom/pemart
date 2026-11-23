@@ -275,4 +275,65 @@ describe.skipIf(!TEST_DB)('combo collections against real Postgres', () => {
       expect((await svc.createOrderAndInitPayment({ lines: [comboLine('behold', sel)], state: 'Lagos', acceptFinalSale: true } as never, details, {})).ok).toBe(false);
     });
   });
+
+  describe('couples editions (two garments)', () => {
+    it('make-couples copies the contents with the garments doubled, links it, and invents no price; asking again returns the same edition', async () => {
+      const id = await idOf('behold');
+      await priceAndPublish('behold', 4500000, []);
+      const made = await ok('admin_combo_make_couples', admin, { id });
+      const again = await ok('admin_combo_make_couples', admin, { id });
+      expect(again.id).toBe(made.id);
+      const got = await ok('admin_combo_get', admin, { id: made.id });
+      expect(got.collection).toMatchObject({ status: 'draft', base_price_kobo: null, pair_of: id });
+      expect(got.collection.name).toMatch(/ FOR COUPLES$/);
+      const slots = got.config.slots as Json[];
+      expect(slots.find((x) => x.kind === 'garment')!.quantity).toBe(2);
+      expect(slots.find((x) => x.kind === 'frame')!.quantity).toBe(1);
+      expect(got.rules.some((r: Json) => r.kind === 'fixed_variant' || r.kind === 'promo')).toBe(false);
+      expect(got.config.pair_of).toBe('behold');
+      expect(await q(`select count(*)::int n from combo_collections where pair_of = $1`, [id])).toEqual([{ n: 1 }]);
+    });
+
+    it('a collection that is already a couples edition cannot be doubled again; staff with catalogue access may make one, a customer may not', async () => {
+      const made = await ok('admin_combo_make_couples', admin, { id: await idOf('abide') });
+      expect((await call('admin_combo_make_couples', admin, { id: made.id })).error?.message).toMatch(/already a couples edition/);
+      expect((await call('admin_combo_make_couples', customer, { id: await idOf('doers') })).error?.message).toMatch(/forbidden/);
+    });
+
+    it('a published couples edition is priced per garment on the server, and the order keeps both garments', async () => {
+      const single = await priceAndPublish('behold', 4500000, []);
+      const made = await ok('admin_combo_make_couples', admin, { id: single.id });
+      const got = await ok('admin_combo_get', admin, { id: made.id });
+      const hoodie = (got.config.slots.find((x: Json) => x.kind === 'garment').components as Json[]).find((c) => c.slug === 'hoodie')!;
+      const rules = [{ id: crypto.randomUUID(), kind: 'garment_adjust', component_id: hoodie.id, option_id: null, frame_signature: null, amount_kobo: 1000000, discount_type: null, discount_value: null, label: null, starts_at: null, ends_at: null, is_active: true }];
+      await ok('admin_combo_save', admin, { id: made.id, collection: { ...got.collection, base_price_kobo: 8000000 }, slots: got.slots, rules });
+      await ok('admin_combo_publish', admin, { id: made.id });
+      const list = (await rpc('combo_public_list', {})).data.collections as ComboConfig[];
+      const cfg = list.find((c) => c.slug === 'behold-couples')!;
+      expect(cfg.pair_of).toBe('behold');
+      const g = cfg.slots.find((x) => x.kind === 'garment')!, f = cfg.slots.find((x) => x.kind === 'frame')!;
+      const pick = (slug: string) => { const c = g.components.find((x) => x.slug === slug)!; return { componentId: c.id, sizeId: c.options.find((o) => o.slug === 'm')!.id, colourId: c.options.find((o) => o.slug === 'black')!.id }; };
+      const sel = defaultSelection(cfg);
+      sel.units[g.id] = [pick('hoodie'), pick('premium-tshirt')];
+      sel.units[f.id] = [{ frameSizeId: f.components[0]!.options.find((o) => o.slug === '12x16')!.id, text: 'Ruth 1:16' }];
+      const quote = await svc.quoteCart({ lines: [comboLine('behold-couples', sel)], state: 'Lagos', city: 'Ikeja', acceptFinalSale: true } as never);
+      expect(quote.ok).toBe(true);
+      expect(quote.lines[0]!.unitKobo).toBe(9000000);                                     // 80,000 + hoodie 10,000
+      const solo = (sel.units[g.id] = [pick('premium-tshirt')], await svc.quoteCart({ lines: [comboLine('behold-couples', sel)], state: 'Lagos', city: 'Ikeja', acceptFinalSale: true } as never));
+      expect(solo.ok).toBe(false); expect(solo.issues.join()).toMatch(/Choose your customised garment/i);   // both people must choose
+      sel.units[g.id] = [pick('hoodie'), pick('premium-tshirt')];
+      const s = await start([comboLine('behold-couples', sel)]);
+      if (s.mode === 'pay') await svc.settlePayment(s.reference, { source: 'webhook', amountKobo: s.totalKobo, currency: 'NGN', payload: {} });
+      const item = await one<{ selections: Json[]; unit_price_kobo: string }>(`select selections, unit_price_kobo from order_items where kind = 'combo'`);
+      expect(item.selections.filter((r) => /Hoodie|T-shirt/.test(r.productName)).map((r) => r.productName).sort()).toEqual(['Hoodie', 'Premium Cotton T-shirt']);
+      expect(Number(item.unit_price_kobo)).toBe(9000000);
+    });
+
+    it('migration 0028 seeded a draft couples edition of each starting collection, with no selling price', async () => {
+      // beforeEach removes the extras, so re-run the seeding step of the migration
+      for (const slug of ['behold', 'abide', 'doers']) await q(`select public._combo_make_couples(id) from combo_collections where slug = $1`, [slug]);
+      const rows = await q(`select c.slug, c.status, c.base_price_kobo, s.quantity from combo_collections c join combo_slots s on s.collection_id = c.id and s.kind = 'garment' where c.pair_of is not null order by c.slug`);
+      expect(rows).toEqual([{ slug: 'abide-couples', status: 'draft', base_price_kobo: null, quantity: 2 }, { slug: 'behold-couples', status: 'draft', base_price_kobo: null, quantity: 2 }, { slug: 'doers-couples', status: 'draft', base_price_kobo: null, quantity: 2 }]);
+    });
+  });
 });

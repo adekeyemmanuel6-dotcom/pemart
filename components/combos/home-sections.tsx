@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ComboSettings } from '@/lib/combos/schema';
 import { UNAVAILABLE_PRICE, type ComboConfig } from '@/lib/combos/types';
+import { listedCollections } from '@/lib/combos/pairs';
 import { startingPrice } from '@/lib/combos/pricing';
 import { formatNaira } from '@/lib/money';
 import { ComboTrigger } from './combo-trigger';
@@ -24,7 +25,7 @@ export function ComboCalculatorSection({ settings, collections, unavailable }: {
           <div className="relative aspect-[4/3] overflow-hidden rounded-lg"><Image src={c.imageUrl} alt={c.imageAlt} fill sizes="(min-width:1024px) 45vw, 100vw" className="object-cover" /></div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1" aria-label="Combo collections">
-            {collections.slice(0, 3).map((x) => { const from = startingPrice(x, off); return (
+            {listedCollections(collections).slice(0, 3).map((x) => { const from = startingPrice(x, off); return (
               <li key={x.id} className="rounded-lg border border-[var(--wtw-stone)] bg-white/60 p-4">
                 <p className="display text-2xl">{x.name}</p>{x.tagline && <p className="text-sm text-[var(--wtw-graphite)]">{x.tagline}</p>}
                 <p className="mt-2 text-sm font-semibold">{from === null ? UNAVAILABLE_PRICE : `From ${formatNaira(from)}`}</p></li>); })}

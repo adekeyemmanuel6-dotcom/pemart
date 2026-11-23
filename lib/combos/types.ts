@@ -27,6 +27,8 @@ export type ComboOverheads = { printing_apparel_kobo: number; frame_artwork_kobo
 export type ComboConfig = {
   id: string; slug: string; name: string; label: string | null; tagline: string | null; scripture_ref: string | null; scripture_text: string | null;
   description: string | null; image_url: string | null; sort_order: number; legacy_bundle_id: string | null; version: number;
+  /** Slug of the single-person collection this is the couples edition of (two garments), if any. */
+  pair_of?: string | null;
   slots: ComboSlot[]; rules: ComboRules; overheads?: ComboOverheads;
 };
 /** What `combo_public_list` returns: published snapshots, plus components switched off since publishing. */

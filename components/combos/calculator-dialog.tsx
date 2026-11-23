@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { checkCombo } from '@/lib/actions/combos';
 import { useBag } from '@/lib/cart-store';
 import { opener, useCalculator } from '@/lib/combos/calculator-store';
+import { editions, listedCollections } from '@/lib/combos/pairs';
 import { defaultSelection, priceCombo, startingPrice } from '@/lib/combos/pricing';
 import { NOTES_MAX, TEXT_MAX, UNAVAILABLE_PRICE, type ComboCatalogue, type ComboComponent, type ComboConfig, type ComboSelection, type ComboSlot, type ComboWord, type UnitChoice } from '@/lib/combos/types';
 import { formatNaira } from '@/lib/money';
@@ -77,13 +78,21 @@ export function CalculatorDialog() {
               <div className="space-y-6">
                 <fieldset><legend className={legend}>1. Choose your collection</legend>
                   <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Collection">
-                    {collections.map((c) => { const from = startingPrice(c, off); const on = config?.slug === c.slug; return (
+                    {listedCollections(collections).map((c) => { const from = startingPrice(c, off); const pair = editions(collections, c)?.couples; const on = config?.slug === c.slug || (!!pair && config?.slug === pair.slug); return (
                       <label key={c.id} className={`flex min-h-11 cursor-pointer flex-col rounded-lg border-2 p-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${on ? 'border-ink bg-sand' : 'border-line hover:border-ink'}`}>
                         <input type="radio" name="combo-collection" value={c.slug} checked={on} onChange={() => select(c.slug)} className="sr-only" />
                         <span className="display text-xl">{c.name}</span>{c.label && <span className="text-xs font-semibold uppercase tracking-wide text-muted">{c.label}</span>}
                         {c.tagline && <span className="mt-1 text-sm text-muted">{c.tagline}</span>}
                         <span className="mt-2 text-sm font-bold">{from === null ? UNAVAILABLE_PRICE : `From ${formatNaira(from)}`}</span></label>); })}
                   </div></fieldset>
+                {config && (() => { const ed = editions(collections, config); if (!ed?.couples) return null; return (
+                  <fieldset><legend className={legend}>Who is it for?</legend>
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Who is it for">
+                      {[{ c: ed.single, label: 'Just me' }, { c: ed.couples, label: 'For two (couples)' }].map(({ c, label }) => (
+                        <label key={c.slug} className={`flex min-h-11 cursor-pointer items-center rounded-btn border-2 px-4 text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${config.slug === c.slug ? 'border-ink bg-ink text-paper' : 'border-line'}`}>
+                          <input type="radio" className="sr-only" name="combo-edition" checked={config.slug === c.slug} onChange={() => select(c.slug)} />{label}</label>))}
+                    </div>
+                    <p className="mt-1 text-sm text-muted">The couples edition has two garments, one for each of you, with everything else the same.</p></fieldset>); })()}
                 {config && sel && (<>
                   {(config.scripture_ref || config.description) && <p className="text-sm text-muted">{config.scripture_text ? `“${config.scripture_text}” ` : ''}{config.scripture_ref && <strong>{config.scripture_ref}. </strong>}{config.description}</p>}
                   {config.slots.filter((s) => s.mode !== 'unavailable').sort((a, b) => a.sort_order - b.sort_order).map((slot) => (
@@ -135,8 +144,8 @@ function SlotView({ slot, sel, off, words, setUnit, setItem }: { slot: ComboSlot
       const sizes = comp?.options.filter((o) => o.group === 'size') ?? [], colours = comp?.options.filter((o) => o.group === 'colour') ?? [];
       const id = `g-${slot.id}-${i}`;
       return (
-        <fieldset key={id} className="rounded-lg border border-line p-3"><legend className={`${legend} px-1`}>2. {slot.quantity > 1 ? `${slot.label} ${i + 1}` : slot.label}</legend>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Garment">
+        <fieldset key={id} className="rounded-lg border border-line p-3"><legend className={`${legend} px-1`}>2. {slot.quantity > 1 ? `${slot.label} (${i + 1} of ${slot.quantity})` : slot.label}</legend>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={slot.quantity > 1 ? `Garment ${i + 1}` : 'Garment'}>
             {slot.components.map((c) => (<label key={c.id} className={`flex min-h-11 cursor-pointer items-center rounded-btn border-2 px-4 text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${u.componentId === c.id ? 'border-ink bg-ink text-paper' : 'border-line'} ${ok(c) ? '' : 'opacity-50'}`}>
               <input type="radio" className="sr-only" name={`${id}-garment`} checked={u.componentId === c.id} disabled={!ok(c)} onChange={() => setUnit(slot, i, { componentId: c.id })} />{c.name}{ok(c) ? '' : ' (unavailable)'}</label>))}</div>
           {comp && (<div className="mt-3 grid gap-3 sm:grid-cols-2">

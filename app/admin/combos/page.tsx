@@ -4,7 +4,7 @@ import { ActionForm } from '@/components/admin/action-form';
 import { NeedsMigration } from '@/components/admin/needs-migration';
 import { Card, Empty, PageTitle } from '@/components/admin/ui';
 import { adm, isMissingFunction, requirePerm } from '@/lib/admin/db';
-import { duplicateComboAction, moveComboAction, setComboStatusAction } from '@/lib/admin/actions-combos';
+import { duplicateComboAction, makeCouplesAction, moveComboAction, setComboStatusAction } from '@/lib/admin/actions-combos';
 import { configIssues, startingPrice } from '@/lib/combos/pricing';
 import type { ComboConfig } from '@/lib/combos/types';
 import { formatNaira } from '@/lib/money';
@@ -39,6 +39,7 @@ export default async function CombosAdmin() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="display text-2xl"><Link href={`/admin/combos/${r.id}`} className="underline-offset-4 hover:underline">{r.name}</Link>{r.label && <span className="ml-2 text-sm font-normal text-muted">{r.label}</span>}</h2>
+                    {r.config.pair_of && <p className="mt-1 text-sm font-semibold">Couples edition of {rows.find((x) => x.slug === r.config.pair_of)?.name ?? r.config.pair_of} · 2 garments</p>}
                     <p className="mt-1 text-sm text-muted">/{r.slug} · order {i + 1} · {r.orders} order line{r.orders === 1 ? '' : 's'}</p>
                     <p className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
                       <span className={`rounded-full px-2.5 py-1 ${r.status === 'published' ? 'bg-ink text-paper' : 'bg-line text-ink'}`}>{STATUS[r.status]}</span>
@@ -57,6 +58,7 @@ export default async function CombosAdmin() {
                   {r.status === 'published' && (<ActionForm action={setComboStatusAction} submitLabel="Unpublish" variant="secondary" confirm="Unpublish this combo? It disappears from the website straight away."><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="draft" /></ActionForm>)}
                   {r.status === 'archived' && (<ActionForm action={setComboStatusAction} submitLabel="Restore as draft" variant="secondary"><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="draft" /></ActionForm>)}
                   {r.status !== 'archived' && (<ActionForm action={setComboStatusAction} submitLabel="Archive" variant="secondary" confirm="Archive this combo? Past orders keep their details."><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="archived" /></ActionForm>)}
+                  {!r.config.pair_of && r.status !== 'archived' && !rows.some((x) => x.config.pair_of === r.slug) && (<ActionForm action={makeCouplesAction} submitLabel="Make couples edition" variant="secondary"><input type="hidden" name="id" value={r.id} /></ActionForm>)}
                   <ActionForm action={duplicateComboAction} submitLabel="Duplicate" variant="secondary"><input type="hidden" name="id" value={r.id} /></ActionForm>
                   {r.status !== 'archived' && swap(-1) && (<ActionForm action={moveComboAction} submitLabel="Move up" variant="secondary"><input type="hidden" name="ids" value={swap(-1)!} /></ActionForm>)}
                   {r.status !== 'archived' && swap(1) && (<ActionForm action={moveComboAction} submitLabel="Move down" variant="secondary"><input type="hidden" name="ids" value={swap(1)!} /></ActionForm>)}

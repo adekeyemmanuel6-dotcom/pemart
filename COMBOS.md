@@ -30,3 +30,12 @@ Prices are always recomputed on the server from published data at bag, checkout 
 
 ## Drafts, publishing and orders
 Customers only ever see the last **published** version. Edits stay private until you publish again. Orders store a full snapshot of what was bought, so later edits, archiving or price changes never alter past orders.
+
+## Couples editions (two garments)
+Each collection can have a **couples edition**: the same contents (frames, diary, pens and so on) but **two garments**, one for each person, each with their own garment, colour and size.
+- Apply `supabase/migrations/0028_combo_couples.sql` (after 0026 and 0027). It creates a **draft couples edition of Behold, Abide and The Doer's** with the garments doubled and **no selling price**. Rollback: `supabase/rollback/0028_combo_couples.sql`.
+- In **Combo Management** every collection has a **Make couples edition** button (one edition per collection). Edit it like any combo: the **Number of garments** field in Package contents is the only difference.
+- Set its **base price**. The price is base + each garment's extra (a hoodie and a T-shirt are priced one by one; two hoodies pay the hoodie extra twice) + the frame-size extras. Fixed prices are not available for two-garment packages. Costs and overheads are set separately for the edition.
+- Publish both editions. In the calculator, a collection with a published couples edition shows **Just me / For two (couples)**; `/combos` shows one card per collection with a "Couples edition from ₦…" link, and the couples page links back to the single edition.
+- The order keeps both garments, with the colour, size and word each person chose.
+- The older couple's bundle is untouched; you can link it to an edition under Details → "Replaces this older bundle".

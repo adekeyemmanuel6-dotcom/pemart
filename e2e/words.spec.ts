@@ -65,6 +65,7 @@ test('/words lists the word with its garment count and lowest price; the sitemap
 });
 
 test('the combo calculator lets the customer choose one of the words, keeps it to the paid order, and the price does not change', async ({ page }) => {
+  await q(`truncate orders restart identity cascade`); // other specs may have left combo orders
   // price + publish BEHOLD (a SQL publish; the public catalogue refreshes within a minute)
   await page.goto(`${B}/api/dev/login?email=admin@example.com&role=admin&next=/admin`);
   const [admin] = await q(`select id from profiles where role = 'admin' order by created_at limit 1`);
@@ -72,7 +73,7 @@ test('the combo calculator lets the customer choose one of the words, keeps it t
   await q(`update combo_components set is_active = true, archived_at = null where slug in ('premium-tshirt','sweatshirt','hoodie','custom-frame')`);
   await q(`update combo_collections set base_price_kobo = 4500000 where slug = 'behold'`);
   await q(`select public.admin_combo_publish(jsonb_build_object('actor', $1::uuid, 'id', (select id from combo_collections where slug = 'behold')))`, [admin.id]);
-  await expect.poll(async () => (await (await page.request.get(`${B}/api/combos`)).text()).includes(WORD), { timeout: 120_000, intervals: [2000] }).toBe(true);
+  await expect.poll(async () => { const t = await (await page.request.get(`${B}/api/combos`)).text(); return t.includes(WORD) && t.includes('"base_price_kobo":4500000'); }, { timeout: 150_000, intervals: [2000] }).toBe(true);
 
   await page.goto(`${B}/?preview=1`);
   await page.goto(`${B}/combos/behold`);

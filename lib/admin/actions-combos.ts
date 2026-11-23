@@ -66,6 +66,15 @@ export async function duplicateComboAction(_p: AdminResult, fd: FormData): Promi
   return r;
 }
 
+/** Creates the couples edition (two garments, everything else the same) of a collection, as a draft with no selling price. */
+export async function makeCouplesAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
+  const me = await requirePerm('catalogue', '/admin/combos');
+  let go: string | null = null;
+  const r = await run('/admin/combos', async () => { const d = await adm<{ id: string }>('admin_combo_make_couples', me, { id: uuid.parse(str(fd, 'id')) }); refresh(); go = `/admin/combos/${d.id}`; return ok('Couples edition ready as a draft. Set its price, then publish.'); });
+  if (go && r?.ok) redirect(go);
+  return r;
+}
+
 export async function moveComboAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
   const me = await requirePerm('catalogue', '/admin/combos');
   return run('/admin/combos', async () => {
