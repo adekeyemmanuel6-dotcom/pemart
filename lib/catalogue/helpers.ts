@@ -42,7 +42,7 @@ export function toCard(cat: Catalogue, p: Product): CardProduct {
     imageUrl: real?.url ?? (design ? null : p.product_images[0]?.url ?? null),
     featured: p.is_featured, createdAt: p.created_at,
     bundleable: bundleable.has(p.type) && p.type !== 'gift_card',
-    madeToOrder: p.is_made_to_order, soldOut: productSoldOut(p),
+    madeToOrder: p.is_made_to_order, soldOut: productSoldOut(p), quality: p.quality ?? null,
   };
 }
 
@@ -96,7 +96,7 @@ export function relatedProducts(cat: Catalogue, p: Product, limit = 4): Product[
 }
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
-  tee: 'Tees', hoodie: 'Hoodies', frame: 'Frames', perfume: 'Perfume', jewellery: 'Jewellery',
+  tee: 'Tees', sweatshirt: 'Sweatshirts', hoodie: 'Hoodies', frame: 'Frames', perfume: 'Perfume', jewellery: 'Jewellery',
   bracelet: 'Bracelets', glasses: 'Glasses', fun: 'Fun', gift_card: 'Gift cards',
 };
 

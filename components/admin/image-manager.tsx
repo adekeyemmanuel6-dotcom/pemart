@@ -6,10 +6,10 @@ import { AdminUploader } from './admin-uploader';
 import { inputCls } from './ui';
 import { saveImagesAction } from '@/lib/admin/actions-admin';
 
-type Img = { id?: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail' };
+type Img = { id?: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail'; colour?: string | null };
 
 /** Product photos: upload, reorder with the arrows, write alt text, remove. The first image is the main one. */
-export function ImageManager({ productId, initial }: { productId: string; initial: Img[] }) {
+export function ImageManager({ productId, initial, colours = [] }: { productId: string; initial: Img[]; colours?: string[] }) {
   const [imgs, setImgs] = useState<Img[]>(initial);
   const move = (i: number, d: number) => setImgs((a) => { const n = [...a]; const j = i + d; if (j < 0 || j >= n.length) return a; [n[i], n[j]] = [n[j]!, n[i]!]; return n; });
   const set = (i: number, p: Partial<Img>) => setImgs((a) => a.map((x, k) => (k === i ? { ...x, ...p } : x)));
@@ -20,9 +20,10 @@ export function ImageManager({ productId, initial }: { productId: string; initia
         <li key={`${im.url}-${i}`} className="flex flex-wrap items-start gap-3 rounded-md border border-line p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={im.url} alt="" className="size-20 rounded object-cover" />
-          <div className="grid min-w-48 flex-1 gap-2 sm:grid-cols-[1fr_8rem]">
+          <div className={`grid min-w-48 flex-1 gap-2 ${colours.length ? 'sm:grid-cols-[1fr_8rem_9rem]' : 'sm:grid-cols-[1fr_8rem]'}`}>
             <div><label className="sr-only" htmlFor={`alt-${i}`}>Alt text for image {i + 1}</label><input id={`alt-${i}`} value={im.alt} onChange={(e) => set(i, { alt: e.target.value })} placeholder="Describe the photo (alt text)" className={inputCls} /></div>
             <div><label className="sr-only" htmlFor={`view-${i}`}>View for image {i + 1}</label><select id={`view-${i}`} value={im.view} onChange={(e) => set(i, { view: e.target.value as Img['view'] })} className={inputCls}>{['front', 'back', 'model', 'detail'].map((v) => (<option key={v}>{v}</option>))}</select></div>
+            {colours.length > 0 && (<div><label className="sr-only" htmlFor={`colour-${i}`}>Colour for image {i + 1}</label><select id={`colour-${i}`} value={im.colour ?? ''} onChange={(e) => set(i, { colour: e.target.value || null })} className={inputCls}><option value="">All colours</option>{colours.map((c) => (<option key={c} value={c}>{c} only</option>))}</select></div>)}
           </div>
           <div className="flex gap-1">
             <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move image ${i + 1} up`} className="grid size-11 place-items-center rounded border border-line disabled:opacity-30"><ArrowUp className="size-4" aria-hidden /></button>

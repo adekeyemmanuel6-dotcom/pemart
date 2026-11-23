@@ -12,6 +12,13 @@ const SHAPES = {
     seams: ['M105 168 L112 440', 'M295 168 L288 440', 'M105 168 Q92 140 70 92', 'M295 168 Q308 140 330 92'],
     back: [120, 118, 160, 192], front: [219, 112, 64, 32], detailOrigin: '50% 38%',
   },
+  sweatshirt: {
+    body: 'M150 66 Q200 98 250 66 L338 96 L382 336 L324 352 L298 196 L298 450 L102 450 L102 196 L76 352 L18 336 L62 96 Z',
+    collarFront: 'M150 66 Q200 124 250 66 Q200 88 150 66 Z',
+    collarBack: 'M150 66 Q200 88 250 66 Q200 78 150 66 Z',
+    seams: ['M102 196 L108 450', 'M298 196 L292 450', 'M102 196 Q90 150 62 96', 'M298 196 Q310 150 338 96', 'M104 426 L296 426'],
+    back: [116, 124, 168, 200], front: [219, 120, 64, 32], detailOrigin: '50% 38%',
+  },
   hoodie: {
     body: 'M140 66 Q200 22 260 66 L338 96 L382 336 L324 352 L298 196 L298 456 L102 456 L102 196 L76 352 L18 336 L62 96 Z',
     collarFront: 'M146 64 Q200 150 254 64 Q200 30 146 64 Z',
@@ -22,7 +29,7 @@ const SHAPES = {
   },
 } as const;
 
-function GarmentSvg({ type, colour, view }: { type: 'tee' | 'hoodie'; colour: string; view: 'front' | 'back' }) {
+function GarmentSvg({ type, colour, view }: { type: 'tee' | 'sweatshirt' | 'hoodie'; colour: string; view: 'front' | 'back' }) {
   const s = SHAPES[type];
   const fill = colourHex(colour);
   const id = `${type}-${colour.replace(/\W/g, '')}-${view}`;
@@ -50,7 +57,7 @@ function GarmentSvg({ type, colour, view }: { type: 'tee' | 'hoodie'; colour: st
 /** Design artwork placed on a garment. Dark ink on light garments (Sand), cream ink otherwise. */
 export function GarmentMockup({
   type, colour, view, designSlug, className, children, priority,
-}: { type: 'tee' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string; children?: React.ReactNode; priority?: boolean }) {
+}: { type: 'tee' | 'sweatshirt' | 'hoodie'; colour: string; view: MockupView; designSlug: string | null; className?: string; children?: React.ReactNode; priority?: boolean }) {
   const base: 'front' | 'back' = view === 'front' ? 'front' : 'back';
   const s = SHAPES[type];
   const [x, y, w, h] = base === 'back' ? s.back : s.front;

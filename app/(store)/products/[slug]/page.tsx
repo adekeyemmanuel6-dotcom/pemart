@@ -44,7 +44,8 @@ export default async function ProductPage({ params }: Props) {
   const view: ViewProduct = {
     id: p.id, slug: p.slug, name: p.name, type: p.type, designSlug: design?.slug ?? null,
     compareAtKobo: p.compare_at_kobo, madeToOrder: p.is_made_to_order, optionLabel: OPTION_LABEL[p.type] ?? 'Style',
-    images: p.design_id && !real.length ? [] : (real.length ? real : p.product_images).map((i) => ({ url: i.url, alt: i.alt || p.name })),
+    images: p.design_id && !real.length ? [] : (real.length ? real : p.product_images).map((i) => ({ url: i.url, alt: i.alt || p.name, colour: i.colour ?? null })),
+    quality: p.quality ?? null,
     variants: p.product_variants.map((v) => ({ id: v.id, colour: v.colour, size: v.size, option: v.option, group: v.option_group, priceKobo: variantPrice(p, v), soldOut: isSoldOut(v), lowStock: availableQty(v) })),
   };
 

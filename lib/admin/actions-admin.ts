@@ -14,6 +14,7 @@ const slug = z
   .max(80);
 const PRODUCT_TYPES = [
   'tee',
+  'sweatshirt',
   'hoodie',
   'frame',
   'perfume',
@@ -89,6 +90,7 @@ export async function saveProductAction(_p: AdminResult, fd: FormData): Promise<
         slug: slug.parse(str(fd, 'slug')),
         name: z.string().min(2).max(100).parse(str(fd, 'name')),
         type: z.enum(PRODUCT_TYPES).parse(str(fd, 'type')),
+        quality: z.enum(['normal', 'premium']).nullable().parse(optStr(fd, 'quality')),
         design_id: optStr(fd, 'design_id'),
         collection_id: optStr(fd, 'collection_id'),
         themes: list(fd, 'themes').filter((t) => (WORD_THEMES as readonly string[]).includes(t)),
@@ -181,6 +183,7 @@ export async function saveImagesAction(_p: AdminResult, fd: FormData): Promise<A
           url: z.string().min(1).max(500),
           alt: z.string().max(200),
           view: z.enum(['front', 'back', 'model', 'detail']),
+          colour: z.string().trim().max(40).nullable().optional(),
         }),
       )
       .max(20)

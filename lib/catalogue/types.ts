@@ -1,4 +1,4 @@
-export type ProductType = 'tee' | 'hoodie' | 'frame' | 'perfume' | 'jewellery' | 'bracelet' | 'glasses' | 'fun' | 'gift_card';
+export type ProductType = 'tee' | 'sweatshirt' | 'hoodie' | 'frame' | 'perfume' | 'jewellery' | 'bracelet' | 'glasses' | 'fun' | 'gift_card';
 
 export type Collection = {
   id: string; slug: string; name: string; intro: string | null; hero_image: string | null;
@@ -17,10 +17,11 @@ export type Variant = {
   stock_qty: number | null; reserved_qty: number; is_active: boolean;
 };
 
-export type ProductImage = { id: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail'; sort_order: number };
+export type ProductImage = { id: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail'; sort_order: number; colour?: string | null };
+export type ProductQuality = 'normal' | 'premium';
 
 export type Product = {
-  themes?: string[]; brand_collections?: string[]; weight_grams?: number | null;
+  themes?: string[]; brand_collections?: string[]; weight_grams?: number | null; quality?: ProductQuality | null;
   id: string; slug: string; name: string; type: ProductType; design_id: string | null; collection_id: string | null;
   description: string | null; care: string | null; base_price_kobo: number; compare_at_kobo: number | null;
   is_made_to_order: boolean; is_active: boolean; is_featured: boolean; is_seasonal: boolean;
@@ -58,5 +59,5 @@ export type CardProduct = {
   slug: string; name: string; type: ProductType; designSlug: string | null; collectionSlug: string | null;
   priceKobo: number; compareAtKobo: number | null; hasRange: boolean;
   colours: string[]; sizes: string[]; imageUrl: string | null; featured: boolean; createdAt: string;
-  bundleable: boolean; madeToOrder: boolean; soldOut: boolean;
+  bundleable: boolean; madeToOrder: boolean; soldOut: boolean; quality?: ProductQuality | null;
 };

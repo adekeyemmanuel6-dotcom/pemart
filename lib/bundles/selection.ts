@@ -35,7 +35,7 @@ export type SelectionResult = { ok: boolean; issues: SelectionIssue[]; resolved:
 
 export const GIFT_MESSAGE_MAX = 160;
 export const CUSTOM_TEXT_MAX = 40;
-const DESIGN_TYPES = ['tee', 'hoodie', 'frame'];
+const DESIGN_TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame'];
 
 export const isDesignSlot = (s: BundleSlot) => DESIGN_TYPES.includes(s.product_type) && !s.allowed_product_id;
 const frameSizeOf = (s: BundleSlot): 'A4' | 'A3' => (/\bA3\b/i.test(s.label) ? 'A3' : 'A4');

@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { inputCls, labelCls } from './ui';
 
 export type Slot = { label: string; product_type: string; allowed_collection_id: string | null; allowed_product_id: string | null; option_group: string | null; quantity: number; requires_size: boolean; requires_colour: boolean; requires_option: boolean; option_label: string | null; requires_custom_text: boolean; matching_group: string | null };
-const TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun'];
+const TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun'];
 const blank: Slot = { label: '', product_type: 'tee', allowed_collection_id: null, allowed_product_id: null, option_group: null, quantity: 1, requires_size: true, requires_colour: true, requires_option: false, option_label: null, requires_custom_text: false, matching_group: null };
 
 /** Bundle slot rules: what the customer chooses for each item. Which designs, a fixed product, sizes, options, matching groups. */

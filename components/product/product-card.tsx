@@ -11,7 +11,7 @@ export function ProductCard({ p, colour, priority }: { p: CardProduct; colour?: 
   const [flipped, setFlipped] = useState(false);
   const [backMounted, setBackMounted] = useState(false); // the back view is only rendered once someone asks for it (halves the DOM on listing pages)
   const flip = (v: boolean) => { if (v) setBackMounted(true); setFlipped(v); };
-  const garment = p.type === 'tee' || p.type === 'hoodie';
+  const garment = p.type === 'tee' || p.type === 'sweatshirt' || p.type === 'hoodie';
   const shownColour = colour && p.colours.includes(colour) ? colour : p.colours.includes('Black') ? 'Black' : p.colours[0] ?? null;
   const common = { type: p.type, designSlug: p.designSlug, colour: shownColour, imageUrl: p.imageUrl, alt: p.name, priority } as const;
   return (
@@ -26,6 +26,7 @@ export function ProductCard({ p, colour, priority }: { p: CardProduct; colour?: 
           )}
           <div className="pointer-events-none absolute bottom-2 left-2 flex flex-col items-start gap-1">
             {p.soldOut && <span className="rounded bg-ink px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-paper">Sold out</span>}
+            {p.quality === 'premium' && <span className="rounded bg-paper px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-ink shadow-sm">Premium</span>}
             {p.bundleable && !p.soldOut && <span className="rounded bg-mocha px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">Bundle and save</span>}
           </div>
         </div>

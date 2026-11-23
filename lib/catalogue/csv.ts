@@ -34,7 +34,7 @@ export function toCsv(rows: (string | number | boolean | null | undefined)[][]):
 }
 
 export const CSV_COLUMNS = ['slug', 'name', 'type', 'status', 'price', 'compare_at', 'collection_slug', 'design_slug', 'description', 'care', 'made_to_order', 'weight_grams', 'seo_title', 'seo_description', 'sku', 'colour', 'size', 'option', 'variant_price', 'stock'] as const;
-export const PRODUCT_TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun'] as const;
+export const PRODUCT_TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun'] as const;
 
 const naira = (label: string) => z.string().trim().transform((v, ctx) => {
   if (v === '') return null;

@@ -7,6 +7,12 @@ export const SIZE_GUIDE = {
     columns: ['Size', 'Chest width', 'Length', 'Sleeve'],
     rows: [['S', '58', '70', '22'], ['M', '61', '72', '23'], ['L', '64', '74', '24'], ['XL', '67', '76', '25'], ['XXL', '70', '78', '26']],
   },
+  sweatshirt: {
+    title: 'Sweatshirt',
+    note: 'A roomy crew-neck fit with a dropped shoulder. Size down if you prefer it closer to the body.',
+    columns: ['Size', 'Chest width', 'Length', 'Sleeve'],
+    rows: [['S', '59', '68', '58'], ['M', '62', '70', '60'], ['L', '65', '72', '62'], ['XL', '68', '74', '63'], ['XXL', '71', '76', '64']],
+  },
   hoodie: {
     title: 'Hoodie',
     note: 'A roomy, heavyweight fit with a dropped shoulder. Size down if you prefer it closer to the body.',

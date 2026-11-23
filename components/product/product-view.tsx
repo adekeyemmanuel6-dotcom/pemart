@@ -16,12 +16,13 @@ import { track } from '@/lib/analytics';
 import { ProductVisual } from './product-visual';
 import { SizeGuideDrawer } from './size-guide-drawer';
 import { WishlistButton } from './wishlist-button';
+import { imagesForColour } from '@/lib/catalogue/gallery';
 
 export type ViewVariant = { id: string; colour: string | null; size: string | null; option: string | null; group: string | null; priceKobo: number; soldOut: boolean; lowStock: number | null };
 export type ViewProduct = {
   id: string; slug: string; name: string; type: ProductType; designSlug: string | null;
   compareAtKobo: number | null; madeToOrder: boolean; optionLabel: string;
-  images: { url: string; alt: string }[]; variants: ViewVariant[];
+  images: { url: string; alt: string; colour?: string | null }[]; variants: ViewVariant[]; quality?: 'normal' | 'premium' | null;
 };
 export type ViewBundle = { slug: string; name: string; priceKobo: number; separateKobo: number; contents: string[] };
 export type ViewZone = { name: string; states: string[]; feeKobo: number; leadDays: number };
@@ -68,7 +69,7 @@ export function ProductView({ product: p, bundle, children }: { product: ViewPro
 
   const price = selected?.priceKobo ?? Math.min(...p.variants.map((v) => v.priceKobo));
   const hasRange = !selected && new Set(p.variants.map((v) => v.priceKobo)).size > 1;
-  const garment = p.type === 'tee' || p.type === 'hoodie';
+  const garment = p.type === 'tee' || p.type === 'sweatshirt' || p.type === 'hoodie';
 
   useEffect(() => {
     track('view_item', { valueKobo: price, items: [{ id: p.slug, name: p.name, priceKobo: price, quantity: 1, category: p.type }] });
@@ -76,13 +77,16 @@ export function ProductView({ product: p, bundle, children }: { product: ViewPro
   }, [p.slug]);
 
   const slides = useMemo(() => {
-    if (p.images.length) return p.images.map((im) => ({ key: im.url, label: im.alt, node: <ProductVisual type={p.type} designSlug={null} imageUrl={im.url} alt={im.alt} sizes="(min-width:1024px) 50vw, 100vw" priority /> }));
+    // Photos that belong to one colour show only when that colour is chosen.
+    const images = imagesForColour(p.images, colour);
+    if (images.length) return images.map((im) => ({ key: im.url, label: im.alt, node: <ProductVisual type={p.type} designSlug={null} imageUrl={im.url} alt={im.alt} sizes="(min-width:1024px) 50vw, 100vw" priority /> }));
     if (garment) return (['front', 'back', 'detail'] as const).map((view) => ({
       key: view, label: view === 'detail' ? 'Close-up of the print' : `${view} view`,
       node: <ProductVisual type={p.type} designSlug={p.designSlug} colour={colour ?? 'Black'} view={view} alt={`${p.name}, ${view}`} priority />,
     }));
     return [{ key: 'main', label: p.name, node: <ProductVisual type={p.type} designSlug={p.designSlug} finish={option} imageUrl={null} alt={p.name} sizes="(min-width:1024px) 50vw, 100vw" priority /> }];
   }, [p, garment, colour, option]);
+  useEffect(() => { setSlide(0); }, [colour]); // a different colour starts at its own first photo
   const current = slides[Math.min(slide, slides.length - 1)]!;
 
   const addToBag = () => {
@@ -119,6 +123,7 @@ export function ProductView({ product: p, bundle, children }: { product: ViewPro
         {/* Purchase panel */}
         <div className="space-y-6">
           <div>
+            {p.quality && <p className="mb-1 inline-block rounded-full border border-ink px-3 py-0.5 text-xs font-bold uppercase tracking-[0.12em]">{p.quality === 'premium' ? 'Premium quality' : 'Normal quality'}</p>}
             <h1 className="display text-4xl sm:text-5xl">{p.name}</h1>
             <p className="mt-2 text-2xl">
               {hasRange && <span className="text-base text-muted">From </span>}
@@ -148,7 +153,7 @@ export function ProductView({ product: p, bundle, children }: { product: ViewPro
           {need.size && (
             <fieldset>
               <div className="mb-2 flex items-center justify-between"><legend className="text-sm font-semibold">Size{size ? <>: <span className="font-normal text-muted">{size}</span></> : ''}</legend>
-                {(p.type === 'tee' || p.type === 'hoodie' || p.type === 'frame') && <SizeGuideDrawer type={p.type} />}</div>
+                {(p.type === 'tee' || p.type === 'sweatshirt' || p.type === 'hoodie' || p.type === 'frame') && <SizeGuideDrawer type={p.type} />}</div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((s) => { const off = !availableWith({ s }); return (<button key={s} type="button" onClick={() => setSize(s)} aria-pressed={size === s} aria-label={`${s}${off ? ', sold out' : ''}`} className={chip(size === s, off)}>{s}</button>); })}
               </div>

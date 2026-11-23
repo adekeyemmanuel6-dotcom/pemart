@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Edit product' };
 type P = { themes?: string[]; brand_collections?: string[]; weight_grams?: number | null; id: string; slug: string; name: string; type: string; design_id: string | null; collection_id: string | null; description: string | null; care: string | null; base_price_kobo: number; compare_at_kobo: number | null; is_made_to_order: boolean; is_active: boolean; status?: 'draft' | 'active' | 'archived'; is_featured: boolean; is_seasonal: boolean; seo_title: string | null; seo_description: string | null;
   variants: { id: string; sku: string; colour: string | null; size: string | null; option: string | null; option_group: string | null; price_kobo: number | null; stock_qty: number | null; reserved_qty: number; is_active: boolean }[]; images: { id: string; url: string; alt: string; view: 'front' | 'back' | 'model' | 'detail' }[] };
 const naira = (k: number | null) => (k === null ? '' : String(k / 100));
-const TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
+const TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
 
 export default async function ProductEdit({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,6 +28,7 @@ export default async function ProductEdit({ params }: { params: Promise<{ id: st
             <div><label className={labelCls} htmlFor="n">Name</label><input id="n" name="name" defaultValue={p.name} required className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="s">Slug</label><input id="s" name="slug" defaultValue={p.slug} required pattern="[a-z0-9]+(-[a-z0-9]+)*" className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="t">Type</label><select id="t" name="type" defaultValue={p.type} className={inputCls}>{TYPES.map((t) => (<option key={t}>{t}</option>))}</select></div>
+            <div><label className={labelCls} htmlFor="ql">Quality (T-shirts)</label><select id="ql" name="quality" defaultValue={(p as { quality?: string | null }).quality ?? ''} className={inputCls}><option value="">Not shown</option><option value="normal">Normal</option><option value="premium">Premium</option></select></div>
             <div><label className={labelCls} htmlFor="pr">Price (₦)</label><input id="pr" name="price" defaultValue={naira(p.base_price_kobo)} inputMode="decimal" required className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="cp">Compare-at price (₦, optional)</label><input id="cp" name="compare_at" defaultValue={naira(p.compare_at_kobo)} inputMode="decimal" className={inputCls} /></div>
             <div><label className={labelCls} htmlFor="co">Collection</label><select id="co" name="collection_id" defaultValue={p.collection_id ?? ''} className={inputCls}><option value="">None</option>{cat.collections.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}</select></div>
@@ -43,7 +44,7 @@ export default async function ProductEdit({ params }: { params: Promise<{ id: st
           <div className="mt-2 flex flex-wrap gap-x-5 text-sm"><label className="flex min-h-11 items-center gap-2"><span className="font-semibold">Status</span><select name="status" defaultValue={p.status ?? (p.is_active ? 'active' : 'draft')} className={`${inputCls} min-h-9 w-auto`}><option value="active">Active (on the store)</option><option value="draft">Draft (hidden)</option><option value="archived">Archived (hidden, kept for records)</option></select></label>{([['is_made_to_order', 'Made to order', p.is_made_to_order], ['is_featured', 'Featured product', p.is_featured], ['is_seasonal', 'Seasonal', p.is_seasonal]] as const).map(([k, l, v]) => (<label key={k} className="flex min-h-11 items-center gap-2"><input type="checkbox" name={k} defaultChecked={v} className="size-5 accent-ink" />{l}</label>))}</div>
         </ActionForm></Card>
 
-        <Card title="Photos"><ImageManager productId={p.id} initial={p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, view: i.view }))} /></Card>
+        <Card title="Photos"><ImageManager productId={p.id} initial={p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, view: i.view, colour: (i as { colour?: string | null }).colour ?? null }))} colours={[...new Set(p.variants.map((v) => v.colour).filter((c): c is string => !!c))]} /></Card>
 
         <Card title={`Variants (${p.variants.length})`}>
           <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><caption className="sr-only">Variants and stock</caption>

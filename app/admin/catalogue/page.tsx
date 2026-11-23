@@ -22,7 +22,7 @@ function StatusPill({ s }: { s: Status }) {
   const cls = s === 'active' ? 'bg-[#1f3d2b] text-[#bfe6cb]' : s === 'draft' ? 'bg-sand text-ink' : 'bg-transparent text-muted border border-line';
   return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{s === 'active' ? 'Active' : s === 'draft' ? 'Draft' : 'Archived'}</span>;
 }
-const TYPES = ['tee', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
+const TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
 
 export default async function CataloguePage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; status?: string }> }) {
   const me = await requirePerm('catalogue', '/admin/catalogue');

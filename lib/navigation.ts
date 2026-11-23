@@ -32,6 +32,7 @@ export function fromMegaMenu(menu: MegaMenu): NavPanel[] {
 
 const TYPE_LINKS: { type: string; href: string; name: string; group: 'clothing' | 'lifestyle' }[] = [
   { type: 'tee', href: '/collections/all?type=tee', name: 'Oversized Tees', group: 'clothing' },
+  { type: 'sweatshirt', href: '/collections/all?type=sweatshirt', name: 'Sweatshirts', group: 'clothing' },
   { type: 'hoodie', href: '/collections/all?type=hoodie', name: 'Hoodies', group: 'clothing' },
   { type: 'frame', href: '/collections/all?type=frame', name: 'Scripture Frames', group: 'lifestyle' },
 ];

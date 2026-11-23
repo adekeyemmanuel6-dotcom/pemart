@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProductVisual } from '@/components/product/product-visual';
 
-const garment = (t: string) => t === 'tee' || t === 'hoodie';
+const garment = (t: string) => t === 'tee' || t === 'sweatshirt' || t === 'hoodie';
 
 export function BundleBuilder({ ctx, giftWrapKobo }: { ctx: BundleContext; giftWrapKobo: number }) {
   const params = useSearchParams();
