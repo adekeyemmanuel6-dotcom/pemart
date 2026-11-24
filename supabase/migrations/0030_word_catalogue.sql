@@ -6,6 +6,13 @@
 -- It also (1) removes the unpriced draft garments of an earlier version of this set, and (2) archives the OLD demo tees, hoodies and
 -- frames, which stay available for past orders and can be restored. Products that gift boxes or couple packs still use are left alone.
 
+-- 0. Needs migration 0026 (sweatshirt type, Quality label). Stop with a clear message if it has not been run.
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'products' and column_name = 'quality') then
+    raise exception 'Run supabase/migrations/0026_sweatshirt_quality_colour_images.sql first (and 0027 and 0028 if you have not), then run this file again. Nothing was changed.';
+  end if;
+end $$;
+
 -- 1. Safety: a garment or frame cannot be made Active while its price is still ₦0.
 create or replace function public._product_price_guard() returns trigger
 language plpgsql as $$
