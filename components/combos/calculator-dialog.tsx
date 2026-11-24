@@ -176,7 +176,7 @@ function SlotView({ slot, sel, off, words, setUnit, setItem }: { slot: ComboSlot
       })}</div></fieldset>);
   }
   const comp = slot.components[0]; if (!comp) return null;
-  if (slot.mode === 'required') return (<p className="rounded-lg bg-sand/50 px-3 py-2 text-sm"><strong>Included:</strong> {slot.quantity > 1 ? `${slot.quantity} × ` : ''}{comp.name}{comp.description ? <span className="text-muted"> · {comp.description}</span> : null}{ok(comp) ? '' : ' (currently unavailable)'}</p>);
+  if (slot.mode === 'required') return (<p className="rounded-lg bg-sand/50 px-3 py-2 text-sm"><strong>Included:</strong> {slot.quantity > 1 ? `${slot.quantity} × ` : ''}{comp.name}{slot.extra_price_kobo ? <span className="font-semibold"> · {formatNaira(slot.extra_price_kobo * slot.quantity)}</span> : null}{comp.description ? <span className="text-muted"> · {comp.description}</span> : null}{ok(comp) ? '' : ' (currently unavailable)'}</p>);
   const price = slot.extra_price_kobo ?? comp.public_price_kobo; const cur = sel.items[slot.id]?.qty ?? 0; const id = `i-${slot.id}`;
   if (price == null || !ok(comp)) return (<p className="rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">{comp.name}: {ok(comp) ? 'not available to add right now.' : 'currently unavailable.'}</p>);
   return (<div className="rounded-lg border border-line p-3">

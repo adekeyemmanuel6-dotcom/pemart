@@ -56,7 +56,7 @@ export default async function ComboPage({ params }: Props) {
             {slots.map((s) => (<li key={s.id} className="rounded-lg border border-line p-3">
               {s.kind === 'garment' && (<><strong>{s.quantity > 1 ? `${s.quantity} garments, one for each of you` : s.label}</strong>: choose {s.components.map((x) => x.name).join(', ')}{s.quantity > 1 ? ' for each' : ''}.</>)}
               {s.kind === 'frame' && (<><strong>{s.quantity} × {s.label}</strong>{s.components[0] && <>, in {s.components[0].options.filter((o) => o.group === 'frame_size').map((o) => o.label).join(' or ')}</>}. Each with your own Scripture.</>)}
-              {s.kind === 'item' && (<><strong>{s.components[0]?.name ?? s.label}</strong>{s.quantity > 1 ? ` × ${s.quantity}` : ''}{s.mode === 'optional' ? ' (optional add-on)' : ' (included)'}{s.components[0]?.description ? ` · ${s.components[0].description}` : ''}</>)}
+              {s.kind === 'item' && (<><strong>{s.components[0]?.name ?? s.label}</strong>{s.quantity > 1 ? ` × ${s.quantity}` : ''}{s.mode === 'optional' ? ' (optional add-on)' : s.extra_price_kobo ? ` (${formatNaira(s.extra_price_kobo * s.quantity)})` : ' (included)'}{s.components[0]?.description ? ` · ${s.components[0].description}` : ''}</>)}
             </li>))}
           </ul>
           <p className="mt-6 text-sm text-muted">Made to order. Customised pieces are final sale once production starts.</p>

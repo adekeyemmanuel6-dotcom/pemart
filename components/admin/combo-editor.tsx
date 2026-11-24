@@ -134,7 +134,7 @@ export function ComboEditor({ id, initial, library, bundles, status, hasUnpublis
                     {s.kind !== 'garment' && (<div><label className={labelCls} htmlFor={`s-c-${s.id}`}>Product</label><select id={`s-c-${s.id}`} value={s.component_id ?? ''} onChange={(e) => setSlot(s.id, { component_id: e.target.value || null })} className={inputCls}><option value="">Choose…</option>{comps.map((l) => (<option key={l.id} value={l.id}>{l.name}{l.is_active && !l.archived_at ? '' : ' (off)'}</option>))}</select></div>)}
                     <div><label className={labelCls} htmlFor={`s-m-${s.id}`}>Included how?</label>
                       <select id={`s-m-${s.id}`} value={s.mode} onChange={(e) => setSlot(s.id, { mode: e.target.value as SlotRow['mode'] })} className={inputCls}>
-                        <option value="required">Included (in the package price)</option>{s.kind === 'item' && <option value="optional">Optional, at an extra price</option>}<option value="unavailable">Not available</option></select></div>
+                        <option value="required">Included in the package</option>{s.kind === 'item' && <option value="optional">Optional, at an extra price</option>}<option value="unavailable">Not available</option></select></div>
                     {s.kind === 'garment' && (<div><label className={labelCls} htmlFor={`s-q-${s.id}`}>Number of garments</label><input id={`s-q-${s.id}`} type="number" min={1} max={4} value={s.quantity} onChange={(e) => setSlot(s.id, { quantity: Math.max(1, Math.min(4, Number(e.target.value) || 1)) })} className={inputCls} /><p className="mt-1 text-xs text-muted">2 for a couples edition: each person picks their own garment, colour and size.</p></div>)}
                     {(s.kind === 'frame' || s.mode === 'required') && s.kind !== 'garment' && (<div><label className={labelCls} htmlFor={`s-q-${s.id}`}>{s.kind === 'frame' ? 'Number of frames' : 'Quantity included'}</label><input id={`s-q-${s.id}`} type="number" min={1} max={12} value={s.quantity} onChange={(e) => setSlot(s.id, { quantity: Math.max(1, Math.min(12, Number(e.target.value) || 1)) })} className={inputCls} /></div>)}
                     {s.kind === 'item' && s.mode === 'optional' && (<>
@@ -168,6 +168,17 @@ export function ComboEditor({ id, initial, library, bundles, status, hasUnpublis
               <li>Then <strong className="text-ink">one</strong> discount (the largest active) comes off. Discounts never stack.</li></ol></div>
           <div className={card}><h3 className="display mb-2 text-xl">Base package price</h3>
             <Naira id="p-base" label="Selling price (₦)" value={c.base_price_kobo} onChange={(v) => setC({ ...c, base_price_kobo: v })} help="Leave empty if you only use fixed prices. With no price at all customers see “Price currently unavailable”." /></div>
+          {slots.some((x) => x.kind === 'item' && x.mode !== 'unavailable') && (
+            <div className={card}><h3 className="display mb-1 text-xl">Prices of the other items</h3>
+              <p className="mb-2 text-sm text-muted">The selling price of each accessory in this combo (diary, pens, sticky notes, perfume…). It is <strong>added to the package price</strong>. Leave one empty and that item is included free. Optional items are the ones customers can choose to add.</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {slots.filter((x) => x.kind === 'item' && x.mode !== 'unavailable').map((x) => {
+                  const comp = library.find((l) => l.id === x.component_id);
+                  return (<Naira key={x.id} id={`ip-${x.id}`} label={`${comp?.name ?? x.label}${x.mode === 'optional' ? ' (optional add-on)' : ' (included)'}${x.quantity > 1 && x.mode === 'required' ? ` × ${x.quantity}` : ''}`}
+                    value={x.extra_price_kobo} onChange={(v) => setSlot(x.id, { extra_price_kobo: v })}
+                    help={x.mode === 'optional' ? (x.extra_price_kobo == null && comp?.public_price_kobo != null ? `Empty uses the library price (${formatNaira(comp.public_price_kobo)}).` : 'Empty and no library price: customers cannot add it.') : x.extra_price_kobo == null ? 'Empty: included free in the package.' : 'Added to the package price.'} />);
+                })}
+              </div></div>)}
           {allowedGarments.length > 0 && (<div className={card}><h3 className="display mb-2 text-xl">Garment extras</h3><p className="mb-2 text-sm text-muted">Extra charged on top of the base price. Empty = nothing extra.</p>
             <div className="grid gap-3 sm:grid-cols-3">{allowedGarments.map((g) => (<Naira key={g.id} id={`p-g-${g.id}`} label={`${g.name}`} value={adjust('garment_adjust', g.id)?.amount_kobo ?? null} onChange={(v) => setAdjust('garment_adjust', g.id, v)} />))}</div></div>)}
           {frameOptions.length > 0 && (<div className={card}><h3 className="display mb-2 text-xl">Frame-size extras (per frame)</h3><p className="mb-2 text-sm text-muted">Charged for each frame of that size. The smallest size is usually 0.</p>

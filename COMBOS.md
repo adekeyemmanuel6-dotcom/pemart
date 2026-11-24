@@ -24,7 +24,7 @@ Note: a garment with no "garment extra" costs the base price. If the Normal T-sh
 ## Price rules (in order)
 1. A **fixed price** for the exact garment + frame sizes replaces everything.
 2. Otherwise **base price + garment extra + one extra per frame size**. No base price and no fixed price = "Price currently unavailable" and the combo cannot be added to the bag.
-3. Optional extras add; included items are already in the package price.
+3. **Items**: each accessory can have its own selling price (**Selling prices → "Prices of the other items"**). An included item with a price adds it to the package price; an included item left empty is free. Optional items add their price when the customer chooses them.
 4. Only **one** discount applies (the largest active). Discount codes at checkout apply afterwards.
 Prices are always recomputed on the server from published data at bag, checkout and payment time; the browser never sets a price.
 
@@ -55,3 +55,11 @@ Once you publish them, the whole site is organised around **BEHOLD, ABIDE, THE D
 - Paragraphs: Inter, DM Sans, Oswald, Montserrat, Poppins, Lora, Georgia, Arial. "Original" keeps the current look.
 - The font files are bundled with the site (open-licence), so a choice adds no outside request, and visitors only download the font in use. The ₦ sign always renders correctly.
 - Each homepage section can still override its own heading font under that section's Style.
+
+## Pricing the accessories (The Doer's)
+In a combo's **Selling prices** tab there is a card, **Prices of the other items**, listing every accessory in the package (diary, pen, highlight pen, sticky notes, perfume, and any extra you add):
+- **Included items** (diary, pens…): enter the selling price and it is **added to the package price** and shown as its own line in the price breakdown. Leave it empty and the item is included free.
+- **Optional add-ons** (perfume, cards…): the price customers pay if they choose to add it. Empty uses the item library price; with neither, customers cannot add it.
+- Discounts and promotions apply to the total including the items. A fixed price for a garment + frame still gets the item prices added on top.
+- The set price also shows on the combo page and in the calculator ("Included: 2027 Diary · ₦7,000"). Costs stay private in the Costs & profit tab.
+Example: base price ₦30,000 + diary ₦7,000 + pen ₦1,500 = ₦38,500 (highlight pen and sticky notes free).

@@ -293,3 +293,36 @@ describe('couples edition: two garments', () => {
     expect(e.parts.filter((p) => p.label === 'Hoodie' || p.label === 'Premium Cotton T-shirt')).toHaveLength(2);
   });
 });
+
+describe('selling prices of the other items (the Doer’s accessories)', () => {
+  const doers = (prices: Record<string, number | null>) => {
+    const { doers: d } = makeCollections(lib, { base: 3000000 });
+    for (const sl of d.slots) if (sl.kind === 'item' && sl.mode === 'required') { const name = sl.components[0]!.name; if (name in prices) sl.extra_price_kobo = prices[name]!; }
+    return d;
+  };
+  const full = (cfg: ReturnType<typeof makeCollections>['doers']) => { const s = defaultSelection(cfg); const g = cfg.slots.find((x) => x.kind === 'garment')!, f = cfg.slots.find((x) => x.kind === 'frame')!; s.units[g.id] = [{ componentId: lib.tee.id, sizeId: first(lib.tee, 'size'), colourId: first(lib.tee, 'colour') }]; s.units[f.id] = [{ frameSizeId: lib.f12.id }]; return s; };
+  it('an included item with a price adds that price; unpriced items stay free', () => {
+    const cfg = doers({ '2027 Diary': 700000, Pen: 150000 });
+    const q = priceCombo(cfg, full(cfg));
+    expect(q.ok).toBe(true); expect(q.unitKobo).toBe(3000000 + 700000 + 150000);
+    expect(q.lines.filter((l) => l.kind === 'extra').map((l) => [l.label, l.amountKobo])).toEqual([['2027 Diary', 700000], ['Pen', 150000]]);
+    expect(priceCombo(doers({}), full(doers({}))).unitKobo).toBe(3000000);                    // nothing priced: all included free, as before
+  });
+  it('the selection is still recorded as included, and the discount applies to the items too', () => {
+    const cfg = doers({ '2027 Diary': 1000000 });
+    cfg.rules.discounts = [{ id: 'd', kind: 'promo', type: 'percent', value: 10, label: 'Launch', starts_at: null, ends_at: null }];
+    const q = priceCombo(cfg, full(cfg));
+    expect(q.resolved.find((r) => r.productName === '2027 Diary')!.option).toBe('Included');
+    expect(q.subtotalKobo).toBe(4000000); expect(q.discountKobo).toBe(400000); expect(q.unitKobo).toBe(3600000);
+  });
+  it('an item priced at zero or not set adds nothing, and a fixed price still gets the item prices on top', () => {
+    expect(priceCombo(doers({ Pen: 0 }), full(doers({ Pen: 0 }))).unitKobo).toBe(3000000);
+    const cfg = doers({ '2027 Diary': 700000 });
+    cfg.rules.fixed_variants = [{ id: 'fx', component_id: lib.tee.id, signature: lib.f12.id, amount_kobo: 5000000, label: 'Tee + 12x16' }];
+    expect(priceCombo(cfg, full(cfg)).unitKobo).toBe(5000000 + 700000);
+  });
+  it('an unavailable included item still blocks, priced or not', () => {
+    const cfg = doers({ Pen: 100000 }); const pen = cfg.slots.find((s) => s.components[0]?.name === 'Pen')!; pen.components[0]!.available = false;
+    expect(priceCombo(cfg, full(cfg)).ok).toBe(false);
+  });
+});

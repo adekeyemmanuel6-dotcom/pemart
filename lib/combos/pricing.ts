@@ -13,7 +13,8 @@ import {
  *      package price. Base price and every adjustment are ignored.
  *   2. Otherwise BASE PACKAGE = base price + garment adjustment + one frame-size adjustment per frame.
  *      Without a base price (and no fixed match) the selection has no price: "Price currently unavailable".
- *   3. EXTRAS. Optional items add (quantity x price). Items marked "included" are already in the package price.
+ *   3. ITEMS. Optional items add (quantity x price). An "included" item with its own selling price adds that price too;
+ *      an included item with no price is free (already in the package price).
  *   4. DISCOUNT. At most ONE: the largest of the promotions / bundle discounts active right now, taken off (package + extras).
  *   5. The total never goes below zero. Checkout-level discount codes are applied afterwards by the bag, as for every other item.
  */
@@ -89,6 +90,8 @@ export function priceCombo(config: ComboConfig, sel: ComboSelection, opts: { now
       if (slot.mode === 'required') {
         if (!avail(comp)) { issues.push(`${comp.name} is currently unavailable`); continue; }
         resolved.push({ label: comp.name, productName: comp.name, componentId: comp.id, slotId: slot.id, qty: slot.quantity, option: slot.quantity > 1 ? `Included · Qty ${slot.quantity}` : 'Included' });
+        // An included item can carry its own selling price, added to the package price. No price = included free.
+        if (slot.extra_price_kobo != null && slot.extra_price_kobo > 0) extras.push({ slot, comp, qty: slot.quantity, price: slot.extra_price_kobo });
       } else {
         const chosen = sel.items[slot.id];
         const qty = Math.trunc(chosen?.qty ?? 0);
