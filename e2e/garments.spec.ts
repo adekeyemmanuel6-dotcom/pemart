@@ -85,6 +85,27 @@ test('admin: choose the type, quality and which colour each photo belongs to', a
   expect(a.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 100)}`)).toEqual([]);
 });
 
+test('admin: add a photo straight into a colour section and it is saved for that colour', async ({ page }) => {
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await page.goto(`${B}/api/dev/login?email=admin@example.com&role=admin&next=/admin/catalogue`);
+  const [p] = await q(`select id from products where slug = 'e2e-word-sweatshirt'`);
+  await q(`delete from product_images where product_id = $1`, [p.id]);
+  await page.goto(`${B}/admin/catalogue/products/${p.id}`);
+  for (const c of ['All colours', 'Black', 'White']) await expect(page.getByRole('region', { name: `${c} photos` })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'White photos' }).getByText(/No photo yet/)).toBeVisible();
+  const white = page.getByRole('region', { name: 'White photos' });
+  await expect(async () => {
+    if (!(await white.getByText('(1 photo)').count())) await white.locator('input[type=file]').setInputFiles({ name: 'white-sweatshirt.png', mimeType: 'image/png', buffer: PNG });
+    await expect(white.getByText('(1 photo)')).toBeVisible({ timeout: 6000 });
+  }).toPass({ timeout: 40_000 });
+  await white.getByPlaceholder('Describe the photo (alt text)').fill('White sweatshirt, front');
+  await page.getByRole('button', { name: 'Save images' }).click();
+  await expect(page.getByText('Images saved in this order.')).toBeVisible();
+  expect((await q(`select colour, alt from product_images where product_id = $1`, [p.id]))).toEqual([{ colour: 'White', alt: 'White sweatshirt, front' }]);
+  const a = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(a.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 100)}`)).toEqual([]);
+});
+
 test('product pages stay accessible', async ({ page }) => {
   await page.goto(`${B}/products/e2e-word-sweatshirt`);
   const a = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

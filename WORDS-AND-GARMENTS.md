@@ -55,7 +55,7 @@ Each word gets four products (Normal T-shirt, Premium T-shirt, Sweatshirt, Hoodi
 
 ### What you do next, per product
 1. **Price**: the fastest way for 42 products is Catalogue → Export products (CSV), fill the `price` column, then Import. Import updates existing products by slug.
-2. **Photos**: upload them and set each photo's colour (or "All colours").
+2. **Photos**: open the product and scroll to **Photos**. There is a section for **each colour** (Black, White, …) plus **All colours**. Use "Add a photo for White" in the White section, and so on. When a customer clicks a colour, the photos switch to that colour's photos. A colour with no photo yet shows the "All colours" photos. (Size does not change the photo.)
 3. **Status → Active**, then Save. It then appears on the word page (`/words/<word>`) and in the shop.
 
 To find the new products in the admin: Catalogue → Products → Status → Draft.
