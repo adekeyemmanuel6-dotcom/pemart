@@ -6,6 +6,8 @@ import { WebsitePreview } from './website-preview';
 import { Field, ImageField, Move, reorder } from './editor-fields';
 import { MegaMenuEditor } from './mega-menu-editor';
 import { HeroEditor } from './hero-editor';
+import Link from 'next/link';
+import { sectionInfo, showsField, showsImage } from '@/lib/website/section-fields';
 import { SectionStyleEditor } from './section-style-editor';
 import { AddSection, TemplateFields } from './template-section-fields';
 import { TEMPLATE_INFO } from '@/lib/website/templates';
@@ -219,10 +221,14 @@ export function WebsiteEditor({
               <p className="text-sm text-muted">
                 Open a section to edit it. Use Up and Down to change its position. Hide sections you do not need.
               </p>
+              <p className="rounded-lg border border-line bg-sand/50 p-3 text-sm">
+                The <strong>&ldquo;Your Word. Your Style. Your Combo.&rdquo;</strong> and <strong>brand story</strong> sections on the homepage, and the Build Your Combo button, are edited in{' '}
+                <Link href="/admin/combos/storefront" className="font-semibold underline underline-offset-4">Combo Management → Website text</Link>, so they do not appear in this list.
+              </p>
               {content.sections.map((s, i) => (
                 <details key={s.id} className="rounded-lg border border-line p-4">
                   <summary className="cursor-pointer py-2 font-semibold">
-                    {String(i + 1).padStart(2, '0')} / {s.template ? `${TEMPLATE_INFO[s.template].label} (added)` : s.id} — {s.enabled ? s.title || 'Visible' : 'Hidden'}
+                    {String(i + 1).padStart(2, '0')} · {s.template ? `${TEMPLATE_INFO[s.template].label} (added)` : sectionInfo(s)?.name ?? s.id} — {s.enabled ? (s.title || 'Visible').split('\n')[0] : 'Hidden'}
                   </summary>
                   <div className="mt-4 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -246,6 +252,7 @@ export function WebsiteEditor({
                         onMove={(to) => update('sections', reorder(content.sections, i, to))}
                       />
                     </div>
+                    {sectionInfo(s) && <p className="rounded-md bg-sand/60 p-3 text-sm text-muted">{sectionInfo(s)!.help}</p>}
                     {s.id === 'hero' && (
                       <HeroEditor
                         value={s.hero}
@@ -276,7 +283,7 @@ export function WebsiteEditor({
                           'href',
                           ...(s.id === 'hero' ? ['secondaryText', 'secondaryHref'] : []),
                         ] as const
-                      ).map((key) => (
+                      ).filter((key) => key === 'secondaryText' || key === 'secondaryHref' || showsField(s, key as 'kicker' | 'title' | 'body' | 'linkText' | 'href')).map((key) => (
                         <Field
                           key={key}
                           label={
@@ -286,7 +293,7 @@ export function WebsiteEditor({
                                 ? 'Button or link label'
                                 : key === 'href'
                                   ? 'Button or link destination'
-                                  : ({ title: 'Heading', body: 'Text', secondaryText: 'Second button label', secondaryHref: 'Second button destination' } as Record<string, string>)[key] ?? key
+                                  : sectionInfo(s)?.labels?.[key as 'title' | 'body'] ?? ({ title: 'Heading', body: 'Text', secondaryText: 'Second button label', secondaryHref: 'Second button destination' } as Record<string, string>)[key] ?? key
                           }
                           value={s[key as keyof typeof s] as string}
                           multiline={key === 'body' || (s.id === 'manifesto' && key === 'title')}
@@ -299,7 +306,7 @@ export function WebsiteEditor({
                         />
                       ))}
                     </div>
-                    {!(s.id === 'hero' && s.hero && s.hero.layout !== 'split') && !(s.template && !['image_text', 'banner'].includes(s.template)) && (
+                    {!(s.id === 'hero' && s.hero && s.hero.layout !== 'split') && !(s.template && !['image_text', 'banner'].includes(s.template)) && showsImage(s) && (
                     <>
                     <ImageField
                       value={s.image}
