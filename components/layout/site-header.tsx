@@ -17,14 +17,14 @@ const iconBtn = 'grid size-11 place-items-center transition-colors duration-150 
  * Three levels: the announcement bar (rendered above, scrolls away), this sticky header with the
  * navigation left, the logo centred and utilities right, and the full-width mega-menu panels below it.
  */
-export async function SiteHeader({ settings, combo }: { settings: StoreSettings; combo?: { label: string } | null }) {
+export async function SiteHeader({ settings, combo, collections = [] }: { settings: StoreSettings; combo?: { label: string } | null; collections?: { name: string; href: string }[] }) {
   const content = resolveWebsite(settings);
   // The header must not take the whole page down if the catalogue is briefly unavailable;
   // the menu then simply omits catalogue-dependent links.
   let cat: Catalogue | null = null;
   try { cat = await getCatalogue(); } catch { cat = null; }
   const hero = content.sections.find((s) => s.id === 'hero');
-  const panels = buildNavigation(content, cat, { image: hero?.image || null, alt: hero?.alt || null });
+  const panels = buildNavigation(content, cat, { image: hero?.image || null, alt: hero?.alt || null }, collections);
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">

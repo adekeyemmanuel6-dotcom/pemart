@@ -21,6 +21,17 @@ export const ComboSettingsSchema = z.object({
   enabled: z.boolean().default(true),
   headerLabel: t('Build Your Combo', 40),
   heroCta: z.object({ show: z.boolean().default(true), label: t('Build Your Combo', 40) }).prefault({}),
+  /** The homepage / menu / footer structure: the combo collections, plus the Couples Collection (the couples editions of each). */
+  collections: z.object({
+    show: z.boolean().default(true),
+    kicker: t('Our Collections', 60),
+    headline: t('Choose Your Collection', 120),
+    body: t('Behold, Abide, The Doer’s and Couples: each one goes beyond the garment, with frames, tools and a promise to keep before your eyes.', 500),
+    cta: t('Explore The Collection', 40),
+    couplesName: t('Couples Collection', 60),
+    couplesTagline: t('Two garments, one promise. Made for the two of you.', 160),
+    couplesImageUrl: t('', 500),
+  }).prefault({}),
   calculator: z.object({
     show: z.boolean().default(true),
     kicker: t('Combo Calculator', 60),

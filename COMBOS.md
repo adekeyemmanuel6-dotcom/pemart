@@ -39,3 +39,19 @@ Each collection can have a **couples edition**: the same contents (frames, diary
 - Publish both editions. In the calculator, a collection with a published couples edition shows **Just me / For two (couples)**; `/combos` shows one card per collection with a "Couples edition from ₦…" link, and the couples page links back to the single edition.
 - The order keeps both garments, with the colour, size and word each person chose.
 - The older couple's bundle is untouched; you can link it to an edition under Details → "Replaces this older bundle".
+
+## The website follows your collections
+Once you publish them, the whole site is organised around **BEHOLD, ABIDE, THE DOER'S** and the **Couples Collection** (the couples editions of each):
+- **Homepage:** a "Choose Your Collection" section right after the hero (and the manifesto strip, if shown). It **replaces the older "collections" section**, so the homepage never lists two sets. Then the calculator, as before.
+- **Menu and footer:** the Collections menu and the footer Collections list show the same collections, in your order. (If you built a custom menu in Website editor → Mega menu, your menu is kept as you made it.)
+- **`/couples`:** is the **Couples Collection** page, leading with the couples editions. The older couple packs, if you still sell them, follow under "More for couples".
+- **`/combos`:** one card per collection, plus the Couples Collection.
+- Nothing is listed until it is **published**, and a collection with no price says "Price currently unavailable".
+- Words, picture and button text for the section, and the Couples Collection's name, line and picture, are under **Combo Management → Website text → "Homepage, menu and footer: your collections"**.
+
+## Choosing the website fonts
+**Website editor → Brand & SEO → "Fonts for the whole website".** Pick a **Heading font** and a **Paragraph font**, with a live sample, then Publish. This changes the shop your customers see (not the admin).
+- Headings: Anton (the original), Bebas Neue, Oswald, Montserrat, Poppins, Playfair Display, Lora, Georgia, Arial.
+- Paragraphs: Inter, DM Sans, Oswald, Montserrat, Poppins, Lora, Georgia, Arial. "Original" keeps the current look.
+- The font files are bundled with the site (open-licence), so a choice adds no outside request, and visitors only download the font in use. The ₦ sign always renders correctly.
+- Each homepage section can still override its own heading font under that section's Style.

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ComboTrigger } from '@/components/combos/combo-trigger';
 import { JsonLd, breadcrumbLd } from '@/components/json-ld';
 import { editions, listedCollections } from '@/lib/combos/pairs';
+import { siteCollections } from '@/lib/combos/structure';
 import { startingPrice } from '@/lib/combos/pricing';
 import { getComboCatalogue, getComboSettings } from '@/lib/combos/server';
 import { UNAVAILABLE_PRICE } from '@/lib/combos/types';
@@ -19,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CombosPage() {
   const [cat, s] = await Promise.all([getComboCatalogue(), getComboSettings()]);
   const base = publicEnv.NEXT_PUBLIC_SITE_URL; const off = new Set(cat.unavailable);
+  const couplesTile = siteCollections(cat, s).find((t) => t.couples) ?? null;
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6">
       <JsonLd data={breadcrumbLd([{ name: 'Home', url: base }, { name: s.page.headline, url: `${base}/combos` }])} />
@@ -38,6 +40,15 @@ export default async function CombosPage() {
                   <Link href={`/combos/${c.slug}`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4">Details</Link></div>
                 {pair && <p className="mt-2 text-sm text-muted">Couples edition (2 garments): <Link href={`/combos/${pair.slug}`} className="font-semibold underline underline-offset-4">{pairFrom === null ? UNAVAILABLE_PRICE : `from ${formatNaira(pairFrom)}`}</Link></p>}
               </div></li>); })}
+          {couplesTile && (
+            <li className="flex flex-col rounded-lg border border-line bg-sand/40">
+              {couplesTile.image && <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg"><Image src={couplesTile.image} alt="" fill sizes="(min-width:768px) 33vw, 100vw" className="object-cover" /></div>}
+              <div className="flex flex-1 flex-col p-5">
+                <h2 className="display text-3xl"><Link href={couplesTile.href} className="hover:underline">{couplesTile.name}</Link></h2>
+                {couplesTile.tagline && <p className="mt-1 text-muted">{couplesTile.tagline}</p>}
+                <p className="mt-3 font-bold">{couplesTile.fromKobo === null ? UNAVAILABLE_PRICE : `From ${formatNaira(couplesTile.fromKobo)}`}</p>
+                <div className="mt-auto pt-4"><Link href={couplesTile.href} className="inline-flex min-h-11 items-center rounded-btn bg-ink px-5 text-sm font-semibold uppercase tracking-[0.08em] text-paper hover:bg-ink/85">See the collection</Link></div>
+              </div></li>)}
         </ul>)}
     </div>
   );

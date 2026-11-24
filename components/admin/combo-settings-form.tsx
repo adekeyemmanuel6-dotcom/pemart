@@ -10,6 +10,7 @@ import type { ComboSettings } from '@/lib/combos/schema';
 const card = 'rounded-lg border border-line bg-sand/40 p-4';
 export function ComboSettingsForm({ initial }: { initial: ComboSettings }) {
   const [s, setS] = useState<ComboSettings>(initial);
+  const cols = (p: Partial<ComboSettings['collections']>) => setS((x) => ({ ...x, collections: { ...x.collections, ...p } }));
   const calc = (p: Partial<ComboSettings['calculator']>) => setS((x) => ({ ...x, calculator: { ...x.calculator, ...p } }));
   const story = (p: Partial<ComboSettings['story']>) => setS((x) => ({ ...x, story: { ...x.story, ...p } }));
   const T = ({ id, label, value, onChange, area }: { id: string; label: string; value: string; onChange: (v: string) => void; area?: boolean }) => (
@@ -25,6 +26,15 @@ export function ComboSettingsForm({ initial }: { initial: ComboSettings }) {
         <Check id="cs-en" label="Show “Build Your Combo” on the website" checked={s.enabled} onChange={(v) => setS({ ...s, enabled: v })} />
         <div className="grid gap-3 sm:grid-cols-2"><T id="cs-hl" label="Header link text" value={s.headerLabel} onChange={(v) => setS({ ...s, headerLabel: v })} /><T id="cs-hc" label="Homepage hero button text" value={s.heroCta.label} onChange={(v) => setS({ ...s, heroCta: { ...s.heroCta, label: v } })} /></div>
         <Check id="cs-hs" label="Show the secondary button in the homepage hero" checked={s.heroCta.show} onChange={(v) => setS({ ...s, heroCta: { ...s.heroCta, show: v } })} /></section>
+      <section className={card} aria-label="Collections section"><h2 className="display mb-2 text-2xl">Homepage, menu and footer: your collections</h2>
+        <p className="mb-2 text-sm text-muted">Shows your published collections (Behold, Abide, The Doer&apos;s) and the Couples Collection. The same list fills the Collections menu and the footer. It replaces the older &ldquo;collections&rdquo; homepage section.</p>
+        <Check id="cl-show" label="Show the collections section on the homepage" checked={s.collections.show} onChange={(v) => cols({ show: v })} />
+        <div className="grid gap-3 sm:grid-cols-2"><T id="cl-k" label="Small heading" value={s.collections.kicker} onChange={(v) => cols({ kicker: v })} /><T id="cl-h" label="Headline" value={s.collections.headline} onChange={(v) => cols({ headline: v })} />
+          <div className="sm:col-span-2"><T id="cl-b" label="Text" area value={s.collections.body} onChange={(v) => cols({ body: v })} /></div>
+          <T id="cl-c" label="Card button text" value={s.collections.cta} onChange={(v) => cols({ cta: v })} />
+          <T id="cl-cn" label="Name of the couples collection" value={s.collections.couplesName} onChange={(v) => cols({ couplesName: v })} />
+          <div className="sm:col-span-2"><T id="cl-ct" label="Couples collection line" value={s.collections.couplesTagline} onChange={(v) => cols({ couplesTagline: v })} /></div>
+          <div className="sm:col-span-2"><T id="cl-ci" label="Couples collection picture link (optional)" value={s.collections.couplesImageUrl} onChange={(v) => cols({ couplesImageUrl: v })} /><div className="mt-2"><AdminUploader bucket="catalogue" label="Upload a picture" accept=".png,.jpg,.jpeg,.webp" onDone={(v) => cols({ couplesImageUrl: v.url })} /></div></div></div></section>
       <section className={card} aria-label="Homepage calculator section"><h2 className="display mb-2 text-2xl">Homepage: “Your Word. Your Style. Your Combo.”</h2>
         <Check id="cc-show" label="Show this section on the homepage" checked={s.calculator.show} onChange={(v) => calc({ show: v })} />
         <div className="grid gap-3 sm:grid-cols-2"><T id="cc-k" label="Small heading" value={s.calculator.kicker} onChange={(v) => calc({ kicker: v })} /><T id="cc-h" label="Headline" value={s.calculator.headline} onChange={(v) => calc({ headline: v })} />

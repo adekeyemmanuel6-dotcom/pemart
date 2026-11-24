@@ -43,13 +43,13 @@ const ACCESSORY_TYPES = new Set(['perfume', 'jewellery', 'bracelet', 'glasses', 
  * appears only when it exists in the catalogue or the published website content. Nothing is invented,
  * so no link lands on an empty page.
  */
-export function buildNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }): NavPanel[] {
+export function buildNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }, collections: { name: string; href: string }[] = []): NavPanel[] {
   if (content.megaMenu?.mode === 'custom' && content.megaMenu.panels.length) return fromMegaMenu(content.megaMenu);
-  return automaticNavigation(content, cat, hero);
+  return automaticNavigation(content, cat, hero, collections);
 }
 
 /** The menu built from live catalogue data (the default, and the starting point offered in the builder). */
-export function automaticNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }): NavPanel[] {
+export function automaticNavigation(content: WebsiteContent, cat: Catalogue | null, hero: { image: string | null; alt: string | null }, collections: { name: string; href: string }[] = []): NavPanel[] {
   const products = cat?.products.filter((p) => p.is_active) ?? [];
   const has = (type: string) => products.some((p) => p.type === type);
   const bundles = (cat?.bundles ?? []).filter((b) => isBundleAvailable(b));
@@ -88,7 +88,17 @@ export function automaticNavigation(content: WebsiteContent, cat: Catalogue | nu
     },
   ];
 
-  if (content.navigation.shop.length) {
+  // The Collections menu follows the site's structure: the published combo collections and the Couples Collection.
+  // Until any is published it falls back to the older brand collections.
+  if (collections.length) {
+    panels.push({
+      id: 'collections',
+      label: 'Collections',
+      href: '/combos',
+      columns: [{ heading: 'Our Collections', links: [...collections.map((c) => ({ name: c.name, href: c.href })), { href: '/combos', name: 'All Collections' }] }],
+      feature: { ...feature, eyebrow: 'Wear The Word', title: 'More than a garment.', href: '/combos', cta: 'Explore the collections' },
+    });
+  } else if (content.navigation.shop.length) {
     panels.push({
       id: 'collections',
       label: 'Collections',

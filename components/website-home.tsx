@@ -22,10 +22,8 @@ import {
   type WebsiteSection,
 } from "@/lib/website/schema";
 import { CustomSection } from "@/components/home/custom-section";
-import {
-  ComboCalculatorSection,
-  ComboStorySection,
-} from "@/components/combos/home-sections";
+import { ComboCalculatorSection, ComboCollectionsSection, ComboStorySection } from "@/components/combos/home-sections";
+import { siteCollections } from "@/lib/combos/structure";
 import type { ComboSettings } from "@/lib/combos/schema";
 import type { ComboCatalogue } from "@/lib/combos/types";
 
@@ -78,9 +76,14 @@ export function WebsiteHome({
       <ComboStorySection key="combo-story" settings={combos.settings} />
     ) : null;
   const enabledSections = content.sections.filter((s) => s.enabled);
-  const calcAfter = enabledSections.some((s) => s.id === "collections")
-    ? "collections"
-    : "hero";
+  // The site is organised around the combo collections: they come right after the hero (and the manifesto strip, if shown),
+  // then the calculator. When they are shown they replace the older "collections" section, so the homepage never lists two sets.
+  const tiles = comboOn ? siteCollections(combos!.catalogue, combos!.settings) : [];
+  const collectionsNode =
+    tiles.length > 0 && combos!.settings.collections.show ? (
+      <ComboCollectionsSection key="combo-collections" settings={combos!.settings} items={tiles} />
+    ) : null;
+  const calcAfter = enabledSections.some((s) => s.id === "manifesto") ? "manifesto" : "hero";
   const storyBefore = enabledSections.some((s) => s.id === "newsletter")
     ? "newsletter"
     : null;
@@ -110,11 +113,12 @@ export function WebsiteHome({
   return (
     <>
       {enabledSections.flatMap((s) => {
+        if (s.id === "collections" && collectionsNode) return [];
         const node = renderSection(s);
         return [
           ...(s.id === storyBefore ? [brandStory] : []),
           node,
-          ...(s.id === calcAfter ? [calc] : []),
+          ...(s.id === calcAfter ? [collectionsNode, calc] : []),
         ];
       })}
       {storyBefore === null && brandStory}

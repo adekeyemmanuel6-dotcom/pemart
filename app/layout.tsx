@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { publicEnv } from '@/lib/env';
 import { SITE } from '@/lib/site';
+import { optionalFontClasses } from './fonts';
 import './globals.css';
 
 const anton = localFont({
@@ -44,7 +45,7 @@ export const viewport: Viewport = { themeColor: '#F4F0E8', width: 'device-width'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={anton.variable}>
+    <html lang="en" className={`${anton.variable} ${optionalFontClasses}`}>
       <body>{children}</body>
     </html>
   );

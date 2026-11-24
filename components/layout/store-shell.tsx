@@ -13,8 +13,10 @@ import { OfferPopup } from '@/components/offer/offer-popup';
 import { BagDrawer } from '@/components/bag/bag-drawer';
 import { CalculatorDialog } from '@/components/combos/calculator-dialog';
 import { getComboCatalogue, getComboSettings } from '@/lib/combos/server';
+import { siteCollections } from '@/lib/combos/structure';
 import { PresaleBar } from '@/components/presale/presale-bar';
 import { PresalePoster } from '@/components/presale/presale-poster';
+import { fontStack } from '@/lib/fonts';
 import { NIGERIAN_STATES } from '@/lib/shipping';
 import { GARMENT_LABEL, presaleState } from '@/lib/presale/schema';
 import { getPresaleConfig } from '@/lib/presale/server';
@@ -27,6 +29,7 @@ import { toTitleCase } from '@/lib/presale/title-case';
  */
 export async function StoreShell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) {
   const [settings, presale, comboSettings, comboCatalogue] = await Promise.all([getSettings(), getPresaleConfig(), getComboSettings(), getComboCatalogue()]);
+  const collections = comboSettings.enabled ? siteCollections(comboCatalogue, comboSettings).map((c) => ({ name: c.name, href: c.href })) : [];
   const combo = comboSettings.enabled && comboCatalogue.collections.length > 0 ? { label: comboSettings.headerLabel } : null;
   const content = resolveWebsite(settings);
   if (settings.maintenance_mode) {
@@ -52,10 +55,19 @@ export async function StoreShell({ children, minimal = false }: { children: Reac
       : content.brand.headingStyle === 'sans'
         ? 'Arial, sans-serif'
         : undefined;
+  // Fonts chosen in Website editor → Brand & SEO (see lib/fonts.ts); "default" leaves the original look.
+  const headingStack = fontStack(content.brand.headingFont);
+  const bodyStack = fontStack(content.brand.bodyFont);
   return (
     <div
       className="min-h-screen bg-paper text-ink"
-      style={{ ...colours, ...(heading ? { '--font-display': heading } : {}) } as CSSProperties}
+      style={
+        {
+          ...colours,
+          ...(headingStack ? { '--font-display': headingStack } : heading ? { '--font-display': heading } : {}),
+          ...(bodyStack ? { fontFamily: bodyStack } : {}),
+        } as CSSProperties
+      }
     >
       <a
         href="#main"
@@ -88,11 +100,11 @@ export async function StoreShell({ children, minimal = false }: { children: Reac
         </PresaleBar>
       )}
       {!minimal && <AnnouncementBar settings={settings} />}
-      {!minimal && <SiteHeader settings={settings} combo={combo} />}
+      {!minimal && <SiteHeader settings={settings} combo={combo} collections={collections} />}
       <main id="main" className="min-h-[60vh]">
         {children}
       </main>
-      {!minimal && <SiteFooter settings={settings} />}
+      {!minimal && <SiteFooter settings={settings} collections={collections} />}
       <WhatsAppButton number={settings.whatsapp_number} />
       {!minimal && <BagDrawer />}
       {!minimal && <CalculatorDialog />}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FONT_IDS } from '@/lib/fonts';
 import pageDefaults from './page-defaults.json';
 import { BRAND_COLLECTIONS } from '@/lib/brand';
 import { MAIN_NAV, HELP_LINKS, SITE } from '@/lib/site';
@@ -183,6 +184,9 @@ export const websiteSchema = z
     brand: z.object({
       palette: z.enum(['classic', 'earth', 'forest']),
       headingStyle: z.enum(['condensed', 'sans', 'serif']),
+      // Overall fonts (lib/fonts.ts). 'default' keeps the original look; older saved content has neither field.
+      headingFont: z.enum(FONT_IDS).catch('default'),
+      bodyFont: z.enum(FONT_IDS).catch('default'),
       name: text.min(1),
       byline: text,
       footer: z.string().max(2000),
@@ -280,6 +284,8 @@ export const DEFAULT_WEBSITE: WebsiteContent = {
   brand: {
     palette: 'classic',
     headingStyle: 'condensed',
+    headingFont: 'default',
+    bodyFont: 'default',
     name: 'Wear The Word',
     byline: 'BY PEMART GLOBAL',
     footer: 'Wear what you stand on. Christian lifestyle, apparel & gifting. From Akure, Nigeria.',

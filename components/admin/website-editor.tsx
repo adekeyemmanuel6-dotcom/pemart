@@ -7,6 +7,7 @@ import { Field, ImageField, Move, reorder } from './editor-fields';
 import { MegaMenuEditor } from './mega-menu-editor';
 import { HeroEditor } from './hero-editor';
 import Link from 'next/link';
+import { FONT_CHOICES, bodyFontIds, fontStack, headingFontIds } from '@/lib/fonts';
 import { sectionInfo, showsField, showsImage } from '@/lib/website/section-fields';
 import { SectionStyleEditor } from './section-style-editor';
 import { AddSection, TemplateFields } from './template-section-fields';
@@ -167,9 +168,30 @@ export function WebsiteEditor({
                   </select>
                 </label>
               ))}
+              <div className="rounded-lg border border-line p-4 sm:col-span-2">
+                <p className="font-semibold">Fonts for the whole website</p>
+                <p className="text-sm text-muted">Choose one font for headings and one for paragraphs. &ldquo;Original&rdquo; keeps the current look. This changes the shop pages your customers see (not this admin).</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  {(['headingFont', 'bodyFont'] as const).map((key) => {
+                    const ids = key === 'headingFont' ? headingFontIds : bodyFontIds;
+                    const id = content.brand[key];
+                    return (
+                      <div key={key}>
+                        <label className="text-sm font-semibold" htmlFor={`font-${key}`}>{key === 'headingFont' ? 'Heading font' : 'Paragraph font'}</label>
+                        <select id={`font-${key}`} className={inputCls} value={id} onChange={(e) => update('brand', { ...content.brand, [key]: e.target.value as typeof id })}>
+                          {ids.map((v) => (<option key={v} value={v}>{v === 'default' ? 'Original' : FONT_CHOICES[v as keyof typeof FONT_CHOICES].label}</option>))}
+                        </select>
+                        {id !== 'default' && <p className="mt-1 text-xs text-muted">{FONT_CHOICES[id as keyof typeof FONT_CHOICES].note}</p>}
+                        <p className="mt-2 rounded border border-line bg-paper p-3 text-ink" style={{ fontFamily: fontStack(id) ?? undefined }} data-testid={`sample-${key}`}>
+                          {key === 'headingFont' ? <span className="text-3xl uppercase leading-none">Wear Your Faith. Live The Word.</span> : <span className="text-base">Create a meaningful collection designed around your faith. ₦18,000 · Sizes S to XXL.</span>}
+                        </p>
+                      </div>);
+                  })}
+                </div>
+              </div>
               {(
                 Object.keys(content.brand).filter(
-                  (key) => !['palette', 'headingStyle', 'logoOnLight', 'logoOnDark'].includes(key),
+                  (key) => !['palette', 'headingStyle', 'headingFont', 'bodyFont', 'logoOnLight', 'logoOnDark'].includes(key),
                 ) as (keyof WebsiteContent['brand'])[]
               ).map((key) => (
                 <Field
@@ -186,6 +208,8 @@ export function WebsiteEditor({
                       maintenanceMessage: 'Maintenance message',
                       palette: 'Colour palette',
                       headingStyle: 'Heading style',
+                      headingFont: 'Heading font',
+                      bodyFont: 'Paragraph font',
                       logoOnLight: 'Logo (light backgrounds)',
                       logoOnDark: 'Logo (dark backgrounds)',
                     }[key]

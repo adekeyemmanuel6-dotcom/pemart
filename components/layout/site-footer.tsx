@@ -11,7 +11,7 @@ import { NewsletterForm } from './newsletter-form';
 const heading = 'mb-3 text-xs font-semibold uppercase tracking-widest text-paper/60';
 const link = 'flex min-h-11 items-center text-paper/90 hover:text-white hover:underline underline-offset-4';
 
-export function SiteFooter({ settings }: { settings: StoreSettings }) {
+export function SiteFooter({ settings, collections = [] }: { settings: StoreSettings; collections?: { name: string; href: string }[] }) {
   const content = resolveWebsite(settings);
   return (
     <footer className="mt-24 bg-ink text-paper">
@@ -25,7 +25,7 @@ export function SiteFooter({ settings }: { settings: StoreSettings }) {
         <nav aria-label="Collections">
           <p className={heading}>Collections</p>
           <ul>
-            {content.navigation.shop.map((c) => (
+            {(collections.length ? collections : content.navigation.shop).map((c) => (
               <li key={c.href}>
                 <Link href={c.href} className={link}>
                   {c.name}

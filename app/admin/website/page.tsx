@@ -7,6 +7,8 @@ import { PageTitle } from '@/components/admin/ui';
 import { WebsiteHistory, type Revision } from '@/components/admin/website-history';
 import { getCatalogue } from '@/lib/catalogue/load';
 import { automaticNavigation } from '@/lib/navigation';
+import { getComboCatalogue, getComboSettings } from '@/lib/combos/server';
+import { siteCollections } from '@/lib/combos/structure';
 export const metadata = { title: 'Website editor' };
 export default async function WebsiteAdminPage() {
   const me = await requirePerm('content', '/admin/website');
@@ -19,7 +21,8 @@ export default async function WebsiteAdminPage() {
   const content = resolveWebsite(settings);
   const hero = content.sections.find((s) => s.id === 'hero');
   const cat = await getCatalogue().catch(() => null);
-  const automaticMenu = automaticNavigation(content, cat, { image: hero?.image || null, alt: hero?.alt || null });
+  const siteTiles = siteCollections(await getComboCatalogue(), await getComboSettings()).map((c) => ({ name: c.name, href: c.href }));
+  const automaticMenu = automaticNavigation(content, cat, { image: hero?.image || null, alt: hero?.alt || null }, siteTiles);
   const collections = (cat?.collections ?? []).filter((c) => c.is_active).map((c) => ({ slug: c.slug, name: c.name }));
   // Version history arrives with migration 0017; without it the editor still works.
   let history: Revision[] | null = null;
