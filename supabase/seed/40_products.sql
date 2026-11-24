@@ -8,7 +8,8 @@ select d.slug || '-tee', d.name || ' Oversized Tee', 'tee', d.id, d.collection_i
   d.slug in ('seek-first','all-things','god-dey','grace-dey-load','two-are-better','unto-us'),
   d.collection_id = (select id from public.collections where slug='christmas-drop'),
   'Oversized heavyweight tee with the "' || d.name || '" design. Made to order in Nigeria, delivered in 5 days.'
-from public.designs d;
+from public.designs d
+where d.collection_id is not null;   -- designs without a collection (the newer word designs) have their own products from migration 0030
 
 insert into public.products (slug, name, type, design_id, collection_id, description, care, base_price_kobo, is_made_to_order, is_featured, is_seasonal, seo_description)
 select d.slug || '-hoodie', d.name || ' Hoodie', 'hoodie', d.id, d.collection_id,
@@ -17,7 +18,8 @@ select d.slug || '-hoodie', d.name || ' Hoodie', 'hoodie', d.id, d.collection_id
   4200000, true, d.slug in ('seek-first','nothing-impossible','the-word'),
   d.collection_id = (select id from public.collections where slug='christmas-drop'),
   'Oversized hoodie with the "' || d.name || '" design. Made to order, delivered in 5 days.'
-from public.designs d;
+from public.designs d
+where d.collection_id is not null;   -- designs without a collection (the newer word designs) have their own products from migration 0030
 
 insert into public.products (slug, name, type, design_id, collection_id, description, care, base_price_kobo, compare_at_kobo, is_made_to_order, seo_description)
 select d.slug || '-frame', d.name || ' Scripture Frame', 'frame', d.id, d.collection_id,
@@ -34,21 +36,21 @@ select p.id, upper(p.slug || '-' || replace(c.colour,' ','') || '-' || s.size), 
 from public.products p
 cross join (values ('Blue Jean'),('Mocha'),('Sand'),('Black'),('Navy')) as c(colour)
 cross join (values ('S'),('M'),('L'),('XL'),('XXL'),('XXXL')) as s(size)
-where p.type = 'tee' and s.size <> 'XXXL';
+where p.type = 'tee' and s.size <> 'XXXL' and exists (select 1 from public.designs d where d.id = p.design_id and d.collection_id is not null);
 
 insert into public.product_variants (product_id, sku, colour, size, stock_qty)
 select p.id, upper(p.slug || '-' || replace(c.colour,' ','') || '-' || s.size), c.colour, s.size, null
 from public.products p
 cross join (values ('Black'),('Sand'),('Mocha')) as c(colour)
 cross join (values ('S'),('M'),('L'),('XL'),('XXL')) as s(size)
-where p.type = 'hoodie';
+where p.type = 'hoodie' and exists (select 1 from public.designs d where d.id = p.design_id and d.collection_id is not null);
 
 -- Frames: size and finish. A3 costs more (price override).
 insert into public.product_variants (product_id, sku, size, option, price_kobo, stock_qty)
 select p.id, upper(p.slug || '-' || z.size || '-' || z.finish), z.size, z.finish, z.price, null
 from public.products p
 cross join (values ('A4','Black',1500000),('A4','Wood',1500000),('A3','Black',2500000),('A3','Wood',2500000)) as z(size, finish, price)
-where p.type = 'frame';
+where p.type = 'frame' and exists (select 1 from public.designs d where d.id = p.design_id and d.collection_id is not null);
 
 -- ---- Stocked accessories ----
 insert into public.products (slug, name, type, collection_id, description, care, base_price_kobo, is_made_to_order, is_featured, is_seasonal, seo_description)
@@ -93,11 +95,12 @@ where p.slug = 'gift-card';
 -- ---- Product images (placeholders until real photography is uploaded) ----
 insert into public.product_images (product_id, url, alt, view, sort_order)
 select p.id, d.preview_image, p.name || ' design', 'front', 0
-from public.products p join public.designs d on d.id = p.design_id;
+from public.products p join public.designs d on d.id = p.design_id
+where d.preview_image is not null;
 
 insert into public.product_images (product_id, url, alt, view, sort_order)
 select p.id, '/placeholders/' || p.type || '.svg', p.name || ' garment', 'detail', 1
-from public.products p where p.design_id is not null;
+from public.products p where p.design_id is not null and p.type in ('tee', 'hoodie', 'frame') and exists (select 1 from public.designs d where d.id = p.design_id and d.preview_image is not null);
 
 insert into public.product_images (product_id, url, alt, view, sort_order)
 select p.id,

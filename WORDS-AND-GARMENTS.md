@@ -35,25 +35,27 @@ In the combo calculator, any garment or frame that allows the customer's own tex
 - Switching a word off (Designs → inactive) removes it from the list straight away, and refuses a bag that still contains it.
 - Needs `supabase/migrations/0027_combo_words.sql` (apply after 0026; rollback in `supabase/rollback/0027_combo_words.sql`).
 
-## The first five words (migration 0029)
-`supabase/migrations/0029_word_garments.sql` sets up the garments for five words so only prices and photos are left:
+## Your word catalogue (migration 0030)
+`supabase/migrations/0030_word_catalogue.sql` creates your words and frames. **Run it in the Supabase SQL editor.** Until you run it, the catalogue only shows the old demo products.
 
-| Word | Verse |
-| --- | --- |
-| Through Christ That Strengthens Me (was "All Things") | Philippians 4:13 |
-| Seek First | Matthew 6:33 |
-| Be Still | Psalm 46:10 |
-| Trust in the Lord | Proverbs 3:5 |
-| I Shall Not Want | Psalm 23:1 |
+**On T-shirts (Normal and Premium), sweatshirts and hoodies:**
+Jesus is King (Revelation 19:16) · Faith Over Fear (Psalm 118:6) · Na God Dey Run am (Psalm 37:5) · No be Luck, Na Grace (Ephesians 2:8) · Daily Loaded with benefits (Psalm 68:19) · No Longer a Slave to Sin (Romans 6:6) · Jesus No dey Fail (Hebrews 13:8) · Sin Has No Hold Over me (Romans 6:14)
 
-For each word it creates a **Normal T-shirt, Premium T-shirt, Sweatshirt and Hoodie** (20 products), each in **Black, White, Royal Blue, Army Green, Yellow, Navy Blue, Pink and Brown** and sizes **S, M, L, XL, XXL** (800 variants, made to order, SKUs start with `WORD-`).
-- They are **drafts with a price of ₦0**. A garment **cannot be made Active while its price is ₦0** (the admin says "Set a price before making this product active").
-- The older single tee and hoodie of those five words are **archived** (kept for past orders, never deleted); the old hoodie's address becomes `…-hoodie-old`. Frames are untouched.
-- Safe to re-run: it never duplicates or overwrites a price or photo you added. To change the words, colours or sizes, edit the three lists at the top of the file before running. Rollback: `supabase/rollback/0029_word_garments.sql` (removes only never-ordered, still-unpriced drafts).
+Each word gets four products (Normal T-shirt, Premium T-shirt, Sweatshirt, Hoodie), each in **Black, White, Royal Blue, Army Green, Yellow, Navy Blue, Pink, Brown** and **S, M, L, XL, XXL**: 32 products, 1,280 variants, made to order.
+
+**Frames** (sizes 12 × 16 and 16 × 20 inches, to match the combos): Faith Over Fear (Psalm 118:6) · I Can Do All Things Through Christ (Philippians 4:13) · The Light Shines In the Darkness (John 1:5) · Saved by Grace Fueled by Faith (Ephesians 2:8-9) · He left the 99 to find me (Luke 15:4) · Scriptures on Business (Proverbs 16:3) · Scriptures on Finances (Philippians 4:19) · Scriptures on Favour (Psalm 5:12) · Scriptures on Health (3 John 1:2) · Scriptures on Strength (Isaiah 40:31). 10 frame products.
+
+**Please check the verses.** The verse for each word is my choice (King James text); change any of them under Admin → Catalogue → Designs. The five "Scriptures on …" frames each use one anchor verse; if a frame should carry several scriptures, edit its design's text.
+
+**What the migration does**
+- Everything is a **draft with a price of ₦0**. A garment or frame **cannot be made Active while its price is ₦0**.
+- It **archives the old demo tees, hoodies and frames** (kept for past orders, restorable from the product's Status). Products that gift boxes or couple packs still use are left alone, and accessories, gift cards and combos are untouched.
+- It removes the draft garments of an earlier version of this set, if you ran it.
+- Safe to re-run: it never duplicates or overwrites a price, photo or text you changed. To change words, verses, colours or sizes, edit the lists at the top of the file first.
 
 ### What you do next, per product
-1. **Price**: Admin → Catalogue → Products → open the product → Price → Save. (Fastest for 20 products: Catalogue → Export products as CSV, fill the `price` column, then Import. Importing updates existing products by slug.)
-2. **Photos**: upload the photos of that garment with that word, and set each photo's colour (or "All colours").
-3. **Status → Active**, then Save. It appears on the word page (`/words/<word>`) and in the shop.
+1. **Price**: the fastest way for 42 products is Catalogue → Export products (CSV), fill the `price` column, then Import. Import updates existing products by slug.
+2. **Photos**: upload them and set each photo's colour (or "All colours").
+3. **Status → Active**, then Save. It then appears on the word page (`/words/<word>`) and in the shop.
 
-Add more words later the same way: add the word under Designs, then create its four garments (duplicate the pattern, or ask for the same migration with a new word list).
+To find the new products in the admin: Catalogue → Products → Status → Draft.
