@@ -43,7 +43,7 @@ export function ImageManager({ productId, initial, colours = [] }: { productId: 
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={im.url} alt="" className="size-20 rounded object-cover" />
                   <div className={`grid min-w-48 flex-1 gap-2 ${colours.length ? 'sm:grid-cols-[1fr_8rem_9rem]' : 'sm:grid-cols-[1fr_8rem]'}`}>
-                    <div><label className="sr-only" htmlFor={`alt-${i}`}>Alt text for image {i + 1}</label><input id={`alt-${i}`} value={im.alt} onChange={(e) => set(i, { alt: e.target.value })} placeholder="Describe the photo (alt text)" className={inputCls} /></div>
+                    <div><label className="sr-only" htmlFor={`alt-${i}`}>Description for image {i + 1} (optional)</label><input id={`alt-${i}`} value={im.alt} onChange={(e) => set(i, { alt: e.target.value })} placeholder="Describe the photo (optional)" className={inputCls} /></div>
                     <div><label className="sr-only" htmlFor={`view-${i}`}>View for image {i + 1}</label><select id={`view-${i}`} value={im.view} onChange={(e) => set(i, { view: e.target.value as Img['view'] })} className={inputCls}>{['front', 'back', 'model', 'detail'].map((v) => (<option key={v}>{v}</option>))}</select></div>
                     {colours.length > 0 && (<div><label className="sr-only" htmlFor={`colour-${i}`}>Colour for image {i + 1}</label><select id={`colour-${i}`} value={im.colour ?? ''} onChange={(e) => set(i, { colour: e.target.value || null })} className={inputCls}><option value="">All colours</option>{colours.map((c) => (<option key={c} value={c}>{c} only</option>))}</select></div>)}
                   </div>

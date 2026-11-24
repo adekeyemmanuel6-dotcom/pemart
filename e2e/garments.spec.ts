@@ -85,7 +85,7 @@ test('admin: choose the type, quality and which colour each photo belongs to', a
   expect(a.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 100)}`)).toEqual([]);
 });
 
-test('admin: add a photo straight into a colour section and it is saved for that colour', async ({ page }) => {
+test('admin: add a photo straight into a colour section (no description needed) and it is saved for that colour', async ({ page }) => {
   const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   await page.goto(`${B}/api/dev/login?email=admin@example.com&role=admin&next=/admin/catalogue`);
   const [p] = await q(`select id from products where slug = 'e2e-word-sweatshirt'`);
@@ -98,10 +98,17 @@ test('admin: add a photo straight into a colour section and it is saved for that
     if (!(await white.getByText('(1 photo)').count())) await white.locator('input[type=file]').setInputFiles({ name: 'white-sweatshirt.png', mimeType: 'image/png', buffer: PNG });
     await expect(white.getByText('(1 photo)')).toBeVisible({ timeout: 6000 });
   }).toPass({ timeout: 40_000 });
-  await white.getByPlaceholder('Describe the photo (alt text)').fill('White sweatshirt, front');
+  // no description typed: alt text is optional
   await page.getByRole('button', { name: 'Save images' }).click();
   await expect(page.getByText('Images saved in this order.')).toBeVisible();
-  expect((await q(`select colour, alt from product_images where product_id = $1`, [p.id]))).toEqual([{ colour: 'White', alt: 'White sweatshirt, front' }]);
+  expect((await q(`select colour, alt from product_images where product_id = $1`, [p.id]))).toEqual([{ colour: 'White', alt: '' }]);
+  // the shop describes it with the product name and colour instead
+  await expect(async () => {
+    await page.goto(`${B}/products/e2e-word-sweatshirt`);
+    await page.getByRole('button', { name: 'White', exact: true }).click();
+    await expect(page.getByAltText('Through Christ Sweatshirt, White').first()).toBeVisible({ timeout: 4000 });
+  }).toPass({ timeout: 60_000 });
+  await page.goto(`${B}/admin/catalogue/products/${p.id}`);
   const a = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(a.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 100)}`)).toEqual([]);
 });

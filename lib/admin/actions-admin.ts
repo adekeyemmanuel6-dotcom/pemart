@@ -186,10 +186,9 @@ export async function saveImagesAction(_p: AdminResult, fd: FormData): Promise<A
           colour: z.string().trim().max(40).nullable().optional(),
         }),
       )
-      .max(20)
+      .max(60)
       .parse(JSON.parse(str(fd, 'images') || '[]'));
-    if (images.some((i) => !i.alt.trim()))
-      return { ok: false, message: 'Every image needs alt text (a short description for screen readers).' };
+    // Alt text is optional: when it is empty the store describes the photo with the product name and colour.
     await adm('admin_images_save', me, { product_id: uuid.parse(str(fd, 'productId')), images });
     refreshStorefront();
     return done('Images saved in this order.');
