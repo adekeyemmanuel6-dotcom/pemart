@@ -34,3 +34,26 @@ Tip: duplicate the product name pattern ("<Word>, Premium T-shirt") so customers
 In the combo calculator, any garment or frame that allows the customer's own text now also offers **"Word for the garment / frame"**, listing your active words. They can pick one, write their own words, or both. The choice never changes the price. It is shown in the bag and kept on the order (with the word's id), the order page, packing slip and emails.
 - Switching a word off (Designs → inactive) removes it from the list straight away, and refuses a bag that still contains it.
 - Needs `supabase/migrations/0027_combo_words.sql` (apply after 0026; rollback in `supabase/rollback/0027_combo_words.sql`).
+
+## The first five words (migration 0029)
+`supabase/migrations/0029_word_garments.sql` sets up the garments for five words so only prices and photos are left:
+
+| Word | Verse |
+| --- | --- |
+| Through Christ That Strengthens Me (was "All Things") | Philippians 4:13 |
+| Seek First | Matthew 6:33 |
+| Be Still | Psalm 46:10 |
+| Trust in the Lord | Proverbs 3:5 |
+| I Shall Not Want | Psalm 23:1 |
+
+For each word it creates a **Normal T-shirt, Premium T-shirt, Sweatshirt and Hoodie** (20 products), each in **Black, White, Royal Blue, Army Green, Yellow, Navy Blue, Pink and Brown** and sizes **S, M, L, XL, XXL** (800 variants, made to order, SKUs start with `WORD-`).
+- They are **drafts with a price of ₦0**. A garment **cannot be made Active while its price is ₦0** (the admin says "Set a price before making this product active").
+- The older single tee and hoodie of those five words are **archived** (kept for past orders, never deleted); the old hoodie's address becomes `…-hoodie-old`. Frames are untouched.
+- Safe to re-run: it never duplicates or overwrites a price or photo you added. To change the words, colours or sizes, edit the three lists at the top of the file before running. Rollback: `supabase/rollback/0029_word_garments.sql` (removes only never-ordered, still-unpriced drafts).
+
+### What you do next, per product
+1. **Price**: Admin → Catalogue → Products → open the product → Price → Save. (Fastest for 20 products: Catalogue → Export products as CSV, fill the `price` column, then Import. Importing updates existing products by slug.)
+2. **Photos**: upload the photos of that garment with that word, and set each photo's colour (or "All colours").
+3. **Status → Active**, then Save. It appears on the word page (`/words/<word>`) and in the shop.
+
+Add more words later the same way: add the word under Designs, then create its four garments (duplicate the pattern, or ask for the same migration with a new word list).
