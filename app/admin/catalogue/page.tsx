@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ActionForm } from '@/components/admin/action-form';
-import { bulkProductStatusAction } from '@/lib/admin/actions-catalogue';
+import { ProductBulk } from '@/components/admin/product-bulk';
 import { Card, DataTable, PageTitle, inputCls, labelCls } from '@/components/admin/ui';
 import { adm, requirePerm } from '@/lib/admin/db';
 import { saveCollectionAction, saveDesignAction, saveProductAction } from '@/lib/admin/actions-admin';
@@ -18,10 +18,6 @@ const TABS = ['products', 'bundles', 'designs', 'collections'] as const;
 type Status = 'draft' | 'active' | 'archived';
 /** Before migration 0021 there is no status column: derive it from visibility. */
 const statusOf = (p: { status?: Status; is_active: boolean }): Status => p.status ?? (p.is_active ? 'active' : 'draft');
-function StatusPill({ s }: { s: Status }) {
-  const cls = s === 'active' ? 'bg-[#1f3d2b] text-[#bfe6cb]' : s === 'draft' ? 'bg-sand text-ink' : 'bg-transparent text-muted border border-line';
-  return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{s === 'active' ? 'Active' : s === 'draft' ? 'Draft' : 'Archived'}</span>;
-}
 const TYPES = ['tee', 'sweatshirt', 'hoodie', 'frame', 'perfume', 'jewellery', 'bracelet', 'glasses', 'fun', 'gift_card'];
 
 export default async function CataloguePage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; status?: string }> }) {
@@ -46,18 +42,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
             </Link>
           ))}
         </nav>
-        <ActionForm action={bulkProductStatusAction} submitLabel="Apply to ticked products" pendingLabel="Updating…" variant="secondary">
-          <DataTable caption="Products" head={['', 'Product', 'Type', 'Price', 'Variants', 'Photos', 'Status']}>
-            {cat.products.filter((p) => (!q || p.name.toLowerCase().includes(q) || p.slug.includes(q)) && (!sp.status || statusOf(p) === sp.status)).map((p) => (
-              <tr key={p.id}>
-                <td className="px-3 py-2.5"><input type="checkbox" name="ids" value={p.id} aria-label={`Select ${p.name}`} className="size-5 accent-ink" /></td>
-                <td className="px-3 py-2.5"><Link href={`/admin/catalogue/products/${p.id}`} className="font-semibold underline underline-offset-4">{p.name}</Link><div className="text-xs text-muted">{p.slug}</div></td><td className="px-3 py-2.5">{p.type}</td><td className="px-3 py-2.5">{formatNaira(p.base_price_kobo)}</td><td className="px-3 py-2.5">{p.variants}</td><td className="px-3 py-2.5">{p.images}</td>
-                <td className="px-3 py-2.5"><StatusPill s={statusOf(p)} /></td>
-              </tr>))}
-          </DataTable>
-          <div className="mt-3 flex flex-wrap items-end gap-2"><label htmlFor="bulk-status" className={labelCls}>Set ticked products to</label>
-            <select id="bulk-status" name="status" className={`${inputCls} max-w-48`}><option value="active">Active (on the store)</option><option value="draft">Draft (hidden)</option><option value="archived">Archived</option></select></div>
-        </ActionForm>
+        <ProductBulk key={`${sp.status ?? ''}|${sp.q ?? ''}`} rows={cat.products.filter((p) => (!q || p.name.toLowerCase().includes(q) || p.slug.includes(q)) && (!sp.status || statusOf(p) === sp.status)).map((p) => ({ id: p.id, name: p.name, slug: p.slug, type: p.type, price: formatNaira(p.base_price_kobo), variants: p.variants, images: p.images, status: statusOf(p) }))} />
         <Card title="New product" className="mt-5"><ActionForm action={saveProductAction} submitLabel="Create product" pendingLabel="Creating…" resetOnSuccess>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div><label className={labelCls} htmlFor="np-name">Name</label><input id="np-name" name="name" required className={inputCls} /></div>

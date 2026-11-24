@@ -59,3 +59,10 @@ Each word gets four products (Normal T-shirt, Premium T-shirt, Sweatshirt, Hoodi
 3. **Status → Active**, then Save. It then appears on the word page (`/words/<word>`) and in the shop.
 
 To find the new products in the admin: Catalogue → Products → Status → Draft.
+
+## Selecting many products at once (migration 0031)
+Apply `supabase/migrations/0031_catalogue_bulk.sql` (rollback: `supabase/rollback/0031_catalogue_bulk.sql`). Then, in Admin → Catalogue → Products:
+- Tick products, or tick the box in the table header to **select all shown** (the status tabs and the search narrow what is shown first, so "all shown" means just those).
+- **Set status**: Active, Draft or Archived for everything selected.
+- **Same price for selected**: one price for all selected products (must be above ₦0), for example all Premium T-shirts.
+- **Delete archived**: permanently deletes the selected products that are **Archived**. It asks you to tick a confirmation box and confirm again. Active and draft products are never deleted by it, and an archived product that is on a past order is kept (so old orders stay readable). Photos and variants of a deleted product are deleted with it.

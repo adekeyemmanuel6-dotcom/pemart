@@ -54,3 +54,45 @@ export async function bulkProductStatusAction(_p: AdminResult, fd: FormData): Pr
     }
   });
 }
+
+const idsOf = (fd: FormData) => fd.getAll('ids').map(String).filter((x) => z.uuid().safeParse(x).success).slice(0, 500);
+const NEEDS_0031 = 'This needs a database update first: apply supabase/migrations/0031_catalogue_bulk.sql in Supabase, then try again.';
+
+/** Give the same price to several products at once. */
+export async function bulkProductPriceAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
+  const me = await requirePerm('catalogue');
+  const ids = idsOf(fd);
+  const raw = str(fd, 'price').replace(/[,₦\s]/g, '');
+  if (ids.length === 0) return { ok: false, message: 'Tick at least one product first.' };
+  if (!/^\d+(\.\d{1,2})?$/.test(raw) || Number(raw) <= 0) return { ok: false, message: 'Enter a price above zero, like 18000.' };
+  const priceKobo = Math.round(Number(raw) * 100);
+  return run(['/admin/catalogue'], async () => {
+    try {
+      const r = await adm<{ updated: number }>('admin_products_set_price', me, { ids, price_kobo: priceKobo });
+      refreshStorefront();
+      return { ok: true, message: `Price set on ${r.updated} product${r.updated === 1 ? '' : 's'}.` };
+    } catch (e) {
+      if (isMissingFunction(e)) return { ok: false, message: NEEDS_0031 };
+      throw e;
+    }
+  });
+}
+
+/** Permanently delete archived products that were never ordered. */
+export async function bulkProductDeleteAction(_p: AdminResult, fd: FormData): Promise<AdminResult> {
+  const me = await requirePerm('catalogue');
+  const ids = idsOf(fd);
+  if (ids.length === 0) return { ok: false, message: 'Tick at least one archived product first.' };
+  if (str(fd, 'confirm') !== 'yes') return { ok: false, message: 'Tick the box to confirm the permanent delete.' };
+  return run(['/admin/catalogue'], async () => {
+    try {
+      const r = await adm<{ deleted: number; not_archived: number; kept_because_ordered: number }>('admin_products_delete', me, { ids });
+      refreshStorefront();
+      const notes = [r.not_archived ? `${r.not_archived} not archived, so kept` : '', r.kept_because_ordered ? `${r.kept_because_ordered} kept because they are on past orders` : ''].filter(Boolean);
+      return { ok: true, message: `${r.deleted} product${r.deleted === 1 ? '' : 's'} deleted${notes.length ? ` (${notes.join('; ')})` : ''}.` };
+    } catch (e) {
+      if (isMissingFunction(e)) return { ok: false, message: NEEDS_0031 };
+      throw e;
+    }
+  });
+}

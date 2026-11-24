@@ -137,4 +137,37 @@ describe.skipIf(!TEST_DB)('sweatshirts, quality and colour photos (migration 002
       expect(r.error?.message ?? '').toMatch(/Set a price before making this product active/);
     });
   });
+
+  describe('migration 0031: bulk price and deleting archived products', () => {
+    const mk = async (slug: string, status: string, price = 1_000_000) => (await save({ slug, name: slug, type: 'tee', base_price_kobo: price, status })).data.id as string;
+    it('sets one price on many products, refuses zero, ignores gift cards, and needs an admin', async () => {
+      const a = await mk('bulk-a', 'draft'), b = await mk('bulk-b', 'draft');
+      const gc = await save({ slug: 'bulk-card', name: 'card', type: 'gift_card', base_price_kobo: 500, status: 'draft' });
+      const r = await rpc('admin_products_set_price', { actor: admin, ids: [a, b, gc.data.id], price_kobo: 1_800_000 });
+      expect(r.data).toEqual({ updated: 2 });
+      expect((await q(`select base_price_kobo::int p from products where id in ($1,$2) order by id`, [a, b])).map((x) => x.p)).toEqual([1_800_000, 1_800_000]);
+      expect(Number((await q(`select base_price_kobo from products where id = $1`, [gc.data.id]))[0]!.base_price_kobo)).toBe(500);
+      expect((await rpc('admin_products_set_price', { actor: admin, ids: [a], price_kobo: 0 })).error?.message).toMatch(/above zero/);
+      const cust = await makeUser('c-bulk@example.com');
+      expect((await rpc('admin_products_set_price', { actor: cust, ids: [a], price_kobo: 100 })).error?.message).toMatch(/forbidden/);
+    });
+    it('deletes only archived products never ordered; reports what it kept; photos and variants go with them', async () => {
+      const arch = await mk('bulk-arch', 'archived'), live = await mk('bulk-live', 'active'), ordered = await mk('bulk-ordered', 'archived');
+      await q(`insert into product_variants (product_id, sku, colour, size) values ($1,'BULK-ARCH-1','Black','M'), ($2,'BULK-ORD-1','Black','M')`, [arch, ordered]);
+      await q(`insert into product_images (product_id, url, alt) values ($1,'/x.jpg','x')`, [arch]);
+      const [o] = await q(`insert into orders (contact_email, contact_phone, address, subtotal_kobo, total_kobo) values ('buyer@example.com', '+2348031234567', '{}'::jsonb, 100, 100) returning id`);
+      const [v] = await q(`select id from product_variants where sku = 'BULK-ORD-1'`);
+      await q(`insert into order_items (order_id, kind, name, quantity, unit_price_kobo, variant_id) values ($1, 'variant', 'x', 1, 100, $2)`, [o!.id, v!.id]);
+      const r = await rpc('admin_products_delete', { actor: admin, ids: [arch, live, ordered] });
+      expect(r.error).toBeNull();
+      expect(r.data.not_archived).toBe(1);
+      expect(await q(`select 1 from products where id = $1`, [arch])).toHaveLength(0);
+      expect(await q(`select 1 from product_variants where product_id = $1`, [arch])).toHaveLength(0);
+      expect(await q(`select 1 from product_images where product_id = $1`, [arch])).toHaveLength(0);
+      expect(await q(`select 1 from products where id = $1`, [live])).toHaveLength(1);             // active: never deleted
+      expect(r.data.kept_because_ordered).toBe(1);
+      expect(r.data.deleted).toBe(1);
+      expect(await q(`select 1 from products where id = $1`, [ordered])).toHaveLength(1);                // on a past order: kept
+    });
+  });
 });
